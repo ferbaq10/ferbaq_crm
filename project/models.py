@@ -2,6 +2,15 @@ from django.db import models
 from catalog.models import ProjectStatus, Speciality, Subdivision, BusinessGroup, WorkCell
 
 class Project(models.Model):
+    name = models.CharField(
+        unique=True,
+        max_length=100,
+        verbose_name="Nombre",
+        error_messages={
+            'unique': "Este nombre de proyecto ya existe.",
+            'max_length': "El nombre no puede exceder 100 caracteres."
+        }
+    )
     description = models.TextField(
         blank=True,
         null=True,
@@ -24,8 +33,6 @@ class Project(models.Model):
     project_status = models.ForeignKey(
         ProjectStatus,
         on_delete=models.DO_NOTHING,
-        blank=True,
-        null=True,
         verbose_name="Estatus del proyecto"
     )
     speciality = models.ForeignKey(
@@ -38,22 +45,16 @@ class Project(models.Model):
     subdivision = models.ForeignKey(
         Subdivision,
         on_delete=models.DO_NOTHING,
-        blank=True,
-        null=True,
         verbose_name="Subdivisión"
     )
     business_groups = models.ForeignKey(
         BusinessGroup,
         on_delete=models.DO_NOTHING,
-        blank=True,
-        null=True,
         verbose_name="Grupo empresarial"
     )
     work_cell = models.ForeignKey(
         WorkCell,
         on_delete=models.DO_NOTHING,
-        blank=True,
-        null=True,
         verbose_name="Célula de trabajo"
     )
 

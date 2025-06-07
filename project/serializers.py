@@ -2,10 +2,18 @@ from rest_framework import serializers
 from .models import Project
 
 class ProjectSerializer(serializers.ModelSerializer):
+   
     class Meta:
         model = Project
         fields = '__all__'
         extra_kwargs = {
+            'name': {
+                'required': True,
+                'error_messages': {
+                    'required': 'El nombre es obligatorio.',
+                    'blank': 'El nombre no puede estar vacío.'
+                }
+            },
             'latitude': {
                 'required': False,
                 'error_messages': {

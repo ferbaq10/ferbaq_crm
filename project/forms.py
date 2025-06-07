@@ -16,6 +16,22 @@ class ProjectForm(forms.ModelForm):
             'work_cell': 'Célula de trabajo',
         }
         error_messages = {
+            'name': {
+                'required': 'Este campo es obligatorio.',
+                'unique': 'Ya existe un proyecto con este nombre.'
+            },
+            'project_status': {
+                'required': 'Este campo es obligatorio.',
+            },
+             'speciality': {
+                'required': 'Este campo es obligatorio.',
+            },
+             'subdivision': {
+                'required': 'Este campo es obligatorio.',
+            },
+             'business_groups': {
+                'required': 'Este campo es obligatorio.',
+            },
             'latitude': {
                 'invalid': 'Ingrese una latitud válida.',
             },
