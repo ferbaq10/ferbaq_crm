@@ -37,10 +37,10 @@ class Opportunity(models.Model):
         return self.name
     
 
-class ComercialActivity(models.Model):
+class CommercialActivity(models.Model):
     name = models.CharField(unique=True, max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
-    oportunity_id = models.ForeignKey(
+    opportunity_id = models.ForeignKey(
         Opportunity,
         on_delete=models.DO_NOTHING,
         blank=True,

@@ -93,7 +93,9 @@ class Division(models.Model):
     business_group = models.ForeignKey(
         BusinessGroup,
         on_delete=models.DO_NOTHING,
-        verbose_name="Grupo empresarial"
+        verbose_name="Grupo empresarial",
+        blank=True,
+        null=True
     )
 
     class Meta:
@@ -182,7 +184,7 @@ class City(models.Model):
     )
 
     class Meta:
-        db_table = 'catalog_city'
+        db_table = 'catalog_cities'
         verbose_name = "Ciudad"
         verbose_name_plural = "Ciudades"
 

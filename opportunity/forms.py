@@ -1,5 +1,5 @@
 from django import forms
-from .models import Opportunity, ComercialActivity
+from .models import Opportunity, CommercialActivity
 from django.core.validators import validate_email
 
 class OpportunityForm(forms.ModelForm):
@@ -36,7 +36,7 @@ class OpportunityForm(forms.ModelForm):
 
 class ComercialActivityForm(forms.ModelForm):
     class Meta:
-        model = ComercialActivity
+        model = CommercialActivity
         fields = '__all__'
         labels = {
             'name': 'Nombre',
