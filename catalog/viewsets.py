@@ -1,4 +1,6 @@
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import ModelViewSet
+
 from catalog.models import (
     UDN, WorkCell, BusinessGroup, Division, Subdivision, Speciality,
     ProjectStatus, City, Period, StatusOpportunity
@@ -6,51 +8,59 @@ from catalog.models import (
 from catalog.serializers import (
     UDNSerializer, WorkCellSerializer, BusinessGroupSerializer, DivisionSerializer,
     SubdivisionSerializer, SpecialitySerializer, ProjectStatusSerializer, CitySerializer,
-     PeriodSerializer, StatusOpportunitySerializer
+    PeriodSerializer, StatusOpportunitySerializer
 )
-from rest_framework.permissions import IsAuthenticated
 
 
 class AuthenticatedModelViewSet(ModelViewSet):
     permission_classes = [IsAuthenticated]
+    model = None  # Este se define en la subclase
+
+    def get_queryset(self):
+        assert self.model is not None, (
+            f"{self.__class__.__name__} debe definir un atributo 'model'."
+        )
+        # Verifica si el modelo tiene el manager `all_objects`, si no usa `objects`
+        manager = getattr(self.model, 'all_objects', self.model.objects)
+        return manager.all()
 
 class UDNViewSet(AuthenticatedModelViewSet):
-    queryset = UDN.objects.all()
+    model = UDN
     serializer_class = UDNSerializer
 
 class WorkCellViewSet(AuthenticatedModelViewSet):
-    queryset = WorkCell.objects.all()
+    model = WorkCell
     serializer_class = WorkCellSerializer
 
 class BusinessGroupViewSet(AuthenticatedModelViewSet):
-    queryset = BusinessGroup.objects.all()
+    model = BusinessGroup
     serializer_class = BusinessGroupSerializer
 
 class DivisionViewSet(AuthenticatedModelViewSet):
-    queryset = Division.objects.all()
+    model = Division
     serializer_class = DivisionSerializer
 
 class SubdivisionViewSet(AuthenticatedModelViewSet):
-    queryset = Subdivision.objects.all()
+    model = Subdivision
     serializer_class = SubdivisionSerializer
 
 class SpecialityViewSet(AuthenticatedModelViewSet):
-    queryset = Speciality.objects.all()
+    model = Speciality
     serializer_class = SpecialitySerializer
 
 class ProjectStatusViewSet(AuthenticatedModelViewSet):
-    queryset = ProjectStatus.objects.all()
+    model = ProjectStatus
     serializer_class = ProjectStatusSerializer
 
 class CityViewSet(AuthenticatedModelViewSet):
-    queryset = City.all_objects.all()
+    model = City
     serializer_class = CitySerializer
 
 
 class PeriodViewSet(AuthenticatedModelViewSet):
-    queryset = Period.objects.all()
+    model = Period
     serializer_class = PeriodSerializer
 
 class StatusOpportunityViewSet(AuthenticatedModelViewSet):
-    queryset = StatusOpportunity.objects.all()
+    model = StatusOpportunity
     serializer_class = StatusOpportunitySerializer

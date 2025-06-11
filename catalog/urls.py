@@ -6,15 +6,16 @@ from catalog.viewsets import (
 )
 
 router = DefaultRouter()
-router.register(r'udns', UDNViewSet)
-router.register(r'workcells', WorkCellViewSet)
-router.register(r'businessgroups', BusinessGroupViewSet)
-router.register(r'divisions', DivisionViewSet)
-router.register(r'subdivisions', SubdivisionViewSet)
-router.register(r'specialities', SpecialityViewSet)
-router.register(r'projectstatuses', ProjectStatusViewSet)
-router.register(r'cities', CityViewSet)
-router.register(r'periods', PeriodViewSet)
-router.register(r'statusopportunities', StatusOpportunityViewSet)
+router.register(r'udns', UDNViewSet, basename='udn')
+router.register(r'workcells', WorkCellViewSet, basename='workcell')
+router.register(r'business-groups', BusinessGroupViewSet, basename='businessgroup')
+router.register(r'divisions', DivisionViewSet, basename='division')
+router.register(r'subdivisions', SubdivisionViewSet, basename='subdivision')
+router.register(r'specialities', SpecialityViewSet, basename='speciality')
+router.register(r'project-statuses', ProjectStatusViewSet, basename='projectstatus')
+router.register(r'cities', CityViewSet, basename='city')
+router.register(r'periods', PeriodViewSet, basename='period')
+router.register(r'status-opportunities', StatusOpportunityViewSet, basename='statusopportunity')
+
 
 urlpatterns = router.urls
