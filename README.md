@@ -89,8 +89,27 @@ Requisitos previos:
 - PostgreSQL o base de datos compatible
 - pipenv o virtualenv (opcional pero recomendado)
 - Poetry instalado
-- Tener instalado el git
+- Instalado el git
+- Creada llave ssh y registrada en github para la clonación del proyecto
 
+### Instalar Poetry
+
+1. Abre PowerShell (como administrador recomendado)
+Puedes buscar "PowerShell", hacer clic derecho y elegir “Ejecutar como administrador”.
+
+2. Ejecuta el siguiente comando
+```bash
+(Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | python -
+```
+3. Agrega Poetry al PATH (si no lo hace automáticamente)
+Después de la instalación, añade esta línea a tu archivo de perfil ($PROFILE) o ejecuta directamente:
+```bash
+[Environment]::SetEnvironmentVariable("Path", $env:Path + ";$env:USERPROFILE\AppData\Roaming\Python\Scripts", "User")
+```
+4. Verifica la instalación
+```bash
+poetry --version
+```
 ### 1. Clonar el repositorio
 Abrir carpeta donde se va a descargar el repositorio y abrir terminal par que se situe dentro de esa carpeta
 
@@ -151,7 +170,7 @@ CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8080,http://127.0.0.
 
 ###  3. Crear superusuario
 
-Si la base de datos es local, ya que si se utiliza la base de datos de desarrollo, ya no es necesario realizar migracion
+Si la base de datos es local, ya que si se utiliza la base de datos de desarrollo, ya no es necesario realizar migración
 ```bash
     python manage.py migrate
 ```
