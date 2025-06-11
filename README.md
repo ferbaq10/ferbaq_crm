@@ -89,11 +89,13 @@ Requisitos previos:
 - PostgreSQL o base de datos compatible
 - pipenv o virtualenv (opcional pero recomendado)
 - Poetry instalado
+- Tener instalado el git
 
 ### 1. Clonar el repositorio
+Abrir carpeta donde se va a descargar el repositorio y abrir terminal par que se situe dentro de esa carpeta
 
 ```bash
-    git clone https://github.com/ferbaq10/ferbaq_crm.git
+    git clone git@github.com:ferbaq10/ferbaq_crm.git
     cd ferbaq_crm
 ```
 
