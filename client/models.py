@@ -1,8 +1,10 @@
 from django.db import models
 from catalog.models import City, BusinessGroup
 from contact.models import Contact
+from model_utils.models import SoftDeletableModel, TimeStampedModel
 
-class Client(models.Model):
+
+class Client(SoftDeletableModel, TimeStampedModel):
     rfc = models.CharField(
         unique=True,
         max_length=20,

@@ -1,8 +1,10 @@
 from django.db import models
 from catalog.models import StatusOpportunity, City
 from contact.models import Contact
+from model_utils.models import SoftDeletableModel, TimeStampedModel
 
-class Opportunity(models.Model):
+
+class Opportunity(SoftDeletableModel, TimeStampedModel):
     name = models.CharField(unique=True, max_length=100)
     description = models.TextField(blank=True, null=True)
     email = models.CharField(unique=True, max_length=100, blank=True, null=True)
@@ -37,7 +39,7 @@ class Opportunity(models.Model):
         return self.name
     
 
-class CommercialActivity(models.Model):
+class CommercialActivity(SoftDeletableModel, TimeStampedModel):
     name = models.CharField(unique=True, max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
     opportunity_id = models.ForeignKey(

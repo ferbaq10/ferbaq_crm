@@ -43,8 +43,9 @@ class ProjectStatusViewSet(AuthenticatedModelViewSet):
     serializer_class = ProjectStatusSerializer
 
 class CityViewSet(AuthenticatedModelViewSet):
-    queryset = City.objects.all()
+    queryset = City.all_objects.all()
     serializer_class = CitySerializer
+
 
 class PeriodViewSet(AuthenticatedModelViewSet):
     queryset = Period.objects.all()

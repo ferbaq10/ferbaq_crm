@@ -14,7 +14,9 @@ dependencies = [
     "python-decouple (>=3.8,<4.0)",
     "injector (>=0.22.0,<0.23.0)",
     "djangorestframework-simplejwt (>=5.5.0,<6.0.0)",
-    "django-cors-headers (>=4.7.0,<5.0.0)"
+    "django-cors-headers (>=4.7.0,<5.0.0)",
+    "django-model-utils (>=5.0.0,<6.0.0)",
+    "django-filter (>=25.1,<26.0)"
 ]
 
 

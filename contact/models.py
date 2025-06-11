@@ -1,13 +1,15 @@
 from django.db import models
 from django.core.validators import RegexValidator, EmailValidator
 from catalog.models import City
+from model_utils.models import SoftDeletableModel, TimeStampedModel
+
 
 phone_regex = RegexValidator(
     regex=r'^\d{10,}$',
     message="El número debe contener al menos 10 dígitos numéricos."
 )
 
-class Contact(models.Model):
+class Contact(SoftDeletableModel, TimeStampedModel):
     name = models.CharField(
         unique=True,
         max_length=100,

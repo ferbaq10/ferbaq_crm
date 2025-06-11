@@ -1,7 +1,9 @@
 from django.db import models
 from catalog.models import ProjectStatus, Speciality, Subdivision, BusinessGroup, WorkCell
+from model_utils.models import SoftDeletableModel, TimeStampedModel
 
-class Project(models.Model):
+
+class Project(SoftDeletableModel, TimeStampedModel):
     name = models.CharField(
         unique=True,
         max_length=100,

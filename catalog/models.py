@@ -1,7 +1,19 @@
 from django.db import models
 from django.conf import settings
+from model_utils.models import SoftDeletableModel, TimeStampedModel
 
-class UDN(models.Model):
+
+class BaseModel(SoftDeletableModel, TimeStampedModel):
+    objects = models.Manager()
+
+    all_objects = models.Manager()  # este sí devuelve todo
+
+    class Meta:
+        abstract = True  # <- Esto evita que Django lo trate como una tabla real
+
+
+
+class UDN(BaseModel):
     name = models.CharField(
         unique=True,
         max_length=100,
@@ -27,7 +39,7 @@ class UDN(models.Model):
         return self.name
 
 
-class WorkCell(models.Model):
+class WorkCell(BaseModel):
     name = models.CharField(
         unique=True,
         max_length=100,
@@ -60,7 +72,7 @@ class WorkCell(models.Model):
         return self.name
 
 
-class BusinessGroup(models.Model):
+class BusinessGroup(BaseModel):
     name = models.CharField(
         unique=True,
         max_length=100,
@@ -80,7 +92,7 @@ class BusinessGroup(models.Model):
         return self.name
 
 
-class Division(models.Model):
+class Division(BaseModel):
     name = models.CharField(
         unique=True,
         max_length=100,
@@ -107,7 +119,7 @@ class Division(models.Model):
         return self.name
 
 
-class Subdivision(models.Model):
+class Subdivision(BaseModel):
     name = models.CharField(
         unique=True,
         max_length=100,
@@ -132,7 +144,7 @@ class Subdivision(models.Model):
         return self.name
 
 
-class Speciality(models.Model):
+class Speciality(BaseModel):
     name = models.CharField(
         unique=True,
         max_length=100,
@@ -152,7 +164,7 @@ class Speciality(models.Model):
         return self.name
 
 
-class ProjectStatus(models.Model):
+class ProjectStatus(BaseModel):
     name = models.CharField(
         unique=True,
         max_length=100,
@@ -172,7 +184,7 @@ class ProjectStatus(models.Model):
         return self.name
 
 
-class City(models.Model):
+class City(BaseModel):
     name = models.CharField(
         unique=True,
         max_length=100,
@@ -192,7 +204,7 @@ class City(models.Model):
         return self.name
 
 
-class Period(models.Model):
+class Period(BaseModel):
     name = models.CharField(
         unique=True,
         max_length=100,
@@ -212,7 +224,7 @@ class Period(models.Model):
         return self.name
 
 
-class StatusOpportunity(models.Model):
+class StatusOpportunity(BaseModel):
     name = models.CharField(
         unique=True,
         max_length=100,
