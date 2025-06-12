@@ -60,9 +60,14 @@ subdivisions = [
     (3, "Fotovoltaica", 2),
 ]
 
-specialities = [
+specialties = [
     (1, "EPC"),
     (2, "MRO"),
+]
+
+currencies = [
+    (1, "MN"),
+    (2, "USD"),
 ]
 
 project_statuses = [
@@ -119,10 +124,10 @@ def insert_initial_subdivisions(apps, schema_editor):
         division = Division.objects.get(id=division_id)
         Subdivision.objects.update_or_create(id=id_val, defaults={'name': name, 'division': division})
 
-def insert_initial_specialities(apps, schema_editor):
-    Speciality = apps.get_model('catalog', 'Speciality')
-    for id_val, name in specialities:
-        Speciality.objects.update_or_create(id=id_val, defaults={'name': name})
+def insert_initial_specialties(apps, schema_editor):
+    Specialty = apps.get_model('catalog', 'Specialty')
+    for id_val, name in specialties:
+        Specialty.objects.update_or_create(id=id_val, defaults={'name': name})
 
 def insert_initial_project_statuses(apps, schema_editor):
     ProjectStatus = apps.get_model('catalog', 'ProjectStatus')
@@ -133,6 +138,11 @@ def insert_initial_status_opportunities(apps, schema_editor):
     StatusOpportunity = apps.get_model('catalog', 'StatusOpportunity')
     for id_val, name in status_opportunities:
         StatusOpportunity.objects.update_or_create(id=id_val, defaults={'name': name})
+
+def insert_initial_currencies(apps, schema_editor):
+    Currency = apps.get_model('catalog', 'Currency')
+    for id_val, name in currencies:
+        Currency.objects.update_or_create(id=id_val, defaults={'name': name})
 
 # --- Eliminaciones ---
 def remove_initial_periods(apps, schema_editor):
@@ -163,9 +173,9 @@ def remove_initial_subdivisions(apps, schema_editor):
     Subdivision = apps.get_model('catalog', 'Subdivision')
     Subdivision.objects.filter(name__in=[name for _, name, _ in subdivisions]).delete()
 
-def remove_initial_specialities(apps, schema_editor):
-    Speciality = apps.get_model('catalog', 'Speciality')
-    Speciality.objects.filter(name__in=[name for _, name in specialities]).delete()
+def remove_initial_specialties(apps, schema_editor):
+    Specialty = apps.get_model('catalog', 'Specialty')
+    Specialty.objects.filter(name__in=[name for _, name in specialties]).delete()
 
 def remove_initial_project_statuses(apps, schema_editor):
     ProjectStatus = apps.get_model('catalog', 'ProjectStatus')
@@ -174,6 +184,10 @@ def remove_initial_project_statuses(apps, schema_editor):
 def remove_initial_status_opportunities(apps, schema_editor):
     StatusOpportunity = apps.get_model('catalog', 'StatusOpportunity')
     StatusOpportunity.objects.filter(name__in=[name for _, name in status_opportunities]).delete()
+
+def remove_initial_currencies(apps, schema_editor):
+    Currency = apps.get_model('catalog', 'Currency')
+    Currency.objects.filter(name__in=[name for _, name in currencies]).delete()
 
 # --- Configuración de la migración ---
 class Migration(migrations.Migration):
@@ -190,7 +204,8 @@ class Migration(migrations.Migration):
         migrations.RunPython(insert_initial_business_groups, reverse_code=remove_initial_business_groups),
         migrations.RunPython(insert_initial_divisions, reverse_code=remove_initial_divisions),
         migrations.RunPython(insert_initial_subdivisions, reverse_code=remove_initial_subdivisions),
-        migrations.RunPython(insert_initial_specialities, reverse_code=remove_initial_specialities),
+        migrations.RunPython(insert_initial_specialties, reverse_code=remove_initial_specialties),
         migrations.RunPython(insert_initial_project_statuses, reverse_code=remove_initial_project_statuses),
         migrations.RunPython(insert_initial_status_opportunities, reverse_code=remove_initial_status_opportunities),
+        migrations.RunPython(insert_initial_currencies, reverse_code=remove_initial_currencies),
     ]

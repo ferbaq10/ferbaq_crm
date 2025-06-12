@@ -1,5 +1,5 @@
 from django.db import models
-from catalog.models import StatusOpportunity, City
+from catalog.models import StatusOpportunity, City, Currency
 from contact.models import Contact
 from model_utils.models import SoftDeletableModel, TimeStampedModel
 
@@ -25,6 +25,13 @@ class Opportunity(SoftDeletableModel, TimeStampedModel):
 
     city = models.ForeignKey(
         City,
+        on_delete=models.DO_NOTHING,
+        blank=True,
+        null=True
+    )
+
+    currency = models.ForeignKey(
+        Currency,
         on_delete=models.DO_NOTHING,
         blank=True,
         null=True

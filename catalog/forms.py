@@ -1,7 +1,7 @@
 from django import forms
 from catalog.models import (
     UDN, WorkCell, BusinessGroup, Division, Subdivision,
-    Speciality, ProjectStatus, City, Period, StatusOpportunity
+    Specialty, ProjectStatus, City, Period, StatusOpportunity
 )
 
 class UDNForm(forms.ModelForm):
@@ -64,9 +64,9 @@ class SubdivisionForm(forms.ModelForm):
             }
         }
 
-class SpecialityForm(forms.ModelForm):
+class SpecialtyForm(forms.ModelForm):
     class Meta:
-        model = Speciality
+        model = Specialty
         fields = '__all__'
         error_messages = {
             'name': {
@@ -121,5 +121,17 @@ class StatusOpportunityForm(forms.ModelForm):
                 'required': "El nombre del estatus de oportunidad es obligatorio.",
                 'max_length': "El nombre no puede exceder 100 caracteres.",
                 'unique': "Este estatus de oportunidad ya existe.",
+            }
+        }
+
+class CurrencyForm(forms.ModelForm):
+    class Meta:
+        model = StatusOpportunity
+        fields = '__all__'
+        error_messages = {
+            'name': {
+                'required': "El nombre de la divisa es obligatorio.",
+                'max_length': "El nombre no puede exceder 100 caracteres.",
+                'unique': "Esta divisa ya existe.",
             }
         }

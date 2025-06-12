@@ -1,5 +1,5 @@
 from django.db import models
-from catalog.models import ProjectStatus, Speciality, Subdivision, BusinessGroup, WorkCell
+from catalog.models import ProjectStatus, Specialty, Subdivision, BusinessGroup, WorkCell
 from model_utils.models import SoftDeletableModel, TimeStampedModel
 
 
@@ -37,8 +37,8 @@ class Project(SoftDeletableModel, TimeStampedModel):
         on_delete=models.DO_NOTHING,
         verbose_name="Estatus del proyecto"
     )
-    speciality = models.ForeignKey(
-        Speciality,
+    specialty = models.ForeignKey(
+        Specialty,
         on_delete=models.DO_NOTHING,
         blank=True,
         null=True,
