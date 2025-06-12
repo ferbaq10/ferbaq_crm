@@ -3,6 +3,7 @@ from django.core.validators import RegexValidator, EmailValidator
 from catalog.models import City
 from model_utils.models import SoftDeletableModel, TimeStampedModel
 
+from client.models import Client
 
 phone_regex = RegexValidator(
     regex=r'^\d{10,}$',
@@ -47,6 +48,13 @@ class Contact(SoftDeletableModel, TimeStampedModel):
         blank=True,
         null=True,
         verbose_name="Ciudad"
+    )
+
+    contact = models.ManyToManyField(
+        Client,
+        related_name='clients',
+        blank=True,
+        verbose_name="Contactos"
     )
 
     class Meta:

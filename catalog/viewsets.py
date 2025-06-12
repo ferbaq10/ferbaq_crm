@@ -1,4 +1,6 @@
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from catalog.models import (
@@ -23,6 +25,16 @@ class AuthenticatedModelViewSet(ModelViewSet):
         # Verifica si el modelo tiene el manager `all_objects`, si no usa `objects`
         manager = getattr(self.model, 'all_objects', self.model.objects)
         return manager.all()
+
+    @action(detail=False, methods=['get'], url_path='activos')
+    def activos(self, request):
+        assert self.model is not None, (
+            f"{self.__class__.__name__} debe definir un atributo 'model'."
+        )
+        manager = getattr(self.model, 'all_objects', self.model.objects)
+        queryset = manager.filter(is_removed=False)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
 class UDNViewSet(AuthenticatedModelViewSet):
     model = UDN

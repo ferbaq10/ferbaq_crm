@@ -1,6 +1,5 @@
 from django.db import models
 from catalog.models import City, BusinessGroup
-from contact.models import Contact
 from model_utils.models import SoftDeletableModel, TimeStampedModel
 
 
@@ -15,6 +14,10 @@ class Client(SoftDeletableModel, TimeStampedModel):
         max_length=100,
         verbose_name="Razón social"
     )
+    id_client = models.IntegerField(
+        unique=True,
+        verbose_name="Id de cliente"
+    )
     city = models.ForeignKey(
         City,
         on_delete=models.DO_NOTHING,
@@ -27,12 +30,6 @@ class Client(SoftDeletableModel, TimeStampedModel):
         related_name='clients',
         blank=True,
         verbose_name="Grupo empresarial"
-    )
-    contact = models.ManyToManyField(
-        Contact,
-        related_name='clients',
-        blank=True,
-        verbose_name="Contactos"
     )
 
     class Meta:
