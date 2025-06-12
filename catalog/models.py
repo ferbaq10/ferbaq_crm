@@ -144,7 +144,7 @@ class Subdivision(BaseModel):
         return self.name
 
 
-class Speciality(BaseModel):
+class Specialty(BaseModel):
     name = models.CharField(
         unique=True,
         max_length=100,
@@ -159,6 +159,26 @@ class Speciality(BaseModel):
         db_table = 'catalog_specialities'
         verbose_name = "Especialidad"
         verbose_name_plural = "Especialidades"
+
+    def __str__(self):
+        return self.name
+
+
+class Currency(BaseModel):
+    name = models.CharField(
+        unique=True,
+        max_length=100,
+        verbose_name="Nombre",
+        error_messages={
+            'unique': "Esta divisa ya existe.",
+            'max_length': "El nombre no puede exceder 100 caracteres."
+        }
+    )
+
+    class Meta:
+        db_table = 'catalog_currencies'
+        verbose_name = "Divisa"
+        verbose_name_plural = "Divisas"
 
     def __str__(self):
         return self.name

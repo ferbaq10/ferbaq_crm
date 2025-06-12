@@ -4,13 +4,13 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from catalog.models import (
-    UDN, WorkCell, BusinessGroup, Division, Subdivision, Speciality,
-    ProjectStatus, City, Period, StatusOpportunity
+    UDN, WorkCell, BusinessGroup, Division, Subdivision, Specialty,
+    ProjectStatus, City, Period, StatusOpportunity, Currency
 )
 from catalog.serializers import (
     UDNSerializer, WorkCellSerializer, BusinessGroupSerializer, DivisionSerializer,
-    SubdivisionSerializer, SpecialitySerializer, ProjectStatusSerializer, CitySerializer,
-    PeriodSerializer, StatusOpportunitySerializer
+    SubdivisionSerializer, SpecialtySerializer, ProjectStatusSerializer, CitySerializer,
+    PeriodSerializer, StatusOpportunitySerializer, CurrencySerializer
 )
 
 
@@ -56,9 +56,9 @@ class SubdivisionViewSet(AuthenticatedModelViewSet):
     model = Subdivision
     serializer_class = SubdivisionSerializer
 
-class SpecialityViewSet(AuthenticatedModelViewSet):
-    model = Speciality
-    serializer_class = SpecialitySerializer
+class SpecialtyViewSet(AuthenticatedModelViewSet):
+    model = Specialty
+    serializer_class = SpecialtySerializer
 
 class ProjectStatusViewSet(AuthenticatedModelViewSet):
     model = ProjectStatus
@@ -76,3 +76,13 @@ class PeriodViewSet(AuthenticatedModelViewSet):
 class StatusOpportunityViewSet(AuthenticatedModelViewSet):
     model = StatusOpportunity
     serializer_class = StatusOpportunitySerializer
+
+
+class StatusOpportunityViewSet(AuthenticatedModelViewSet):
+    model = StatusOpportunity
+    serializer_class = StatusOpportunitySerializer
+
+
+class CurrencyViewSet(AuthenticatedModelViewSet):
+    model = Currency
+    serializer_class = CurrencySerializer

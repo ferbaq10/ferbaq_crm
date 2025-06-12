@@ -1,11 +1,11 @@
 from django.contrib import admin
 from .models import (
     UDN, WorkCell, BusinessGroup, Division, Subdivision,
-    Speciality, ProjectStatus, City, Period, StatusOpportunity
+    Specialty, ProjectStatus, City, Period, StatusOpportunity, Currency
 )
 from .forms import (
     UDNForm, WorkCellForm, BusinessGroupForm, DivisionForm, SubdivisionForm,
-    SpecialityForm, ProjectStatusForm, CityForm, PeriodForm, StatusOpportunityForm
+    SpecialtyForm, ProjectStatusForm, CityForm, PeriodForm, StatusOpportunityForm, CurrencyForm
 )
 
 @admin.register(UDN)
@@ -28,9 +28,9 @@ class DivisionAdmin(admin.ModelAdmin):
 class SubdivisionAdmin(admin.ModelAdmin):
     form = SubdivisionForm
 
-@admin.register(Speciality)
-class SpecialityAdmin(admin.ModelAdmin):
-    form = SpecialityForm
+@admin.register(Specialty)
+class SpecialtyAdmin(admin.ModelAdmin):
+    form = SpecialtyForm
 
 @admin.register(ProjectStatus)
 class ProjectStatusAdmin(admin.ModelAdmin):
@@ -47,3 +47,8 @@ class PeriodAdmin(admin.ModelAdmin):
 @admin.register(StatusOpportunity)
 class StatusOpportunityAdmin(admin.ModelAdmin):
     form = StatusOpportunityForm
+
+
+@admin.register(Currency)
+class CurrencyAdmin(admin.ModelAdmin):
+    form = CurrencyForm

@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from catalog.models import (
-    UDN, WorkCell, BusinessGroup, Division, Subdivision, Speciality,
-    ProjectStatus, City, Period, StatusOpportunity
+    UDN, WorkCell, BusinessGroup, Division, Subdivision, Specialty,
+    ProjectStatus, City, Period, StatusOpportunity, Currency
 )
 
 class UDNSerializer(serializers.ModelSerializer):
@@ -73,7 +73,7 @@ class SubdivisionSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class SpecialitySerializer(serializers.ModelSerializer):
+class SpecialtySerializer(serializers.ModelSerializer):
     name = serializers.CharField(max_length=100, required=True,
                                  error_messages={
             'required': 'El campo nombre es obligatorio.',
@@ -81,7 +81,7 @@ class SpecialitySerializer(serializers.ModelSerializer):
         })
 
     class Meta:
-        model = Speciality
+        model = Specialty
         fields = '__all__'
 
 
@@ -130,4 +130,16 @@ class StatusOpportunitySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = StatusOpportunity
+        fields = '__all__'
+
+
+class CurrencySerializer(serializers.ModelSerializer):
+    name = serializers.CharField(max_length=100, required=True,
+                                 error_messages={
+            'required': 'El campo nombre es obligatorio.',
+            'max_length': 'El nombre no puede tener más de 100 caracteres.'
+        })
+
+    class Meta:
+        model = Currency
         fields = '__all__'
