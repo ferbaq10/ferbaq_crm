@@ -26,8 +26,8 @@ class AuthenticatedModelViewSet(ModelViewSet):
         manager = getattr(self.model, 'all_objects', self.model.objects)
         return manager.all()
 
-    @action(detail=False, methods=['get'], url_path='activos')
-    def activos(self, request):
+    @action(detail=False, methods=['get'], url_path='actives')
+    def actives(self, request):
         assert self.model is not None, (
             f"{self.__class__.__name__} debe definir un atributo 'model'."
         )
