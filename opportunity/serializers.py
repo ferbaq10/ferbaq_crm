@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Opportunity, ComercialActivity
+from .models import Opportunity, CommercialActivity
 from django.core.validators import EmailValidator
 
 class OpportunitySerializer(serializers.ModelSerializer):
@@ -55,5 +55,5 @@ class ComercialActivitySerializer(serializers.ModelSerializer):
     )
 
     class Meta:
-        model = ComercialActivity
+        model = CommercialActivity
         fields = '__all__'
