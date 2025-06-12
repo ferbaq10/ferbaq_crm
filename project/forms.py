@@ -10,7 +10,7 @@ class ProjectForm(forms.ModelForm):
             'latitude': 'Latitud',
             'longitude': 'Longitud',
             'project_status': 'Estatus del proyecto',
-            'speciality': 'Especialidad',
+            'specialty': 'Especialidad',
             'subdivision': 'Subdivisión',
             'business_groups': 'Grupo empresarial',
             'work_cell': 'Célula de trabajo',
@@ -23,7 +23,7 @@ class ProjectForm(forms.ModelForm):
             'project_status': {
                 'required': 'Este campo es obligatorio.',
             },
-             'speciality': {
+             'specialty': {
                 'required': 'Este campo es obligatorio.',
             },
              'subdivision': {
