@@ -25,10 +25,10 @@ class Client(SoftDeletableModel, TimeStampedModel):
         null=True,
         verbose_name="Ciudad"
     )
-    business_group = models.ManyToManyField(
+    business_group = models.ForeignKey(
         BusinessGroup,
-        related_name='clients',
         blank=True,
+        on_delete=models.DO_NOTHING,
         verbose_name="Grupo empresarial"
     )
 
