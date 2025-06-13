@@ -3,5 +3,5 @@ from .serializers import ContactSerializer
 from catalog.viewsets import AuthenticatedModelViewSet
 
 class ContactViewSet(AuthenticatedModelViewSet):
-    queryset = Contact.objects.all()
+    model = Contact
     serializer_class = ContactSerializer
