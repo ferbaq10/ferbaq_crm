@@ -3,5 +3,5 @@ from client.serializers import ClientSerializer
 from catalog.viewsets import AuthenticatedModelViewSet
 
 class ClientViewSet(AuthenticatedModelViewSet):
-    queryset = Client.objects.all()
+    model = Client
     serializer_class = ClientSerializer
