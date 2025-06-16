@@ -2,6 +2,8 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
+from rest_framework import status
+
 
 from catalog.models import (
     UDN, WorkCell, BusinessGroup, Division, Subdivision, Specialty,
@@ -35,6 +37,15 @@ class AuthenticatedModelViewSet(ModelViewSet):
         queryset = manager.filter(is_removed=False)
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+
+    @action(detail=True, methods=['patch'], url_path='restore')
+    def restore(self, request, pk=None):
+        assert self.model is not None
+        instance = self.get_object()
+        instance.is_removed = False
+        instance.save()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 class UDNViewSet(AuthenticatedModelViewSet):
     model = UDN

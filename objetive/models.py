@@ -1,9 +1,9 @@
 from django.db import models
-from catalog.models import Period, Currency
+from catalog.models import Period, Currency, BaseModel
 from django.conf import settings
 from model_utils.models import SoftDeletableModel, TimeStampedModel
 
-class Objetive(SoftDeletableModel, TimeStampedModel):
+class Objetive(BaseModel):
     name = models.CharField(
         unique=True,
         max_length=100,

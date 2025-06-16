@@ -1,9 +1,9 @@
 from django.db import models
-from catalog.models import City, BusinessGroup
+from catalog.models import City, BusinessGroup, BaseModel
 from model_utils.models import SoftDeletableModel, TimeStampedModel
 
 
-class Client(SoftDeletableModel, TimeStampedModel):
+class Client(BaseModel):
     rfc = models.CharField(
         unique=True,
         max_length=20,
