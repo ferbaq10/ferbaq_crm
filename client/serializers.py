@@ -12,7 +12,7 @@ class ClientSerializer(serializers.ModelSerializer):
     modified = serializers.DateTimeField(read_only=True)
 
     # Campo de soft delete heredado de SoftDeletableModel
-    is_removed = serializers.BooleanField()
+    is_removed = serializers.BooleanField(required=False)
 
     class Meta:
         model = Client
