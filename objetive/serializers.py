@@ -34,6 +34,9 @@ class ObjetiveSerializer(serializers.ModelSerializer):
         allow_null=True
     )
 
+    # Campo de soft delete heredado de SoftDeletableModel
+    is_removed = serializers.BooleanField()
+
     class Meta:
         model = Objetive
         fields = '__all__'

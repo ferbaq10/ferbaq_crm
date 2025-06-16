@@ -38,15 +38,6 @@ class AuthenticatedModelViewSet(ModelViewSet):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
-    @action(detail=True, methods=['patch'], url_path='restore')
-    def restore(self, request, pk=None):
-        assert self.model is not None
-        instance = self.get_object()
-        instance.is_removed = False
-        instance.save()
-        serializer = self.get_serializer(instance)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
 class UDNViewSet(AuthenticatedModelViewSet):
     model = UDN
     serializer_class = UDNSerializer
