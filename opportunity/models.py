@@ -1,11 +1,11 @@
 from django.db import models
-from catalog.models import StatusOpportunity, City, Currency
+from catalog.models import StatusOpportunity, City, Currency, BaseModel
 from contact.models import Contact
 from model_utils.models import SoftDeletableModel, TimeStampedModel
 from django.conf import settings
 
 
-class CommercialActivity(SoftDeletableModel, TimeStampedModel):
+class CommercialActivity(BaseModel):
     name = models.CharField(unique=True, max_length=100)
     date_scheduled = models.DateTimeField(auto_now_add=True)
     description = models.TextField(blank=True, null=True)

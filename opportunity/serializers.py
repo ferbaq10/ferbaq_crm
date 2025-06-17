@@ -54,6 +54,9 @@ class ComercialActivitySerializer(serializers.ModelSerializer):
         }
     )
 
+    # Campo de soft delete heredado de SoftDeletableModel
+    is_removed = serializers.BooleanField()
+
     class Meta:
         model = CommercialActivity
         fields = '__all__'

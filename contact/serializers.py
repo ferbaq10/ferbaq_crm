@@ -27,6 +27,9 @@ class ContactSerializer(serializers.ModelSerializer):
                                                              message="El número debe tener al menos 12 dígitos")])
     city_id = serializers.PrimaryKeyRelatedField(queryset=City.objects.all(), required=False)
 
+    # Campo de soft delete heredado de SoftDeletableModel
+    is_removed = serializers.BooleanField()
+
     class Meta:
         model = Contact
         fields = '__all__'

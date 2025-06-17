@@ -1,9 +1,9 @@
 from django.db import models
-from catalog.models import City, BusinessGroup
+from catalog.models import City, BusinessGroup, BaseModel
 from model_utils.models import SoftDeletableModel, TimeStampedModel
 
 
-class Client(SoftDeletableModel, TimeStampedModel):
+class Client(BaseModel):
     rfc = models.CharField(
         unique=True,
         max_length=20,
@@ -31,6 +31,7 @@ class Client(SoftDeletableModel, TimeStampedModel):
         on_delete=models.DO_NOTHING,
         verbose_name="Grupo empresarial"
     )
+    is_removed = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'client_clients'
