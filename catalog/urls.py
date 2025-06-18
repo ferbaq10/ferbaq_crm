@@ -2,7 +2,7 @@ from rest_framework.routers import DefaultRouter
 from catalog.viewsets import (
     UDNViewSet, WorkCellViewSet, BusinessGroupViewSet, DivisionViewSet,
     SubdivisionViewSet, SpecialtyViewSet, ProjectStatusViewSet, CityViewSet,
-    PeriodViewSet, StatusOpportunityViewSet, CurrencyViewSet
+    PeriodViewSet, StatusOpportunityViewSet, CurrencyViewSet, JobViewSet
 )
 
 router = DefaultRouter()
@@ -19,7 +19,7 @@ router.register(r'status-opportunities', StatusOpportunityViewSet, basename='sta
 
 router.register(r'currencies', CurrencyViewSet, basename='currencies')
 
-router.register(r'jobs', CurrencyViewSet, basename='jobs')
+router.register(r'jobs', JobViewSet, basename='jobs')
 
 
 urlpatterns = router.urls
