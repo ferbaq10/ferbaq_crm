@@ -8,10 +8,6 @@ class ClientSerializer(serializers.ModelSerializer):
     city = CitySerializer()
     business_group = BusinessGroupSerializer()
 
-    # Campos de timestamp heredados de TimeStampedModel
-    created = serializers.DateTimeField(read_only=True)
-    modified = serializers.DateTimeField(read_only=True)
-
     # Campo de soft delete heredado de SoftDeletableModel
     is_removed = serializers.BooleanField(required=False)
 
@@ -26,20 +22,6 @@ class ClientSerializer(serializers.ModelSerializer):
             'is_removed',
             'business_group'
         ]
-
-    def to_representation(self, instance):
-        """
-        Personalizar la representación de salida
-        """
-        representation = super().to_representation(instance)
-
-        # Formatear fechas si es necesario
-        if representation.get('created'):
-            representation['created'] = instance.created.strftime('%Y-%m-%d %H:%M')
-        if representation.get('modified'):
-            representation['modified'] = instance.modified.strftime('%Y-%m-%d %H:%M')
-
-        return representation
 
 
 class ClientWriteSerializer(serializers.ModelSerializer):
