@@ -262,3 +262,24 @@ class StatusOpportunity(BaseModel):
 
     def __str__(self):
         return self.name
+
+
+
+class Job(BaseModel):
+    name = models.CharField(
+        unique=True,
+        max_length=100,
+        verbose_name="Nombre",
+        error_messages={
+            'unique': "Este cargo ya existe.",
+            'max_length': "El nombre no puede exceder 100 caracteres."
+        }
+    )
+
+    class Meta:
+        db_table = 'catalog_jobs'
+        verbose_name = "Cargo"
+        verbose_name_plural = "Cargos"
+
+    def __str__(self):
+        return self.name
