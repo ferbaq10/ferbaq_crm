@@ -7,6 +7,6 @@ class ClientViewSet(AuthenticatedModelViewSet):
     serializer_class = ClientSerializer
 
     def get_serializer_class(self):
-        if self.action in ['list', 'retrieve']:
-            return ClientSerializer  # ← para GET
-        return ClientWriteSerializer  # ← para POST/PUT/PATCH
+        if self.action in ['list', 'retrieve']:  # Para GET (lista o detalle)
+            return ClientSerializer
+        return ClientWriteSerializer  # Para POST, PUT, PATCH, DELETE

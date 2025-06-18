@@ -43,7 +43,20 @@ class ClientSerializer(serializers.ModelSerializer):
 
         return representation
 
+from rest_framework import serializers
+from catalog.serializers import CitySerializer, BusinessGroupSerializer
+from .models import Client
+from catalog.models import City, BusinessGroup
+
+from rest_framework import serializers
+from .models import Client, City, BusinessGroup
+from catalog.serializers import CitySerializer, BusinessGroupSerializer
+
 class ClientWriteSerializer(serializers.ModelSerializer):
+    # Entrada: solo IDs
+    city = serializers.PrimaryKeyRelatedField(queryset=City.objects.all(), write_only=True)
+    business_group = serializers.PrimaryKeyRelatedField(queryset=BusinessGroup.objects.all(), write_only=True)
+
     class Meta:
         model = Client
         fields = [
@@ -56,21 +69,6 @@ class ClientWriteSerializer(serializers.ModelSerializer):
             'is_removed'
         ]
 
-        extra_kwargs = {
-            'rfc': {
-                'required': True,
-                'help_text': 'RFC único del cliente'
-            },
-            'company': {
-                'required': True,
-                'help_text': 'Razón social única del cliente'
-            },
-            'id_client': {
-                'required': True,
-                'help_text': 'ID único del cliente'
-            }
-        }
-
     def validate_rfc(self, value):
         if not value:
             raise serializers.ValidationError("El RFC es requerido")
@@ -82,3 +80,26 @@ class ClientWriteSerializer(serializers.ModelSerializer):
         if not value or not value.strip():
             raise serializers.ValidationError("La razón social es requerida")
         return value.strip()
+
+    def to_representation(self, instance):
+        """
+        Sobrescribe to_representation para devolver el objeto City completo
+        cuando el serializador se usa para lectura (e.g., GET).
+        """
+        # Primero, obtenemos la representación por defecto del serializador.
+        # Esto incluye el 'id' de la ciudad porque 'city' es un PrimaryKeyRelatedField.
+        ret = super().to_representation(instance)
+
+        # Ahora, si 'city' existe en la instancia (es decir, el cliente tiene una ciudad asociada),
+        # usamos el CitySerializer para obtener la representación completa del objeto City.
+        if instance.city:
+            ret['city'] = CitySerializer(instance.city).data
+        else:
+            ret['city'] = None # Si no hay ciudad, establece el campo como None
+
+        if instance.business_group:
+            ret['business_group'] = CitySerializer(instance.business_group).data
+        else:
+            ret['business_group'] = None # Si no hay business group, establece el campo como None
+
+        return ret
