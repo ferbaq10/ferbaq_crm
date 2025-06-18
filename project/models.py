@@ -1,7 +1,7 @@
 from django.db import models
 from catalog.models import ProjectStatus, Specialty, Subdivision, BusinessGroup, WorkCell, BaseModel
 from model_utils.models import SoftDeletableModel, TimeStampedModel
-
+from client.models import Client
 
 class Project(BaseModel):
     name = models.CharField(
@@ -49,7 +49,7 @@ class Project(BaseModel):
         on_delete=models.DO_NOTHING,
         verbose_name="Subdivisión"
     )
-    business_groups = models.ForeignKey(
+    business_group = models.ForeignKey(
         BusinessGroup,
         on_delete=models.DO_NOTHING,
         verbose_name="Grupo empresarial"
@@ -58,6 +58,12 @@ class Project(BaseModel):
         WorkCell,
         on_delete=models.DO_NOTHING,
         verbose_name="Célula de trabajo"
+    )
+
+    client = models.ForeignKey(
+        Client,
+        on_delete=models.DO_NOTHING,
+        verbose_name="Cliente"
     )
 
     class Meta:

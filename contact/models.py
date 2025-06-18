@@ -1,6 +1,6 @@
 from django.db import models
 from django.core.validators import RegexValidator, EmailValidator
-from catalog.models import City, BaseModel
+from catalog.models import City, Job, BaseModel
 from model_utils.models import SoftDeletableModel, TimeStampedModel
 
 from client.models import Client
@@ -42,7 +42,7 @@ class Contact(BaseModel):
         null=True,
         verbose_name="Teléfono"
     )
-    city_id = models.ForeignKey(
+    city = models.ForeignKey(
         City,
         on_delete=models.DO_NOTHING,
         blank=True,
@@ -50,11 +50,19 @@ class Contact(BaseModel):
         verbose_name="Ciudad"
     )
 
-    contact = models.ManyToManyField(
-        Client,
-        related_name='clients',
+    job = models.ForeignKey(
+        Job,
+        on_delete=models.DO_NOTHING,
         blank=True,
-        verbose_name="Contactos"
+        null=True,
+        verbose_name="Cargo"
+    )
+
+    clients = models.ManyToManyField(
+        Client,
+        related_name='contact',
+        blank=True,
+        verbose_name="Clientes"
     )
 
     class Meta:

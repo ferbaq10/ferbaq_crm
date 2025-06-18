@@ -2,17 +2,16 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
-from rest_framework import status
 
 
 from catalog.models import (
     UDN, WorkCell, BusinessGroup, Division, Subdivision, Specialty,
-    ProjectStatus, City, Period, StatusOpportunity, Currency
+    ProjectStatus, City, Period, StatusOpportunity, Currency,Job
 )
 from catalog.serializers import (
     UDNSerializer, WorkCellSerializer, BusinessGroupSerializer, DivisionSerializer,
     SubdivisionSerializer, SpecialtySerializer, ProjectStatusSerializer, CitySerializer,
-    PeriodSerializer, StatusOpportunitySerializer, CurrencySerializer
+    PeriodSerializer, StatusOpportunitySerializer, CurrencySerializer, JobSerializer
 )
 
 
@@ -88,3 +87,8 @@ class StatusOpportunityViewSet(AuthenticatedModelViewSet):
 class CurrencyViewSet(AuthenticatedModelViewSet):
     model = Currency
     serializer_class = CurrencySerializer
+
+
+class JobViewSet(AuthenticatedModelViewSet):
+    model = Job
+    serializer_class = JobSerializer

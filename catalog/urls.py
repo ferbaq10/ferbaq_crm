@@ -19,5 +19,7 @@ router.register(r'status-opportunities', StatusOpportunityViewSet, basename='sta
 
 router.register(r'currencies', CurrencyViewSet, basename='currencies')
 
+router.register(r'jobs', CurrencyViewSet, basename='jobs')
+
 
 urlpatterns = router.urls

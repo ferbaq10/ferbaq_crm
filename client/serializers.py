@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from catalog.serializers import CitySerializer, BusinessGroupSerializer
-from client.models import Client
+from .models import Client, City, BusinessGroup
 
 
 class ClientSerializer(serializers.ModelSerializer):
@@ -20,13 +20,11 @@ class ClientSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'rfc',
+            'city',
             'company',
             'id_client',
-            'city',
-            'business_group',
-            'created',
-            'modified',
-            'is_removed'
+            'is_removed',
+            'business_group'
         ]
 
     def to_representation(self, instance):
@@ -43,14 +41,6 @@ class ClientSerializer(serializers.ModelSerializer):
 
         return representation
 
-from rest_framework import serializers
-from catalog.serializers import CitySerializer, BusinessGroupSerializer
-from .models import Client
-from catalog.models import City, BusinessGroup
-
-from rest_framework import serializers
-from .models import Client, City, BusinessGroup
-from catalog.serializers import CitySerializer, BusinessGroupSerializer
 
 class ClientWriteSerializer(serializers.ModelSerializer):
     # Entrada: solo IDs
@@ -62,11 +52,11 @@ class ClientWriteSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'rfc',
+            'city',
             'company',
             'id_client',
-            'city',
-            'business_group',
-            'is_removed'
+            'is_removed',
+            'business_group'
         ]
 
     def validate_rfc(self, value):
@@ -83,23 +73,13 @@ class ClientWriteSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         """
-        Sobrescribe to_representation para devolver el objeto City completo
-        cuando el serializador se usa para lectura (e.g., GET).
+            Sobrescribe to_representation para devolver city y business_group como objetos completos.
         """
-        # Primero, obtenemos la representación por defecto del serializador.
-        # Esto incluye el 'id' de la ciudad porque 'city' es un PrimaryKeyRelatedField.
         ret = super().to_representation(instance)
 
-        # Ahora, si 'city' existe en la instancia (es decir, el cliente tiene una ciudad asociada),
-        # usamos el CitySerializer para obtener la representación completa del objeto City.
-        if instance.city:
-            ret['city'] = CitySerializer(instance.city).data
-        else:
-            ret['city'] = None # Si no hay ciudad, establece el campo como None
+        ret['city'] = CitySerializer(instance.city).data if instance.city else None
 
-        if instance.business_group:
-            ret['business_group'] = CitySerializer(instance.business_group).data
-        else:
-            ret['business_group'] = None # Si no hay business group, establece el campo como None
+        ret['business_group'] = BusinessGroupSerializer(instance.business_group).data \
+            if instance.business_group else None
 
         return ret

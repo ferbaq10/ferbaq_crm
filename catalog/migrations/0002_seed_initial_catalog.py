@@ -86,6 +86,18 @@ status_opportunities = [
     (6, "Perdida"),
 ]
 
+jobs = [
+    (1, "Auxiliar de Compras"),
+    (2, "Comprador Jr."),
+    (3, "Comprador Sr."),
+    (4, "Analista de Compras"),
+    (5, "Coordinador de Compras"),
+    (6, "Jefe de Compras"),
+    (7, "Gerente de Compras"),
+    (8, "Director de Compras"),
+]
+
+
 # --- Inserciones ---
 def insert_initial_periods(apps, schema_editor):
     Period = apps.get_model('catalog', 'Period')
@@ -144,6 +156,11 @@ def insert_initial_currencies(apps, schema_editor):
     for id_val, name in currencies:
         Currency.objects.update_or_create(id=id_val, defaults={'name': name})
 
+def insert_initial_jobs(apps, schema_editor):
+    Job = apps.get_model('catalog', 'job')
+    for id_val, name in jobs:
+        Job.objects.update_or_create(id=id_val, defaults={'name': name})
+
 # --- Eliminaciones ---
 def remove_initial_periods(apps, schema_editor):
     Period = apps.get_model('catalog', 'Period')
@@ -189,6 +206,10 @@ def remove_initial_currencies(apps, schema_editor):
     Currency = apps.get_model('catalog', 'Currency')
     Currency.objects.filter(name__in=[name for _, name in currencies]).delete()
 
+def remove_initial_job(apps, schema_editor):
+    Job = apps.get_model('catalog', 'Job')
+    Job.objects.filter(name__in=[name for _, name in jobs]).delete()
+
 # --- Configuración de la migración ---
 class Migration(migrations.Migration):
 
@@ -208,4 +229,5 @@ class Migration(migrations.Migration):
         migrations.RunPython(insert_initial_project_statuses, reverse_code=remove_initial_project_statuses),
         migrations.RunPython(insert_initial_status_opportunities, reverse_code=remove_initial_status_opportunities),
         migrations.RunPython(insert_initial_currencies, reverse_code=remove_initial_currencies),
+        migrations.RunPython(insert_initial_jobs, reverse_code=remove_initial_job),
     ]
