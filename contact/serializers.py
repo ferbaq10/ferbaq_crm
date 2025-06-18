@@ -1,14 +1,15 @@
 from django.core.validators import RegexValidator, EmailValidator
 from rest_framework import serializers
 
-from catalog.models import City
-from catalog.serializers import CitySerializer
+from catalog.models import City, Job
+from catalog.serializers import CitySerializer, JobSerializer
 from client.serializers import ClientSerializer
 from .models import Contact
 from client.models import Client
 
 class ContactSerializer(serializers.ModelSerializer):
     city = CitySerializer(read_only=True)
+    job = JobSerializer(read_only=True)
     clients = ClientSerializer(many=True, read_only=True)
 
     class Meta:
@@ -73,6 +74,11 @@ class ContactWriteSerializer(serializers.ModelSerializer):
         required=False
     )
 
+    job = serializers.PrimaryKeyRelatedField(
+        queryset=Job.objects.all(),
+        required=False
+    )
+
     class Meta:
         model = Contact
         fields = [
@@ -96,6 +102,8 @@ class ContactWriteSerializer(serializers.ModelSerializer):
 
         ret['city'] = CitySerializer(instance.city).data if instance.city else None
 
-        ret['clients'] = ClientSerializer(instance.clients.all(), many=True).data
+        ret['clients'] = ClientSerializer(instance.clients.all(), many=True).data if instance.clients else None
+
+        ret['job'] = JobSerializer(instance.job).data if instance.job else None
 
         return ret
