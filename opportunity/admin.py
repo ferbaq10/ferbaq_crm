@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import Opportunity, CommercialActivity
-from .forms import OpportunityForm, ComercialActivityForm
+from .forms import OpportunityForm, CommercialActivityForm
 
 @admin.register(Opportunity)
 class OpportunityAdmin(admin.ModelAdmin):
@@ -8,4 +8,4 @@ class OpportunityAdmin(admin.ModelAdmin):
 
 @admin.register(CommercialActivity)
 class CommercialActivityAdmin(admin.ModelAdmin):
-    form = ComercialActivityForm
+    form = CommercialActivityForm

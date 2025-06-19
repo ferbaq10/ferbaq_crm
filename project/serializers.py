@@ -2,9 +2,9 @@ from rest_framework import serializers
 
 from catalog.models import Specialty, ProjectStatus, Subdivision, WorkCell
 from catalog.serializers import BusinessGroupSerializer, SpecialtySerializer, SubdivisionSerializer, \
-    ProjectStatusSerializer
+    ProjectStatusSerializer, WorkCellSerializer
 from client.serializers import ClientSerializer
-from .models import Client, BusinessGroup
+from .models import Client
 from .models import Project
 
 
@@ -13,7 +13,6 @@ class ProjectSerializer(serializers.ModelSerializer):
     specialty = SpecialtySerializer()
     subdivision = SubdivisionSerializer()
     project_status = ProjectStatusSerializer()
-    business_group = BusinessGroupSerializer()
 
     # Campo de soft delete heredado de SoftDeletableModel
     is_removed = serializers.BooleanField(required=False)
@@ -31,7 +30,6 @@ class ProjectSerializer(serializers.ModelSerializer):
             'subdivision',
             'description',
             'project_status',
-            'business_group'
         ]
 
         read_only_fields = fields
@@ -42,7 +40,6 @@ class ProjectWriteSerializer(serializers.ModelSerializer):
     specialty = serializers.PrimaryKeyRelatedField(queryset=Specialty.objects.all(), required=False, allow_null=True)
     subdivision = serializers.PrimaryKeyRelatedField(queryset=Subdivision.objects.all())
     project_status = serializers.PrimaryKeyRelatedField(queryset=ProjectStatus.objects.all())
-    business_group = serializers.PrimaryKeyRelatedField(queryset=BusinessGroup.objects.all())
     work_cell = serializers.PrimaryKeyRelatedField(queryset=WorkCell.objects.all())
 
     class Meta:
@@ -57,7 +54,6 @@ class ProjectWriteSerializer(serializers.ModelSerializer):
             'subdivision',
             'description',
             'project_status',
-            'business_group',
             'work_cell',
             'is_removed',
         ]
@@ -112,8 +108,7 @@ class ProjectWriteSerializer(serializers.ModelSerializer):
         ret['specialty'] = SpecialtySerializer(instance.specialty).data if instance.specialty else None
         ret['subdivision'] = SubdivisionSerializer(instance.subdivision).data if instance.subdivision else None
         ret['project_status'] = ProjectStatusSerializer(instance.project_status).data if instance.project_status else None
-        ret['business_group'] = BusinessGroupSerializer(instance.business_group).data if instance.business_group else None
-        ret['work_cell'] = BusinessGroupSerializer(instance.work_cell).data if instance.work_cell else None
+        ret['work_cell'] = WorkCellSerializer(instance.work_cell).data if instance.work_cell else None
 
         return ret
 

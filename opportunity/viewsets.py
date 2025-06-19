@@ -1,6 +1,6 @@
 from catalog.viewsets import AuthenticatedModelViewSet
 from .models import Opportunity, CommercialActivity
-from .serializers import OpportunitySerializer, ComercialActivitySerializer
+from .serializers import OpportunitySerializer, CommercialActivitySerializer
 
 
 class OpportunityViewSet(AuthenticatedModelViewSet):
@@ -10,4 +10,4 @@ class OpportunityViewSet(AuthenticatedModelViewSet):
 
 class CommercialActivityViewSet(AuthenticatedModelViewSet):
     model = CommercialActivity
-    serializer_class = ComercialActivitySerializer
+    serializer_class = CommercialActivitySerializer

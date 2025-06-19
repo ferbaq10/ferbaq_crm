@@ -8,9 +8,6 @@ class ClientSerializer(serializers.ModelSerializer):
     city = CitySerializer()
     business_group = BusinessGroupSerializer()
 
-    # Campo de soft delete heredado de SoftDeletableModel
-    is_removed = serializers.BooleanField(required=False)
-
     class Meta:
         model = Client
         fields = [
