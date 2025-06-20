@@ -33,4 +33,8 @@ urlpatterns = [
     path('api/', include('opportunity.urls')),
 
     path('api/', include('project.urls')),
+
+    path('api/', include('activity_log.urls')),
+
+
 ]

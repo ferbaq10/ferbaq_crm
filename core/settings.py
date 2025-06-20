@@ -42,12 +42,13 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'django_filters',
+    'project',
     'catalog',
     'contact',
     'client',
     'objetive',
     'opportunity',
-    'project'
+    'activity_log'
 ]
 
 MIDDLEWARE = [

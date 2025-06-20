@@ -1,6 +1,5 @@
 from django.db import models
 from catalog.models import City, BusinessGroup, BaseModel
-from model_utils.models import SoftDeletableModel, TimeStampedModel
 
 
 class Client(BaseModel):
