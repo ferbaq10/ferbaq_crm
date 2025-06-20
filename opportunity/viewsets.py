@@ -13,8 +13,6 @@ class OpportunityViewSet(AuthenticatedModelViewSet):
         return OpportunityWriteSerializer
 
 
-
-
 class CommercialActivityViewSet(AuthenticatedModelViewSet):
     model = CommercialActivity
     serializer_class = CommercialActivitySerializer
