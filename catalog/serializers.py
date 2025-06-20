@@ -18,6 +18,7 @@ class UDNSerializer(serializers.ModelSerializer):
             'name',
             'is_removed',
         ]
+        read_only_fields = ['created', 'modified']
 
 
 class WorkCellSerializer(serializers.ModelSerializer):
@@ -36,6 +37,7 @@ class WorkCellSerializer(serializers.ModelSerializer):
             'udn',
             'is_removed'
         ]
+        read_only_fields = ['created', 'modified']
 
 
 class BusinessGroupSerializer(serializers.ModelSerializer):
@@ -52,6 +54,7 @@ class BusinessGroupSerializer(serializers.ModelSerializer):
             'name',
             'is_removed',
         ]
+        read_only_fields = ['created', 'modified']
 
 
 class DivisionSerializer(serializers.ModelSerializer):
@@ -73,6 +76,7 @@ class DivisionSerializer(serializers.ModelSerializer):
             'business_group',
             'is_removed',
         ]
+        read_only_fields = ['created', 'modified']
 
 
 class SubdivisionSerializer(serializers.ModelSerializer):
@@ -94,6 +98,7 @@ class SubdivisionSerializer(serializers.ModelSerializer):
             'division',
             'is_removed',
         ]
+        read_only_fields = ['created', 'modified']
 
 
 class SpecialtySerializer(serializers.ModelSerializer):
@@ -110,6 +115,7 @@ class SpecialtySerializer(serializers.ModelSerializer):
             'name',
             'is_removed',
         ]
+        read_only_fields = ['created', 'modified']
 
 
 class ProjectStatusSerializer(serializers.ModelSerializer):
@@ -126,6 +132,7 @@ class ProjectStatusSerializer(serializers.ModelSerializer):
             'name',
             'is_removed',
         ]
+        read_only_fields = ['created', 'modified']
 
 
 class CitySerializer(serializers.ModelSerializer):
@@ -142,6 +149,7 @@ class CitySerializer(serializers.ModelSerializer):
             'name',
             'is_removed',
         ]
+        read_only_fields = ['created', 'modified']
 
 
 class PeriodSerializer(serializers.ModelSerializer):
@@ -158,6 +166,7 @@ class PeriodSerializer(serializers.ModelSerializer):
             'name',
             'is_removed',
         ]
+        read_only_fields = ['created', 'modified']
 
 
 class StatusOpportunitySerializer(serializers.ModelSerializer):
@@ -174,6 +183,7 @@ class StatusOpportunitySerializer(serializers.ModelSerializer):
             'name',
             'is_removed',
         ]
+        read_only_fields = ['created', 'modified']
 
 
 class CurrencySerializer(serializers.ModelSerializer):
@@ -190,6 +200,7 @@ class CurrencySerializer(serializers.ModelSerializer):
             'name',
             'is_removed',
         ]
+        read_only_fields = ['created', 'modified']
 
 
 class JobSerializer(serializers.ModelSerializer):
@@ -206,6 +217,8 @@ class JobSerializer(serializers.ModelSerializer):
             'name',
             'is_removed',
         ]
+        read_only_fields = ['created', 'modified']
+
 
 
 class OpportunityTypeSerializer(serializers.ModelSerializer):
@@ -222,3 +235,4 @@ class OpportunityTypeSerializer(serializers.ModelSerializer):
             'name',
             'is_removed',
         ]
+        read_only_fields = ['created', 'modified']

@@ -4,13 +4,16 @@ from model_utils.models import SoftDeletableModel, TimeStampedModel
 
 
 class BaseModel(SoftDeletableModel, TimeStampedModel):
+    '''
+    Para utilizar el manager del modelo para especificar que devuelva todos los datos aunuqe estén marcados
+    como eliminados
+    '''
     objects = models.Manager()
 
     all_objects = models.Manager()  # este sí devuelve todo
 
     class Meta:
         abstract = True  # <- Esto evita que Django lo trate como una tabla real
-
 
 
 class UDN(BaseModel):
@@ -34,10 +37,10 @@ class UDN(BaseModel):
         db_table = 'catalog_udns'
         verbose_name = "UDN"
         verbose_name_plural = "UDN's"
+        ordering = ['-name']
 
     def __str__(self):
         return self.name
-
 
 class WorkCell(BaseModel):
     name = models.CharField(
@@ -68,9 +71,9 @@ class WorkCell(BaseModel):
         verbose_name = "Célula de trabajo"
         verbose_name_plural = "Células de trabajo"
 
+
     def __str__(self):
         return self.name
-
 
 class BusinessGroup(BaseModel):
     name = models.CharField(
@@ -90,7 +93,6 @@ class BusinessGroup(BaseModel):
 
     def __str__(self):
         return self.name
-
 
 class Division(BaseModel):
     name = models.CharField(
@@ -118,7 +120,6 @@ class Division(BaseModel):
     def __str__(self):
         return self.name
 
-
 class Subdivision(BaseModel):
     name = models.CharField(
         unique=True,
@@ -143,7 +144,6 @@ class Subdivision(BaseModel):
     def __str__(self):
         return self.name
 
-
 class Specialty(BaseModel):
     name = models.CharField(
         unique=True,
@@ -162,7 +162,6 @@ class Specialty(BaseModel):
 
     def __str__(self):
         return self.name
-
 
 class Currency(BaseModel):
     name = models.CharField(
@@ -183,7 +182,6 @@ class Currency(BaseModel):
     def __str__(self):
         return self.name
 
-
 class ProjectStatus(BaseModel):
     name = models.CharField(
         unique=True,
@@ -202,7 +200,6 @@ class ProjectStatus(BaseModel):
 
     def __str__(self):
         return self.name
-
 
 class City(BaseModel):
     name = models.CharField(
@@ -223,7 +220,6 @@ class City(BaseModel):
     def __str__(self):
         return self.name
 
-
 class Period(BaseModel):
     name = models.CharField(
         unique=True,
@@ -243,7 +239,6 @@ class Period(BaseModel):
     def __str__(self):
         return self.name
 
-
 class StatusOpportunity(BaseModel):
     name = models.CharField(
         unique=True,
@@ -262,8 +257,6 @@ class StatusOpportunity(BaseModel):
 
     def __str__(self):
         return self.name
-
-
 
 class Job(BaseModel):
     name = models.CharField(

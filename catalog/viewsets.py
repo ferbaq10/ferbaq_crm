@@ -25,7 +25,7 @@ class AuthenticatedModelViewSet(ModelViewSet):
         )
         # Verifica si el modelo tiene el manager `all_objects`, si no usa `objects`
         manager = getattr(self.model, 'all_objects', self.model.objects)
-        return manager.all()
+        return manager.all().order_by('-id')
 
     @action(detail=False, methods=['get'], url_path='actives')
     def actives(self, request):

@@ -9,7 +9,7 @@ class OpportunityForm(forms.ModelForm):
             'name', 'description', 'amount', 'number_fvt',
             'date_reception', 'sent_date',
             'status_opportunity', 'contact', 'currency',
-            'commercial_activity', 'agent', 'project', 'opportunityType'
+            'agent', 'project', 'opportunityType'
         ]
         error_messages = {
             'name': {
@@ -53,7 +53,8 @@ class CommercialActivityForm(forms.ModelForm):
         fields = '__all__'
         labels = {
             'name': 'Nombre',
-            'oportunity_id': 'Oportunidad'
+            'oportunity_id': 'Oportunidad',
+            'opportunities': 'Oportunidades'
         }
         error_messages = {
             'name': {

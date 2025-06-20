@@ -19,6 +19,7 @@ class ClientSerializer(serializers.ModelSerializer):
             'is_removed',
             'business_group'
         ]
+        read_only_fields = ['created', 'modified']
 
 
 class ClientWriteSerializer(serializers.ModelSerializer):
@@ -37,6 +38,8 @@ class ClientWriteSerializer(serializers.ModelSerializer):
             'is_removed',
             'business_group'
         ]
+        read_only_fields = ['created']
+
 
     def validate_rfc(self, value):
         if not value:
