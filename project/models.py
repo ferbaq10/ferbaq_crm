@@ -49,11 +49,7 @@ class Project(BaseModel):
         on_delete=models.DO_NOTHING,
         verbose_name="Subdivisión"
     )
-    business_group = models.ForeignKey(
-        BusinessGroup,
-        on_delete=models.DO_NOTHING,
-        verbose_name="Grupo empresarial"
-    )
+
     work_cell = models.ForeignKey(
         WorkCell,
         on_delete=models.DO_NOTHING,

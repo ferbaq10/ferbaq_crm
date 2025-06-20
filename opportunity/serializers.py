@@ -1,49 +1,34 @@
+from django.contrib.auth import get_user_model
 from rest_framework import serializers
-from .models import Opportunity, CommercialActivity
-from django.core.validators import EmailValidator
 
-class OpportunitySerializer(serializers.ModelSerializer):
+from catalog.models import OpportunityType, StatusOpportunity, Currency
+from catalog.serializers import StatusOpportunitySerializer, CurrencySerializer, OpportunityTypeSerializer
+from contact.models import Contact
+from contact.serializers import ContactSerializer
+from project.models import Project
+from project.serializers import ProjectSerializer
+from .models import CommercialActivity, FinanceOpportunity, Opportunity
+
+User = get_user_model()
+
+
+class FinanceOpportunitySerializer(serializers.ModelSerializer):
     name = serializers.CharField(
         max_length=100,
         required=True,
         error_messages={
             'required': 'El nombre es obligatorio.',
             'max_length': 'El nombre no puede exceder los 100 caracteres.',
-            'unique': 'Ya existe una oportunidad con este nombre.'
-        }
-    )
-    email = serializers.EmailField(
-        max_length=100,
-        required=False,
-        allow_null=True,
-        allow_blank=True,
-        validators=[EmailValidator(message="Debe ser un correo electrónico válido")],
-        error_messages={
-            'max_length': 'El correo no puede exceder los 100 caracteres.',
-            'unique': 'Ya existe una oportunidad con este correo.'
-        }
-    )
-    phone = serializers.IntegerField(
-        required=False,
-        allow_null=True,
-        error_messages={
-            'invalid': 'El número telefónico debe ser numérico.'
-        }
-    )
-    amount = serializers.DecimalField(
-        max_digits=12,
-        decimal_places=2,
-        error_messages={
-            'invalid': 'El monto debe ser un número decimal válido.'
+            'unique': 'Ya existe un dato financiero con este nombre.'
         }
     )
 
     class Meta:
-        model = Opportunity
+        model = FinanceOpportunity
         fields = '__all__'
 
 
-class ComercialActivitySerializer(serializers.ModelSerializer):
+class CommercialActivitySerializer(serializers.ModelSerializer):
     name = serializers.CharField(
         max_length=100,
         required=True,
@@ -54,9 +39,85 @@ class ComercialActivitySerializer(serializers.ModelSerializer):
         }
     )
 
-    # Campo de soft delete heredado de SoftDeletableModel
-    is_removed = serializers.BooleanField()
-
     class Meta:
         model = CommercialActivity
         fields = '__all__'
+
+
+# --- SOLO LECTURA ---
+class OpportunitySerializer(serializers.ModelSerializer):
+    contact = ContactSerializer()
+    project = ProjectSerializer()
+    currency = CurrencySerializer()
+    opportunityType = OpportunityTypeSerializer()
+    status_opportunity = StatusOpportunitySerializer()
+    commercial_activity = CommercialActivitySerializer(many=True)
+
+    finance_opportunities = FinanceOpportunitySerializer(
+        source='financeopportunity_set',
+        many=True,
+        read_only=True
+    )
+
+    class Meta:
+        model = Opportunity
+        fields = '__all__'
+
+
+# --- CREACIÓN / ACTUALIZACIÓN ---
+class OpportunityWriteSerializer(serializers.ModelSerializer):
+    project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all())
+    contact = serializers.PrimaryKeyRelatedField(queryset=Contact.objects.all())
+    currency = serializers.PrimaryKeyRelatedField(queryset=Currency.objects.all())
+    commercial_activity = serializers.PrimaryKeyRelatedField(queryset=CommercialActivity.objects.all(), many=True)
+    opportunityType = serializers.PrimaryKeyRelatedField(queryset=OpportunityType.objects.all())
+    status_opportunity = serializers.PrimaryKeyRelatedField(queryset=StatusOpportunity.objects.all())
+
+    finance_opportunities = FinanceOpportunitySerializer(
+        source='financeopportunity_set',
+        many=True,
+        read_only=True
+    )
+
+    class Meta:
+        model = Opportunity
+        fields = [
+            'name', 'description', 'amount', 'number_fvt',
+            'date_reception', 'sent_date', 'date_status',
+            'status_opportunity', 'contact', 'currency',
+            'commercial_activity', 'agent', 'project', 'opportunityType',
+            'finance_opportunities'
+        ]
+        extra_kwargs = {
+            'name': {'error_messages': {'unique': 'Ya existe una oportunidad con este nombre.'}},
+            'number_fvt': {'error_messages': {'unique': 'Este formato de venta ya está registrado.'}},
+            'amount': {'error_messages': {'required': 'El monto es obligatorio.'}},
+            'status_opportunity': {'error_messages': {'required': 'El estado es obligatorio.'}},
+            'contact': {'error_messages': {'required': 'El contacto es obligatorio.'}},
+            'currency': {'error_messages': {'required': 'La moneda es obligatoria.'}},
+            'agent': {'error_messages': {'required': 'El usuario asignado es obligatorio.'}},
+            'project': {'error_messages': {'required': 'El proyecto es obligatorio.'}},
+            'opportunityType': {'error_messages': {'required': 'El tipo de oportunidad es obligatorio.'}},
+        }
+
+    def validate_amount(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("El monto debe ser mayor a cero.")
+        return value
+
+    def validate(self, data):
+        if data.get("date_reception") and data.get("sent_date") and data["sent_date"] < data["date_reception"]:
+            raise serializers.ValidationError("La fecha de envío no puede ser anterior a la de recepción.")
+        return data
+
+    def to_representation(self, instance):
+        """Devuelve la representación con objetos anidados aunque sea un serializer de escritura"""
+        ret = super().to_representation(instance)
+        ret['contact'] = ContactSerializer(instance.contact).data if instance.contact else None
+        ret['project'] = ProjectSerializer(instance.project).data if instance.project else None
+        ret['currency'] = CurrencySerializer(instance.currency).data if instance.currency else None
+        ret['opportunityType'] = OpportunityTypeSerializer(instance.opportunityType).data if instance.opportunityType else None
+        ret['status_opportunity'] = StatusOpportunitySerializer(instance.status_opportunity).data if instance.status_opportunity else None
+        ret['commercial_activity'] = CommercialActivitySerializer(instance.commercial_activity.all(), many=True).data
+        ret['finance_opportunities'] = FinanceOpportunitySerializer(instance.financeopportunity_set.all(), many=True).data
+        return ret

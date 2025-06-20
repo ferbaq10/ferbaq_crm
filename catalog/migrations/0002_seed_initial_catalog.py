@@ -97,6 +97,15 @@ jobs = [
     (8, "Director de Compras"),
 ]
 
+opportunity_types = [
+    (1, "Ordinaria"),
+    (2, "Licitacion ITP"),
+    (3, "Licitacion AD"),
+    (4, "Contrato General"),
+    (5, "Contrato Marco"),
+    (6, "Estudio de Mercado")
+]
+
 
 # --- Inserciones ---
 def insert_initial_periods(apps, schema_editor):
@@ -161,6 +170,11 @@ def insert_initial_jobs(apps, schema_editor):
     for id_val, name in jobs:
         Job.objects.update_or_create(id=id_val, defaults={'name': name})
 
+def insert_initial_opportunity_types(apps, schema_editor):
+    OpportunityType = apps.get_model('catalog', 'OpportunityType')
+    for id_val, name in opportunity_types:
+        OpportunityType.objects.update_or_create(id=id_val, defaults={'name': name})
+
 # --- Eliminaciones ---
 def remove_initial_periods(apps, schema_editor):
     Period = apps.get_model('catalog', 'Period')
@@ -210,6 +224,11 @@ def remove_initial_job(apps, schema_editor):
     Job = apps.get_model('catalog', 'Job')
     Job.objects.filter(name__in=[name for _, name in jobs]).delete()
 
+def remove_initial_opportunity_type(apps, schema_editor):
+    OpportunityType = apps.get_model('catalog', 'OpportunityType')
+    OpportunityType.objects.filter(name__in=[name for _, name in jobs]).delete()
+
+
 # --- Configuración de la migración ---
 class Migration(migrations.Migration):
 
@@ -230,4 +249,5 @@ class Migration(migrations.Migration):
         migrations.RunPython(insert_initial_status_opportunities, reverse_code=remove_initial_status_opportunities),
         migrations.RunPython(insert_initial_currencies, reverse_code=remove_initial_currencies),
         migrations.RunPython(insert_initial_jobs, reverse_code=remove_initial_job),
+        migrations.RunPython(insert_initial_opportunity_types, reverse_code=remove_initial_opportunity_type),
     ]

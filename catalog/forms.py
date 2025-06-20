@@ -1,8 +1,11 @@
 from django import forms
+
 from catalog.models import (
     UDN, WorkCell, BusinessGroup, Division, Subdivision,
-    Specialty, ProjectStatus, City, Period, StatusOpportunity
+    Specialty, ProjectStatus, City, Period, StatusOpportunity,
+    Currency, Job, OpportunityType
 )
+
 
 class UDNForm(forms.ModelForm):
     class Meta:
@@ -126,12 +129,37 @@ class StatusOpportunityForm(forms.ModelForm):
 
 class CurrencyForm(forms.ModelForm):
     class Meta:
-        model = StatusOpportunity
+        model = Currency
         fields = '__all__'
         error_messages = {
             'name': {
                 'required': "El nombre de la divisa es obligatorio.",
                 'max_length': "El nombre no puede exceder 100 caracteres.",
                 'unique': "Esta divisa ya existe.",
+            }
+        }
+
+class JobForm(forms.ModelForm):
+    class Meta:
+        model = Job
+        fields = '__all__'
+        error_messages = {
+            'name': {
+                'required': "El nombre del cargo es obligatorio.",
+                'max_length': "El nombre no puede exceder 100 caracteres.",
+                'unique': "Este cargo ya existe.",
+            }
+        }
+
+
+class OpportunityTypeForm(forms.ModelForm):
+    class Meta:
+        model = OpportunityType
+        fields = '__all__'
+        error_messages = {
+            'name': {
+                'required': "El nombre del tipo de oportunidad es obligatorio.",
+                'max_length': "El nombre no puede exceder 100 caracteres.",
+                'unique': "Este tipo de oportunidad ya existe.",
             }
         }

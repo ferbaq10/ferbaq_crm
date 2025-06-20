@@ -6,12 +6,12 @@ from rest_framework.viewsets import ModelViewSet
 
 from catalog.models import (
     UDN, WorkCell, BusinessGroup, Division, Subdivision, Specialty,
-    ProjectStatus, City, Period, StatusOpportunity, Currency,Job
+    ProjectStatus, City, Period, StatusOpportunity, Currency,Job, OpportunityType
 )
 from catalog.serializers import (
     UDNSerializer, WorkCellSerializer, BusinessGroupSerializer, DivisionSerializer,
     SubdivisionSerializer, SpecialtySerializer, ProjectStatusSerializer, CitySerializer,
-    PeriodSerializer, StatusOpportunitySerializer, CurrencySerializer, JobSerializer
+    PeriodSerializer, StatusOpportunitySerializer, CurrencySerializer, JobSerializer, OpportunityTypeSerializer
 )
 
 
@@ -92,3 +92,8 @@ class CurrencyViewSet(AuthenticatedModelViewSet):
 class JobViewSet(AuthenticatedModelViewSet):
     model = Job
     serializer_class = JobSerializer
+
+
+class OpportunityTypeViewSet(AuthenticatedModelViewSet):
+    model = OpportunityType
+    serializer_class = OpportunityTypeSerializer

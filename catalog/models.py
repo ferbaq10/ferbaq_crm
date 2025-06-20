@@ -283,3 +283,22 @@ class Job(BaseModel):
 
     def __str__(self):
         return self.name
+
+class OpportunityType(BaseModel):
+    name = models.CharField(
+        unique=True,
+        max_length=100,
+        verbose_name="Nombre",
+        error_messages={
+            'unique': "Este tipo de oportunidad ya existe.",
+            'max_length': "El nombre no puede exceder 100 caracteres."
+        }
+    )
+
+    class Meta:
+        db_table = 'catalog_opportunity_types'
+        verbose_name = "Tipo de oportunidad"
+        verbose_name_plural = "Tipo de oportunidades"
+
+    def __str__(self):
+        return self.name
