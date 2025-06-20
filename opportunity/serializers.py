@@ -37,6 +37,8 @@ class FinanceOpportunitySerializer(serializers.ModelSerializer):
             'offer_subtotal',
             'order_closing_date',
         ]
+        read_only_fields = ['created', 'modified']
+
 
 
 class CommercialActivitySerializer(serializers.ModelSerializer):
@@ -57,6 +59,8 @@ class CommercialActivitySerializer(serializers.ModelSerializer):
             'name',
             'is_removed',
         ]
+        read_only_fields = ['created', 'modified']
+
 
 
 # --- SOLO LECTURA ---
@@ -66,7 +70,6 @@ class OpportunitySerializer(serializers.ModelSerializer):
     currency = CurrencySerializer()
     opportunityType = OpportunityTypeSerializer()
     status_opportunity = StatusOpportunitySerializer()
-    commercial_activity = CommercialActivitySerializer(many=True)
 
     finance_opportunities = FinanceOpportunitySerializer(
         source='financeopportunity_set',
@@ -80,9 +83,11 @@ class OpportunitySerializer(serializers.ModelSerializer):
             'name', 'description', 'amount', 'number_fvt',
             'date_reception', 'sent_date', 'date_status',
             'status_opportunity', 'contact', 'currency',
-            'commercial_activity', 'agent', 'project', 'opportunityType',
+            'project', 'opportunityType',
             'finance_opportunities', 'is_removed'
         ]
+        read_only_fields = ['created', 'modified']
+
 
 
 # --- CREACIÓN / ACTUALIZACIÓN ---
@@ -90,7 +95,6 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
     project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all())
     contact = serializers.PrimaryKeyRelatedField(queryset=Contact.objects.all())
     currency = serializers.PrimaryKeyRelatedField(queryset=Currency.objects.all())
-    commercial_activity = serializers.PrimaryKeyRelatedField(queryset=CommercialActivity.objects.all(), many=True)
     opportunityType = serializers.PrimaryKeyRelatedField(queryset=OpportunityType.objects.all())
     status_opportunity = serializers.PrimaryKeyRelatedField(queryset=StatusOpportunity.objects.all())
 
@@ -106,7 +110,7 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
             'name', 'description', 'amount', 'number_fvt',
             'date_reception', 'sent_date', 'date_status',
             'status_opportunity', 'contact', 'currency',
-            'commercial_activity', 'agent', 'project', 'opportunityType',
+            'project', 'opportunityType',
             'finance_opportunities', 'is_removed',
         ]
         extra_kwargs = {
@@ -120,6 +124,8 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
             'project': {'error_messages': {'required': 'El proyecto es obligatorio.'}},
             'opportunityType': {'error_messages': {'required': 'El tipo de oportunidad es obligatorio.'}},
         }
+        read_only_fields = ['created']
+
 
     def validate_amount(self, value):
         if value <= 0:
@@ -157,6 +163,10 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
         ret['currency'] = CurrencySerializer(instance.currency).data if instance.currency else None
         ret['opportunityType'] = OpportunityTypeSerializer(instance.opportunityType).data if instance.opportunityType else None
         ret['status_opportunity'] = StatusOpportunitySerializer(instance.status_opportunity).data if instance.status_opportunity else None
-        ret['commercial_activity'] = CommercialActivitySerializer(instance.commercial_activity.all(), many=True).data
         ret['finance_opportunities'] = FinanceOpportunitySerializer(instance.financeopportunity_set.all(), many=True).data
         return ret
+
+    def create(self, validated_data):
+        validated_data['agent'] = self.context['request'].user
+
+        return super().create(validated_data)

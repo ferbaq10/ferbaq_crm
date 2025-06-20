@@ -21,6 +21,8 @@ class ObjetiveSerializer(serializers.ModelSerializer):
             'is_removed',
         ]
         model = Objetive
+        read_only_fields = ['created', 'modified']
+
 
 
 class ObjetiveWriteSerializer(serializers.ModelSerializer):
@@ -67,6 +69,8 @@ class ObjetiveWriteSerializer(serializers.ModelSerializer):
                 }
             }
         }
+        read_only_fields = ['created']
+
 
     def validate_amount(self, value):
         if value <= 0:

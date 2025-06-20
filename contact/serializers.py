@@ -25,8 +25,7 @@ class ContactSerializer(serializers.ModelSerializer):
             'clients',
             'is_removed'
         ]
-        read_only_fields = fields  # marca todo como solo lectura
-
+        read_only_fields = ['created', 'modified']
 
 class ContactWriteSerializer(serializers.ModelSerializer):
     name = serializers.CharField(
@@ -92,6 +91,8 @@ class ContactWriteSerializer(serializers.ModelSerializer):
             'address',
             'is_removed'
         ]
+        read_only_fields = ['created']
+
 
     def to_representation(self, instance):
         """

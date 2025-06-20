@@ -34,7 +34,7 @@ class ProjectSerializer(serializers.ModelSerializer):
             'project_status',
         ]
 
-        read_only_fields = fields
+        read_only_fields = ['created', 'modified']
 
 
 class ProjectWriteSerializer(serializers.ModelSerializer):
@@ -87,6 +87,8 @@ class ProjectWriteSerializer(serializers.ModelSerializer):
                 }
             }
         }
+        read_only_fields = ['created']
+
 
     def validate_latitude(self, value):
         if value is not None and (value < -90 or value > 90):
