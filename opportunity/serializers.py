@@ -80,7 +80,7 @@ class OpportunitySerializer(serializers.ModelSerializer):
     class Meta:
         model = Opportunity
         fields = [
-            'name', 'description', 'amount', 'number_fvt',
+            'id','name', 'description', 'amount', 'number_fvt',
             'date_reception', 'sent_date', 'date_status',
             'status_opportunity', 'contact', 'currency',
             'project', 'opportunityType',
@@ -107,7 +107,7 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Opportunity
         fields = [
-            'name', 'description', 'amount', 'number_fvt',
+            'id', 'name', 'description', 'amount', 'number_fvt',
             'date_reception', 'sent_date', 'date_status',
             'status_opportunity', 'contact', 'currency',
             'project', 'opportunityType',
