@@ -13,7 +13,10 @@ class UDNSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UDN
-        fields = '__all__'
+        fields = [
+            'id',
+            'name',
+        ]
 
 
 class WorkCellSerializer(serializers.ModelSerializer):
@@ -26,7 +29,11 @@ class WorkCellSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = WorkCell
-        fields = '__all__'
+        fields = [
+            'id',
+            'name',
+            'udn'
+        ]
 
 
 class BusinessGroupSerializer(serializers.ModelSerializer):
@@ -38,7 +45,10 @@ class BusinessGroupSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = BusinessGroup
-        fields = '__all__'
+        fields = [
+            'id',
+            'name',
+        ]
 
 
 class DivisionSerializer(serializers.ModelSerializer):
@@ -54,7 +64,11 @@ class DivisionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Division
-        fields = '__all__'
+        fields = [
+            'id',
+            'name',
+            'business_group'
+        ]
 
 
 class SubdivisionSerializer(serializers.ModelSerializer):
@@ -70,7 +84,11 @@ class SubdivisionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Subdivision
-        fields = '__all__'
+        fields = [
+            'id',
+            'name',
+            'division'
+        ]
 
 
 class SpecialtySerializer(serializers.ModelSerializer):
@@ -82,7 +100,10 @@ class SpecialtySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Specialty
-        fields = '__all__'
+        fields = [
+            'id',
+            'name',
+        ]
 
 
 class ProjectStatusSerializer(serializers.ModelSerializer):
@@ -94,7 +115,10 @@ class ProjectStatusSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProjectStatus
-        fields = '__all__'
+        fields = [
+            'id',
+            'name',
+        ]
 
 
 class CitySerializer(serializers.ModelSerializer):
@@ -106,7 +130,10 @@ class CitySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = City
-        fields = '__all__'
+        fields = [
+            'id',
+            'name',
+        ]
 
 
 class PeriodSerializer(serializers.ModelSerializer):
@@ -118,7 +145,10 @@ class PeriodSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Period
-        fields = '__all__'
+        fields = [
+            'id',
+            'name',
+        ]
 
 
 class StatusOpportunitySerializer(serializers.ModelSerializer):
@@ -130,7 +160,10 @@ class StatusOpportunitySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = StatusOpportunity
-        fields = '__all__'
+        fields = [
+            'id',
+            'name',
+        ]
 
 
 class CurrencySerializer(serializers.ModelSerializer):
@@ -142,7 +175,10 @@ class CurrencySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Currency
-        fields = '__all__'
+        fields = [
+            'id',
+            'name',
+        ]
 
 
 class JobSerializer(serializers.ModelSerializer):
@@ -154,7 +190,10 @@ class JobSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Job
-        fields = '__all__'
+        fields = [
+            'id',
+            'name',
+        ]
 
 
 class OpportunityTypeSerializer(serializers.ModelSerializer):
@@ -166,4 +205,7 @@ class OpportunityTypeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = OpportunityType
-        fields = '__all__'
+        fields = [
+            'id',
+            'name',
+        ]
