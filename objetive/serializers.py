@@ -11,14 +11,30 @@ class ObjetiveSerializer(serializers.ModelSerializer):
     user = serializers.StringRelatedField()
 
     class Meta:
+        fields = [
+            'id',
+            'user',
+            'name',
+            'period',
+            'amount',
+            'currency',
+            'is_removed',
+        ]
         model = Objetive
-        fields = '__all__'
 
 
 class ObjetiveWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Objetive
-        fields = ['name', 'amount', 'currency', 'period', 'user']
+        fields = [
+            'id',
+            'user',
+            'name',
+            'period',
+            'amount',
+            'currency',
+            'is_removed'
+        ]
         extra_kwargs = {
             'name': {
                 'required': True,

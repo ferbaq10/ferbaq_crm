@@ -16,6 +16,7 @@ class UDNSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'name',
+            'is_removed',
         ]
 
 
@@ -32,7 +33,8 @@ class WorkCellSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'name',
-            'udn'
+            'udn',
+            'is_removed'
         ]
 
 
@@ -48,6 +50,7 @@ class BusinessGroupSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'name',
+            'is_removed',
         ]
 
 
@@ -67,7 +70,8 @@ class DivisionSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'name',
-            'business_group'
+            'business_group',
+            'is_removed',
         ]
 
 
@@ -87,7 +91,8 @@ class SubdivisionSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'name',
-            'division'
+            'division',
+            'is_removed',
         ]
 
 
@@ -103,6 +108,7 @@ class SpecialtySerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'name',
+            'is_removed',
         ]
 
 
@@ -118,6 +124,7 @@ class ProjectStatusSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'name',
+            'is_removed',
         ]
 
 
@@ -133,6 +140,7 @@ class CitySerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'name',
+            'is_removed',
         ]
 
 
@@ -148,6 +156,7 @@ class PeriodSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'name',
+            'is_removed',
         ]
 
 
@@ -163,6 +172,7 @@ class StatusOpportunitySerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'name',
+            'is_removed',
         ]
 
 
@@ -178,6 +188,7 @@ class CurrencySerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'name',
+            'is_removed',
         ]
 
 
@@ -193,6 +204,7 @@ class JobSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'name',
+            'is_removed',
         ]
 
 
@@ -208,4 +220,5 @@ class OpportunityTypeSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'name',
+            'is_removed',
         ]

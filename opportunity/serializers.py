@@ -61,7 +61,13 @@ class OpportunitySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Opportunity
-        fields = '__all__'
+        fields = [
+            'name', 'description', 'amount', 'number_fvt',
+            'date_reception', 'sent_date', 'date_status',
+            'status_opportunity', 'contact', 'currency',
+            'commercial_activity', 'agent', 'project', 'opportunityType',
+            'finance_opportunities', 'is_removed'
+        ]
 
 
 # --- CREACIÓN / ACTUALIZACIÓN ---
@@ -86,7 +92,7 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
             'date_reception', 'sent_date', 'date_status',
             'status_opportunity', 'contact', 'currency',
             'commercial_activity', 'agent', 'project', 'opportunityType',
-            'finance_opportunities'
+            'finance_opportunities', 'is_removed',
         ]
         extra_kwargs = {
             'name': {'error_messages': {'unique': 'Ya existe una oportunidad con este nombre.'}},

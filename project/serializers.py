@@ -51,13 +51,13 @@ class ProjectWriteSerializer(serializers.ModelSerializer):
             'name',
             'client',
             'latitude',
+            'work_cell',
             'longitude',
             'specialty',
-            'subdivision',
-            'description',
-            'project_status',
-            'work_cell',
             'is_removed',
+            'description',
+            'subdivision',
+            'project_status',
         ]
         extra_kwargs = {
             'name': {
