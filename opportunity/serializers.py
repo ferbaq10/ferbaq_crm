@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
@@ -25,7 +27,16 @@ class FinanceOpportunitySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = FinanceOpportunity
-        fields = '__all__'
+        fields = [
+            'id',
+            'name',
+            'is_removed',
+            'opportunity',
+            'earned_amount',
+            'cost_subtotal',
+            'offer_subtotal',
+            'order_closing_date',
+        ]
 
 
 class CommercialActivitySerializer(serializers.ModelSerializer):
@@ -41,7 +52,11 @@ class CommercialActivitySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CommercialActivity
-        fields = '__all__'
+        fields = [
+            'id',
+            'name',
+            'is_removed',
+        ]
 
 
 # --- SOLO LECTURA ---
@@ -112,7 +127,25 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, data):
-        if data.get("date_reception") and data.get("sent_date") and data["sent_date"] < data["date_reception"]:
+        sent_date = data.get("sent_date")
+        date_status = data.get("date_status")
+        date_reception = data.get("date_reception")
+
+        # Validar que sean datetime válidos
+        if date_reception and not isinstance(date_reception, datetime):
+            raise serializers.ValidationError(
+                {"date_reception": "La fecha de recepción debe ser un valor datetime válido."})
+
+        # Validar que sean datetime válidos
+        if date_status and not isinstance(date_status, datetime):
+            raise serializers.ValidationError(
+                {"date_status": "La fecha del estado debe ser un valor datetime válido."})
+
+        if sent_date and not isinstance(sent_date, datetime):
+            raise serializers.ValidationError({"sent_date": "La fecha de envío debe ser un valor datetime válido."})
+
+
+        if date_reception and sent_date and sent_date < date_reception:
             raise serializers.ValidationError("La fecha de envío no puede ser anterior a la de recepción.")
         return data
 
