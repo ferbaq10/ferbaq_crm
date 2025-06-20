@@ -164,6 +164,6 @@ class OpportunityTypeSerializer(serializers.ModelSerializer):
             'max_length': 'El nombre no puede tener más de 100 caracteres.'
         })
 
-class Meta:
-    model = OpportunityType
-    fields = '__all__'
+    class Meta:
+        model = OpportunityType
+        fields = '__all__'
