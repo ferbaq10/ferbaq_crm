@@ -13,6 +13,7 @@ class ProjectSerializer(serializers.ModelSerializer):
     specialty = SpecialtySerializer()
     subdivision = SubdivisionSerializer()
     project_status = ProjectStatusSerializer()
+    work_cell = WorkCellSerializer()
 
     # Campo de soft delete heredado de SoftDeletableModel
     is_removed = serializers.BooleanField(required=False)
@@ -24,6 +25,7 @@ class ProjectSerializer(serializers.ModelSerializer):
             'name',
             'client',
             'latitude',
+            'work_cell',
             'longitude',
             'specialty',
             'is_removed',
