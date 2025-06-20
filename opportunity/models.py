@@ -34,7 +34,7 @@ class Opportunity(SoftDeletableModel, TimeStampedModel):
     number_fvt = models.CharField(unique=True, max_length=100, verbose_name="Formato de venta")
     date_reception = models.DateTimeField(blank=True, verbose_name="Fecha de recepción")
     sent_date = models.DateTimeField(blank=True, verbose_name="Fecha de enviado")
-    date_status = models.DateTimeField(blank=True, verbose_name="Fecha del estado")
+    date_status = models.DateTimeField(auto_now_add=True, verbose_name="Fecha del estado")
     status_opportunity = models.ForeignKey(
         StatusOpportunity,
         on_delete=models.DO_NOTHING

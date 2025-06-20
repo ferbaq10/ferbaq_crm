@@ -7,7 +7,7 @@ class OpportunityForm(forms.ModelForm):
         model = Opportunity
         fields = [
             'name', 'description', 'amount', 'number_fvt',
-            'date_reception', 'sent_date', 'date_status',
+            'date_reception', 'sent_date',
             'status_opportunity', 'contact', 'currency',
             'commercial_activity', 'agent', 'project', 'opportunityType'
         ]
