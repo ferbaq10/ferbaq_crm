@@ -32,7 +32,7 @@ class OpportunityViewSet(AuthenticatedModelViewSet):
     def update(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            serializer = self.get_serializer(instance, data=request.data)
+            serializer = self.get_serializer(instance, data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
             validated = serializer.validated_data
 
