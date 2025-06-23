@@ -2,7 +2,8 @@ from rest_framework.routers import DefaultRouter
 from catalog.viewsets import (
     UDNViewSet, WorkCellViewSet, BusinessGroupViewSet, DivisionViewSet,
     SubdivisionViewSet, SpecialtyViewSet, ProjectStatusViewSet, CityViewSet,
-    PeriodViewSet, StatusOpportunityViewSet, CurrencyViewSet, JobViewSet, OpportunityTypeViewSet
+    PeriodViewSet, StatusOpportunityViewSet, CurrencyViewSet, JobViewSet, OpportunityTypeViewSet,
+    MeetingTypeViewSet, MeetingResultViewSet
 )
 
 router = DefaultRouter()
@@ -23,9 +24,9 @@ router.register(r'jobs', JobViewSet, basename='jobs')
 
 router.register(r'opportunity-types', OpportunityTypeViewSet, basename='opportunity-types')
 
-router.register(r'meeting-types', OpportunityTypeViewSet, basename='meeting-types')
+router.register(r'meeting-types', MeetingTypeViewSet, basename='meeting-types')
 
-router.register(r'meeting-results', OpportunityTypeViewSet, basename='meeting-results')
+router.register(r'meeting-results', MeetingResultViewSet, basename='meeting-results')
 
 
 
