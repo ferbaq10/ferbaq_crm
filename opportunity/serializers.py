@@ -92,11 +92,11 @@ class OpportunitySerializer(serializers.ModelSerializer):
 
 # --- CREACIÓN / ACTUALIZACIÓN ---
 class OpportunityWriteSerializer(serializers.ModelSerializer):
-    project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all())
-    contact = serializers.PrimaryKeyRelatedField(queryset=Contact.objects.all())
-    currency = serializers.PrimaryKeyRelatedField(queryset=Currency.objects.all())
-    opportunityType = serializers.PrimaryKeyRelatedField(queryset=OpportunityType.objects.all())
-    status_opportunity = serializers.PrimaryKeyRelatedField(queryset=StatusOpportunity.objects.all())
+    project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all(), write_only=True)
+    contact = serializers.PrimaryKeyRelatedField(queryset=Contact.objects.all(), write_only=True)
+    currency = serializers.PrimaryKeyRelatedField(queryset=Currency.objects.all(), write_only=True)
+    opportunityType = serializers.PrimaryKeyRelatedField(queryset=OpportunityType.objects.all(), write_only=True)
+    status_opportunity = serializers.PrimaryKeyRelatedField(queryset=StatusOpportunity.objects.all(), write_only=True)
 
     finance_opportunities = FinanceOpportunitySerializer(
         source='financeopportunity_set',
