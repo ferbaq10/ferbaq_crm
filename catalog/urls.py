@@ -23,6 +23,10 @@ router.register(r'jobs', JobViewSet, basename='jobs')
 
 router.register(r'opportunity-types', OpportunityTypeViewSet, basename='opportunity-types')
 
+router.register(r'meeting-types', OpportunityTypeViewSet, basename='meeting-types')
+
+router.register(r'meeting-results', OpportunityTypeViewSet, basename='meeting-results')
+
 
 
 

@@ -3,7 +3,7 @@ from django import forms
 from catalog.models import (
     UDN, WorkCell, BusinessGroup, Division, Subdivision,
     Specialty, ProjectStatus, City, Period, StatusOpportunity,
-    Currency, Job, OpportunityType
+    Currency, Job, OpportunityType, MeetingType, MeetingResult
 )
 
 
@@ -161,5 +161,30 @@ class OpportunityTypeForm(forms.ModelForm):
                 'required': "El nombre del tipo de oportunidad es obligatorio.",
                 'max_length': "El nombre no puede exceder 100 caracteres.",
                 'unique': "Este tipo de oportunidad ya existe.",
+            }
+        }
+
+
+class MeetingTypeForm(forms.ModelForm):
+    class Meta:
+        model = MeetingType
+        fields = '__all__'
+        error_messages = {
+            'name': {
+                'required': "El nombre del tipo de reunión es obligatorio.",
+                'max_length': "El nombre no puede exceder 100 caracteres.",
+                'unique': "Este tipo de reunión ya existe.",
+            }
+        }
+
+class MeetingResultForm(forms.ModelForm):
+    class Meta:
+        model = MeetingResult
+        fields = '__all__'
+        error_messages = {
+            'name': {
+                'required': "El nombre del resultado de la reunión es obligatorio.",
+                'max_length': "El nombre no puede exceder 100 caracteres.",
+                'unique': "Este resultado de reunión ya existe.",
             }
         }

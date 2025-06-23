@@ -5,8 +5,6 @@ periods = [
     "Segundo Trimestre",
     "Tercer Trimestre",
     "Cuarto Trimestre",
-    "Primer Semestre",
-    "Segundo Semestre",
     "Anual",
     "Mensual"
 ]
@@ -57,7 +55,7 @@ divisions = [
 subdivisions = [
     (1, "Marítima", 1),
     (2, "Eólica", 2),
-    (3, "Fotovoltaica", 2),
+    (3, "Fotovoltáica", 2),
 ]
 
 specialties = [
@@ -87,23 +85,45 @@ status_opportunities = [
 ]
 
 jobs = [
-    (1, "Auxiliar de Compras"),
+    (1, "Auxiliar de compras"),
     (2, "Comprador Jr."),
     (3, "Comprador Sr."),
-    (4, "Analista de Compras"),
-    (5, "Coordinador de Compras"),
-    (6, "Jefe de Compras"),
-    (7, "Gerente de Compras"),
-    (8, "Director de Compras"),
+    (4, "Analista de compras"),
+    (5, "Coordinador de compras"),
+    (6, "Jefe de compras"),
+    (7, "Gerente de compras"),
+    (8, "Director de compras"),
 ]
 
 opportunity_types = [
     (1, "Ordinaria"),
-    (2, "Licitacion ITP"),
-    (3, "Licitacion AD"),
-    (4, "Contrato General"),
-    (5, "Contrato Marco"),
-    (6, "Estudio de Mercado")
+    (2, "Licitación ITP"),
+    (3, "Licitación AD"),
+    (4, "Contrato general"),
+    (5, "Contrato marco"),
+    (6, "Estudio de mercado")
+]
+
+meeting_types = [
+    (1, "Comida de negocios"),
+    (2, "Visita comercial a corporativo"),
+    (3, "Visita comercial a usuario final"),
+    (4, "Visita comercial a proyecto"),
+    (5, "Visita técnica - usuario final"),
+    (6, "Demostración o capacitación"),
+    (7, "Apertura de ofertas - licitación"),
+    (8, "Entrega de presentes"),
+    (9, "Prospección con cita"),
+    (10, "Prospección en frio"),
+]
+
+meeting_results = [
+    (1, "Cierre de orden de compra"),
+    (2, "Homologación de producto o marca"),
+    (3, "Fortalecimiento de la relación"),
+    (4, "Cierre de contrato general / marco"),
+    (5, "Obtención de información clave"),
+    (6, "Detección de nuevos proyectos")
 ]
 
 
@@ -175,6 +195,16 @@ def insert_initial_opportunity_types(apps, schema_editor):
     for id_val, name in opportunity_types:
         OpportunityType.objects.update_or_create(id=id_val, defaults={'name': name})
 
+def insert_initial_meeting_types(apps, schema_editor):
+    MeetingType = apps.get_model('catalog', 'MeetingType')
+    for id_val, name in meeting_types:
+        MeetingType.objects.update_or_create(id=id_val, defaults={'name': name})
+
+def insert_initial_meeting_results(apps, schema_editor):
+    MeetingResult = apps.get_model('catalog', 'MeetingResult')
+    for id_val, name in meeting_results:
+        MeetingResult.objects.update_or_create(id=id_val, defaults={'name': name})
+
 # --- Eliminaciones ---
 def remove_initial_periods(apps, schema_editor):
     Period = apps.get_model('catalog', 'Period')
@@ -228,6 +258,15 @@ def remove_initial_opportunity_type(apps, schema_editor):
     OpportunityType = apps.get_model('catalog', 'OpportunityType')
     OpportunityType.objects.filter(name__in=[name for _, name in jobs]).delete()
 
+def remove_initial_meeting_type(apps, schema_editor):
+    MeetingType = apps.get_model('catalog', 'MeetingType')
+    MeetingType.objects.filter(name__in=[name for _, name in jobs]).delete()
+
+def remove_initial_meeting_result(apps, schema_editor):
+    MeetingResult = apps.get_model('catalog', 'MeetingResult')
+    MeetingResult.objects.filter(name__in=[name for _, name in jobs]).delete()
+
+
 
 # --- Configuración de la migración ---
 class Migration(migrations.Migration):
@@ -250,4 +289,6 @@ class Migration(migrations.Migration):
         migrations.RunPython(insert_initial_currencies, reverse_code=remove_initial_currencies),
         migrations.RunPython(insert_initial_jobs, reverse_code=remove_initial_job),
         migrations.RunPython(insert_initial_opportunity_types, reverse_code=remove_initial_opportunity_type),
+        migrations.RunPython(insert_initial_meeting_types, reverse_code=remove_initial_meeting_type),
+        migrations.RunPython(insert_initial_meeting_results, reverse_code=remove_initial_meeting_result),
     ]
