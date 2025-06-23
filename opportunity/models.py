@@ -83,7 +83,6 @@ class CommercialActivity(BaseModel):
         return self.name
 
 class FinanceOpportunity(BaseModel):
-    name = models.CharField(unique=True, max_length=100)
     cost_subtotal = models.DecimalField(max_digits=12, decimal_places=2)
     offer_subtotal = models.DecimalField(max_digits=12, decimal_places=2)
     earned_amount = models.DecimalField(max_digits=12, decimal_places=2)

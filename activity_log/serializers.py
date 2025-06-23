@@ -1,21 +1,35 @@
 from rest_framework import serializers
+
+from catalog.serializers import MeetingTypeSerializer, MeetingResultSerializer
+from catalog.models import MeetingType, MeetingResult
+from project.serializers import ProjectSerializer
 from .models import ActivityLog
-from opportunity.serializers import OpportunitySerializer
-from opportunity.models import Opportunity
+from opportunity.serializers import OpportunitySerializer, CommercialActivitySerializer
+from opportunity.models import Opportunity, CommercialActivity
 
 
 class ActivityLogSerializer(serializers.ModelSerializer):
     opportunity = OpportunitySerializer(read_only=True)
+    activity_type = CommercialActivitySerializer(read_only=True)
+    meeting_type = MeetingTypeSerializer(read_only=True)
+    meeting_result = MeetingResultSerializer(read_only=True)
+    project = ProjectSerializer(read_only=True)
+
 
     class Meta:
         model = ActivityLog
         fields = [
-            'id',
-            'name',
-            'longitude',
+             'id',
+            'project',
             'latitude',
-            'opportunity',
+            'longitude',
             'is_removed',
+            'opportunity',
+            'observation',
+            'meeting_type',
+            'activity_type',
+            'activity_date',
+            'meeting_result',
         ]
         read_only_fields = ['id', 'is_removed']
 
@@ -30,14 +44,13 @@ class ActivityLogWriteSerializer(serializers.ModelSerializer):
             'invalid': 'Formato inválido para la oportunidad.',
         }
     )
-
-    name = serializers.CharField(
-        required=True,
-        max_length=100,
+    activity_type = serializers.PrimaryKeyRelatedField(
+        queryset=CommercialActivity.objects.all(),
+        required=False,
+        allow_null=True,
         error_messages={
-            'required': 'El nombre es obligatorio.',
-            'max_length': 'El nombre no puede tener más de 100 caracteres.',
-            'blank': 'El nombre no puede estar vacío.',
+            'does_not_exist': 'La actividad comercial seleccionada no existe.',
+            'invalid': 'Formato inválido para la actividad comercial.',
         }
     )
 
@@ -60,16 +73,40 @@ class ActivityLogWriteSerializer(serializers.ModelSerializer):
             'invalid': 'Longitud inválida.',
         }
     )
+    meeting_type = serializers.PrimaryKeyRelatedField(
+        queryset=MeetingType.objects.all(),
+        required=False,
+        allow_null=True,
+        error_messages={
+            'does_not_exist': 'El tipo de reunión seleccionado no existe.',
+            'invalid': 'Formato inválido para el tipo de reunión.',
+        }
+    )
+
+    meeting_result = serializers.PrimaryKeyRelatedField(
+        queryset=MeetingResult.objects.all(),
+        required=False,
+        allow_null=True,
+        error_messages={
+            'does_not_exist': 'El resultado de reunión seleccionado no existe.',
+            'invalid': 'Formato inválido para el resultado de reunión.',
+        }
+    )
 
     class Meta:
         model = ActivityLog
         fields = [
             'id',
-            'name',
-            'longitude',
+            'project',
             'latitude',
-            'opportunity',
+            'longitude',
             'is_removed',
+            'opportunity',
+            'observation',
+            'meeting_type',
+            'activity_type',
+            'activity_date',
+            'meeting_result',
         ]
         read_only_fields = ['id', 'is_removed']
 

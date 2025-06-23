@@ -4,21 +4,15 @@ from .models import ActivityLog
 class ActivityLogForm(forms.ModelForm):
     class Meta:
         model = ActivityLog
-        fields = ['name', 'latitude', 'longitude', 'opportunity']
+        fields = ['latitude', 'longitude', 'opportunity']
 
         widgets = {
-            'name': forms.TextInput(attrs={'placeholder': 'Nombre del registro'}),
             'latitude': forms.NumberInput(attrs={'step': 'any', 'placeholder': 'Latitud'}),
             'longitude': forms.NumberInput(attrs={'step': 'any', 'placeholder': 'Longitud'}),
             'opportunity': forms.Select(attrs={'placeholder': 'Selecciona una oportunidad'}),
         }
 
         error_messages = {
-            'name': {
-                'required': 'El nombre es obligatorio.',
-                'unique': 'Este nombre ya ha sido registrado.',
-                'max_length': 'El nombre no puede superar los 100 caracteres.',
-            },
             'latitude': {
                 'invalid': 'Ingresa una latitud válida.',
             },

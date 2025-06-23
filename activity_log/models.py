@@ -1,15 +1,10 @@
 from django.db import models
 from catalog.models import BaseModel, MeetingType, MeetingResult
-from opportunity.models import Opportunity
+from opportunity.models import Opportunity, CommercialActivity
 from project.models import Project
-
+from contact.models import Contact
 
 class ActivityLog(BaseModel):
-    name = models.CharField(
-        unique=True,
-        max_length=100,
-        verbose_name="Nombre"
-    )
     latitude = models.DecimalField(
         max_digits=9,
         decimal_places=6,
@@ -28,10 +23,23 @@ class ActivityLog(BaseModel):
         blank=True,
         null=True,)
 
+    activity_date = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de la actividad")
+
+    activity_type = models.ForeignKey(
+        CommercialActivity,
+        on_delete=models.DO_NOTHING,
+        verbose_name="Actividad comercial"
+    )
+
     project = models.ForeignKey(
         Project,
         on_delete=models.DO_NOTHING,
         verbose_name="Proyecto"
+    )
+    contact = models.ForeignKey(
+        Contact,
+        on_delete=models.DO_NOTHING,
+        verbose_name="Contacto"
     )
     meeting_type = models.ForeignKey(
         MeetingType,
