@@ -1,12 +1,13 @@
 from django.contrib import admin
 from .models import (
     UDN, WorkCell, BusinessGroup, Division, Subdivision,
-    Specialty, ProjectStatus, City, Period, StatusOpportunity, Currency, Job, OpportunityType
+    Specialty, ProjectStatus, City, Period, StatusOpportunity, Currency, Job, OpportunityType, MeetingType,
+    MeetingResult
 )
 from .forms import (
     UDNForm, WorkCellForm, BusinessGroupForm, DivisionForm, SubdivisionForm,
     SpecialtyForm, ProjectStatusForm, CityForm, PeriodForm, StatusOpportunityForm, CurrencyForm,
-    JobForm, OpportunityTypeForm
+    JobForm, OpportunityTypeForm, MeetingTypeForm, MeetingResultForm
 )
 
 @admin.register(UDN)
@@ -62,3 +63,12 @@ class CurrencyAdmin(admin.ModelAdmin):
 @admin.register(OpportunityType)
 class OpportunityTypeAdmin(admin.ModelAdmin):
     form = OpportunityTypeForm
+
+
+@admin.register(MeetingType)
+class OpportunityTypeAdmin(admin.ModelAdmin):
+    form = MeetingTypeForm
+
+@admin.register(MeetingResult)
+class OpportunityTypeAdmin(admin.ModelAdmin):
+    form = MeetingResultForm

@@ -295,3 +295,46 @@ class OpportunityType(BaseModel):
 
     def __str__(self):
         return self.name
+
+
+
+class MeetingType(BaseModel):
+    name = models.CharField(
+        unique=True,
+        max_length=100,
+        verbose_name="Nombre",
+        error_messages={
+            'unique': "Este tipo de reunión ya existe.",
+            'max_length': "El nombre no puede exceder 100 caracteres."
+        }
+    )
+
+
+    class Meta:
+        db_table = 'catalog_meeting_types'
+        verbose_name = "Tipo de reunión"
+        verbose_name_plural = "Tipo de reuniones"
+
+    def __str__(self):
+        return self.name
+
+
+class MeetingResult(BaseModel):
+    name = models.CharField(
+        unique=True,
+        max_length=100,
+        verbose_name="Nombre",
+        error_messages={
+            'unique': "Este resultado de reunión ya existe.",
+            'max_length': "El nombre no puede exceder 100 caracteres."
+        }
+    )
+
+
+    class Meta:
+        db_table = 'catalog_meeting_results'
+        verbose_name = "Resultado de reunión"
+        verbose_name_plural = "Resultado de reuniones"
+
+    def __str__(self):
+        return self.name

@@ -6,12 +6,14 @@ from rest_framework.viewsets import ModelViewSet
 
 from catalog.models import (
     UDN, WorkCell, BusinessGroup, Division, Subdivision, Specialty,
-    ProjectStatus, City, Period, StatusOpportunity, Currency,Job, OpportunityType
+    ProjectStatus, City, Period, StatusOpportunity, Currency,Job, OpportunityType,
+    MeetingType, MeetingResult
 )
 from catalog.serializers import (
     UDNSerializer, WorkCellSerializer, BusinessGroupSerializer, DivisionSerializer,
     SubdivisionSerializer, SpecialtySerializer, ProjectStatusSerializer, CitySerializer,
-    PeriodSerializer, StatusOpportunitySerializer, CurrencySerializer, JobSerializer, OpportunityTypeSerializer
+    PeriodSerializer, StatusOpportunitySerializer, CurrencySerializer, JobSerializer, OpportunityTypeSerializer,
+    MeetingTypeSerializer, MeetingResultSerializer
 )
 
 
@@ -97,3 +99,13 @@ class JobViewSet(AuthenticatedModelViewSet):
 class OpportunityTypeViewSet(AuthenticatedModelViewSet):
     model = OpportunityType
     serializer_class = OpportunityTypeSerializer
+
+
+class MeetingTypeViewSet(AuthenticatedModelViewSet):
+    model = MeetingType
+    serializer_class = MeetingTypeSerializer
+
+
+class MeetingResultViewSet(AuthenticatedModelViewSet):
+    model = MeetingResult
+    serializer_class = MeetingResultSerializer

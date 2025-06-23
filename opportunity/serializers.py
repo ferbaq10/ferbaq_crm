@@ -120,7 +120,6 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
             'status_opportunity': {'error_messages': {'required': 'El estado es obligatorio.'}},
             'contact': {'error_messages': {'required': 'El contacto es obligatorio.'}},
             'currency': {'error_messages': {'required': 'La moneda es obligatoria.'}},
-            'agent': {'error_messages': {'required': 'El usuario asignado es obligatorio.'}},
             'project': {'error_messages': {'required': 'El proyecto es obligatorio.'}},
             'opportunityType': {'error_messages': {'required': 'El tipo de oportunidad es obligatorio.'}},
         }

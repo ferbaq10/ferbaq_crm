@@ -1,6 +1,7 @@
 from django.db import models
-from catalog.models import BaseModel
+from catalog.models import BaseModel, MeetingType, MeetingResult
 from opportunity.models import Opportunity
+from project.models import Project
 
 
 class ActivityLog(BaseModel):
@@ -23,6 +24,26 @@ class ActivityLog(BaseModel):
         null=True,
         verbose_name="Longitud"
     )
+    observation = models.TextField(
+        blank=True,
+        null=True,)
+
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.DO_NOTHING,
+        verbose_name="Proyecto"
+    )
+    meeting_type = models.ForeignKey(
+        MeetingType,
+        on_delete=models.DO_NOTHING,
+        verbose_name="Tipo de reunión"
+    )
+    meeting_result = models.ForeignKey(
+        MeetingResult,
+        on_delete=models.DO_NOTHING,
+        verbose_name="Resultado de la reunión"
+    )
+
     opportunity = models.ForeignKey(
         Opportunity,
         on_delete=models.DO_NOTHING,
