@@ -15,21 +15,10 @@ User = get_user_model()
 
 
 class FinanceOpportunitySerializer(serializers.ModelSerializer):
-    name = serializers.CharField(
-        max_length=100,
-        required=True,
-        error_messages={
-            'required': 'El nombre es obligatorio.',
-            'max_length': 'El nombre no puede exceder los 100 caracteres.',
-            'unique': 'Ya existe un dato financiero con este nombre.'
-        }
-    )
-
     class Meta:
         model = FinanceOpportunity
         fields = [
             'id',
-            'name',
             'is_removed',
             'opportunity',
             'earned_amount',
@@ -80,7 +69,7 @@ class OpportunitySerializer(serializers.ModelSerializer):
     class Meta:
         model = Opportunity
         fields = [
-            'id', 'description', 'amount', 'number_fvt',
+            'id', 'name', 'description', 'amount', 'number_fvt',
             'date_reception', 'sent_date', 'date_status',
             'status_opportunity', 'contact', 'currency',
             'project', 'opportunityType',
@@ -92,6 +81,15 @@ class OpportunitySerializer(serializers.ModelSerializer):
 
 # --- CREACIÓN / ACTUALIZACIÓN ---
 class OpportunityWriteSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(
+        max_length=100,
+        required=True,
+        error_messages={
+            'required': 'El nombre es obligatorio.',
+            'max_length': 'El nombre no puede exceder los 100 caracteres.',
+            'unique': 'Ya existe una oportunidad con este nombre.'
+        }
+    )
     project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all(), write_only=True)
     contact = serializers.PrimaryKeyRelatedField(queryset=Contact.objects.all(), write_only=True)
     currency = serializers.PrimaryKeyRelatedField(queryset=Currency.objects.all(), write_only=True)
@@ -107,7 +105,7 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Opportunity
         fields = [
-            'id', 'description', 'amount', 'number_fvt',
+            'id', 'name', 'description', 'amount', 'number_fvt',
             'date_reception', 'sent_date', 'date_status',
             'status_opportunity', 'contact', 'currency',
             'project', 'opportunityType',

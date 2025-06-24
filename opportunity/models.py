@@ -98,4 +98,4 @@ class FinanceOpportunity(BaseModel):
         verbose_name_plural = "Datos financieros de la oportunidades"
 
     def __str__(self):
-        return self.name
+        return f"Finanzas - {self.opportunity.name}"
