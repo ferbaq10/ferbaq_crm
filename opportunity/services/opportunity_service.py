@@ -18,7 +18,7 @@ class OpportunityService:
             validated_data["date_status"] = timezone.now()
 
         # Extraer objeto anidado de datos financieros (si se incluye)
-        finance_data = validated_data.pop("finance_opportunity", None)
+        finance_data = validated_data.pop("finance_opportunity", {})
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
