@@ -19,8 +19,6 @@ class OpportunityService:
 
         # Extraer objeto anidado de datos financieros (si se incluye)
         finance_data = validated_data.pop("finance_opportunity", None)
-        print("finance_datawwwwwww", finance_data.get("cost_subtotal", 0), finance_data.get("offer_subtotal", 0),
-              finance_data.get("earned_amount", 0), finance_data.get("order_closing_date", None) )
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
