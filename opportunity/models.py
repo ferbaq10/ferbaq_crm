@@ -87,14 +87,15 @@ class FinanceOpportunity(BaseModel):
     offer_subtotal = models.DecimalField(max_digits=12, decimal_places=2)
     earned_amount = models.DecimalField(max_digits=12, decimal_places=2)
     order_closing_date = models.DateTimeField(blank=True, verbose_name="Fecha de cierre de orden")
-    opportunity = models.ForeignKey(
+    opportunity = models.OneToOneField(
         Opportunity,
-        on_delete=models.DO_NOTHING
+        on_delete=models.DO_NOTHING,
+        related_name = 'finance_data'
     )
 
     class Meta:
         db_table = 'opportunity_finance_opportunities'
-        verbose_name = "Datos financieros de la oportunidad"
+        verbose_name = "Dato financiero de la oportunidad"
         verbose_name_plural = "Datos financieros de la oportunidades"
 
     def __str__(self):

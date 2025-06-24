@@ -60,9 +60,8 @@ class OpportunitySerializer(serializers.ModelSerializer):
     opportunityType = OpportunityTypeSerializer()
     status_opportunity = StatusOpportunitySerializer()
 
-    finance_opportunities = FinanceOpportunitySerializer(
-        source='financeopportunity_set',
-        many=True,
+    finance_opportunity = FinanceOpportunitySerializer(
+        source='finance_data',
         read_only=True
     )
 
@@ -73,7 +72,7 @@ class OpportunitySerializer(serializers.ModelSerializer):
             'date_reception', 'sent_date', 'date_status',
             'status_opportunity', 'contact', 'currency',
             'project', 'opportunityType',
-            'finance_opportunities', 'is_removed'
+            'finance_opportunity', 'is_removed'
         ]
         read_only_fields = ['created', 'modified']
 
@@ -96,11 +95,7 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
     opportunityType = serializers.PrimaryKeyRelatedField(queryset=OpportunityType.objects.all(), write_only=True)
     status_opportunity = serializers.PrimaryKeyRelatedField(queryset=StatusOpportunity.objects.all(), write_only=True)
 
-    finance_opportunities = FinanceOpportunitySerializer(
-        source='financeopportunity_set',
-        many=True,
-        read_only=True
-    )
+    finance_opportunity = FinanceOpportunitySerializer(write_only=True, required=False)
 
     class Meta:
         model = Opportunity
@@ -109,7 +104,7 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
             'date_reception', 'sent_date', 'date_status',
             'status_opportunity', 'contact', 'currency',
             'project', 'opportunityType',
-            'finance_opportunities', 'is_removed',
+            'finance_opportunity', 'is_removed',
         ]
         extra_kwargs = {
             'number_fvt': {'error_messages': {'unique': 'Este formato de venta ya está registrado.'}},
@@ -159,7 +154,9 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
         ret['currency'] = CurrencySerializer(instance.currency).data if instance.currency else None
         ret['opportunityType'] = OpportunityTypeSerializer(instance.opportunityType).data if instance.opportunityType else None
         ret['status_opportunity'] = StatusOpportunitySerializer(instance.status_opportunity).data if instance.status_opportunity else None
-        ret['finance_opportunities'] = FinanceOpportunitySerializer(instance.financeopportunity_set.all(), many=True).data
+        ret['finance_opportunity'] = FinanceOpportunitySerializer(
+            getattr(instance, 'finance_data', None)
+        ).data if hasattr(instance, 'finance_data') and instance.finance_data else None
         return ret
 
     def create(self, validated_data):
