@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any
+from datetime import datetime
 from opportunity.models import Opportunity, FinanceOpportunity
 
 class AbstractFinanceOpportunityFactory(ABC):
@@ -9,7 +9,8 @@ class AbstractFinanceOpportunityFactory(ABC):
         opportunity: Opportunity,
         cost_subtotal: float,
         offer_subtotal: float,
-        earned_amount: float
+        earned_amount: float,
+        order_closing_date: datetime,
     ) -> tuple[FinanceOpportunity, bool]:
         """
         Crea o actualiza una instancia de FinanceOpportunity.
