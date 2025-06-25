@@ -3,7 +3,7 @@ from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
-from catalog.viewsets import AuthenticatedModelViewSet
+from catalog.viewsets.base import AuthenticatedModelViewSet, CachedViewSet
 from core.di import injector
 from opportunity.services.opportunity_service import OpportunityService
 from .models import Opportunity, CommercialActivity
@@ -14,7 +14,7 @@ from .serializers import (
 )
 
 
-class OpportunityViewSet(AuthenticatedModelViewSet):
+class OpportunityViewSet(CachedViewSet):
     model = Opportunity
     serializer_class = OpportunitySerializer
 
@@ -51,6 +51,6 @@ class OpportunityViewSet(AuthenticatedModelViewSet):
             return Response({'detail': 'Error interno del servidor.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class CommercialActivityViewSet(AuthenticatedModelViewSet):
+class CommercialActivityViewSet(CachedViewSet):
     model = CommercialActivity
     serializer_class = CommercialActivitySerializer

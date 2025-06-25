@@ -1,9 +1,9 @@
-from catalog.viewsets import AuthenticatedModelViewSet
+from catalog.viewsets.base import CachedViewSet
 from .models import Objetive
 from .serializers import ObjetiveSerializer, ObjetiveWriteSerializer
 
 
-class ObjetiveViewSet(AuthenticatedModelViewSet):
+class ObjetiveViewSet(CachedViewSet):
     model = Objetive
     serializer_class = ObjetiveSerializer
 

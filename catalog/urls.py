@@ -1,5 +1,5 @@
 from rest_framework.routers import DefaultRouter
-from catalog.viewsets import (
+from catalog.viewsets.catalog_viewsets import (
     UDNViewSet, WorkCellViewSet, BusinessGroupViewSet, DivisionViewSet,
     SubdivisionViewSet, SpecialtyViewSet, ProjectStatusViewSet, CityViewSet,
     PeriodViewSet, StatusOpportunityViewSet, CurrencyViewSet, JobViewSet, OpportunityTypeViewSet,

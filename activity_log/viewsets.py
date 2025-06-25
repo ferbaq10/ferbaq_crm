@@ -1,6 +1,6 @@
 from activity_log.models import ActivityLog
 from activity_log.serializers import ActivityLogSerializer, ActivityLogWriteSerializer
-from catalog.viewsets import AuthenticatedModelViewSet
+from catalog.viewsets.base import AuthenticatedModelViewSet
 
 class ActivityLogViewSet(AuthenticatedModelViewSet):
     model = ActivityLog

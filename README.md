@@ -11,7 +11,7 @@ ferbaq_crm/
 │   ├── models.py          # Definición de modelos de base de datos relacionados con catálogos
 │   ├── serializers.py     # Serializadores DRF para exponer modelos como JSON
 │   ├── forms.py           # Formularios Django para uso en admin u otros
-│   ├── viewsets.py        # Lógica de vistas con ViewSets (API REST)
+│   ├── catalog_viewsets.py        # Lógica de vistas con ViewSets (API REST)
 │   ├── urls.py            # Rutas del módulo catalog
 │   ├── tests.py           # Pruebas unitarias del módulo
 │   └── admin.py           # Registro de modelos en el panel de administración
@@ -19,7 +19,7 @@ ferbaq_crm/
 │   ├── models.py          # Modelos relacionados con clientes
 │   ├── serializers.py     # Serializadores DRF para clientes
 │   ├── forms.py           # Formularios de clientes
-│   ├── viewsets.py        # API REST para clientes
+│   ├── catalog_viewsets.py        # API REST para clientes
 │   ├── urls.py            # Rutas del módulo
 │   ├── tests.py           # Pruebas unitarias
 │   └── admin.py           # Configuración del admin para clientes
@@ -27,7 +27,7 @@ ferbaq_crm/
 │   ├── models.py
 │   ├── serializers.py
 │   ├── forms.py
-│   ├── viewsets.py
+│   ├── catalog_viewsets.py
 │   ├── urls.py
 │   ├── tests.py
 │   └── admin.py
@@ -39,7 +39,7 @@ ferbaq_crm/
 │   ├── models.py
 │   ├── serializers.py
 │   ├── forms.py
-│   ├── viewsets.py
+│   ├── catalog_viewsets.py
 │   ├── urls.py
 │   ├── tests.py
 │   └── admin.py
@@ -47,7 +47,7 @@ ferbaq_crm/
 │   ├── models.py
 │   ├── serializers.py
 │   ├── forms.py
-│   ├── viewsets.py
+│   ├── catalog_viewsets.py
 │   ├── urls.py
 │   ├── tests.py
 │   └── admin.py
@@ -55,7 +55,7 @@ ferbaq_crm/
 │   ├── models.py
 │   ├── serializers.py
 │   ├── forms.py
-│   ├── viewsets.py
+│   ├── catalog_viewsets.py
 │   ├── urls.py
 │   ├── tests.py
 │   └── admin.py
@@ -179,4 +179,20 @@ Si se usa la base de datos de desarrollo, el usuario es admin:admin
 ### 4. Ejecutar servidor de desarrollo
 ```bash
     python manage.py runserver
+```
+
+### 5. Ejecutar Redis de manera local
+Abrir un terminal que se situe en la raíz del proyecto y ejecuta
+```bash
+  docker-compose up -d
+```
+```bash
+  docker ps
+```
+Deberías ver un contenedor llamado local-redis expuesto en el puerto 6379.
+
+Agregra la siguiente configuracion en el archivo .env
+```bash
+  REDIS_HOST=localhost
+  REDIS_PORT=6379
 ```

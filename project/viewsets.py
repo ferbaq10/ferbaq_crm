@@ -1,9 +1,9 @@
-from catalog.viewsets import AuthenticatedModelViewSet
+from catalog.viewsets.base import CachedViewSet
 from .models import Project
 from .serializers import ProjectSerializer, ProjectWriteSerializer
 
 
-class ProjectViewSet(AuthenticatedModelViewSet):
+class ProjectViewSet(CachedViewSet):
     model = Project
     serializer_class = ProjectSerializer
 
