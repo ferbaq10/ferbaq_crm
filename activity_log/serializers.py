@@ -12,11 +12,12 @@ from .models import ActivityLog
 
 
 class ActivityLogSerializer(serializers.ModelSerializer):
+    project = ProjectSerializer(read_only=True)
+    contact = ContactSerializer(read_only=True)
     opportunity = OpportunitySerializer(read_only=True)
     activity_type = CommercialActivitySerializer(read_only=True)
     meeting_type = MeetingTypeSerializer(read_only=True)
     meeting_result = MeetingResultSerializer(read_only=True)
-    project = ProjectSerializer(read_only=True)
 
 
     class Meta:
@@ -24,6 +25,7 @@ class ActivityLogSerializer(serializers.ModelSerializer):
         fields = [
              'id',
             'project',
+            'contact',
             'latitude',
             'longitude',
             'is_removed',
@@ -85,18 +87,29 @@ class ActivityLogWriteSerializer(serializers.ModelSerializer):
     def validate(self, data):
         lat = data.get('latitude')
         lng = data.get('longitude')
+        activity_date = data.get('activity_date')
+
+        print("REQUEST DATA:", self.initial_data)
+        print("SERIALIZED DATA:", data)
+
         if (lat is not None and lng is None) or (lng is not None and lat is None):
             raise serializers.ValidationError({
                 'non_field_errors': ["Si proporcionas latitud, también debes proporcionar longitud, y viceversa."]
             })
+
+        if isinstance(activity_date, str):
+            raise serializers.ValidationError({
+                'activity_date': ["La fecha de actividad debe ser un objeto datetime, no una cadena."]
+            })
+
         return data
 
     def to_representation(self, instance):
         """Devuelve la representación con objetos anidados aunque sea un serializer de escritura"""
         ret = super().to_representation(instance)
-        ret['activity_type'] = CommercialActivitySerializer(instance.activity_type).data if instance.activity_type else None
         ret['contact'] = ContactSerializer(instance.contact).data if instance.contact else None
         ret['project'] = ProjectSerializer(instance.project).data if instance.project else None
+        ret['activity_type'] = CommercialActivitySerializer(instance.activity_type).data if instance.activity_type else None
         ret['meeting_type'] = MeetingTypeSerializer(instance.meeting_type).data if instance.meeting_type else None
         ret['meeting_result'] = MeetingResultSerializer(instance.meeting_result).data if instance.meeting_result else None
         return ret

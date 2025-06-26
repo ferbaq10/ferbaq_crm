@@ -1,6 +1,6 @@
 from django.core.cache import cache
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, DjangoModelPermissions
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
@@ -44,7 +44,7 @@ class ListCacheMixin:
 
 class AuthenticatedModelViewSet(ModelViewSet):
     """ViewSet base con autenticación requerida."""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, DjangoModelPermissions]
     model = None
 
     def get_queryset(self):
