@@ -1,9 +1,11 @@
 from django.db import transaction, IntegrityError
+from django.db.models import Prefetch
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
-from catalog.viewsets.base import AuthenticatedModelViewSet, CachedViewSet
+from catalog.viewsets.base import CachedViewSet
+from client.models import Client
 from core.di import injector
 from opportunity.services.opportunity_service import OpportunityService
 from .models import Opportunity, CommercialActivity
@@ -14,37 +16,15 @@ from .serializers import (
 )
 
 
-class OpportunityViewSet(AuthenticatedModelViewSet):
+class OpportunityViewSet(CachedViewSet):
     model = Opportunity
     serializer_class = OpportunitySerializer
 
     GANADA_STATUS_ID = 5  # ID del estado 'Ganada'
 
-    queryset = Opportunity.objects.select_related(
-            'status_opportunity',
-            'contact',
-            'contact__job',
-            'contact__city',
-            'currency',
-            'project',
-            'project__client',
-            'project__client__city',
-            'project__client__business_group',
-            'project__specialty',
-            'project__subdivision',
-            'project__project_status',
-            'project__work_cell',
-            'opportunityType'
-        ).prefetch_related(
-            'finance_data',
-            'contact__clients',
-            'contact__clients__city',
-            'contact__clients__business_group'
-        )
+    def get_queryset(self):
+        return self.get_optimized_queryset()
 
-
-    # def get_queryset(self):
-    #     return self.get_optimized_queryset()
 
     def get_serializer_class(self):
         return (
@@ -77,26 +57,45 @@ class OpportunityViewSet(AuthenticatedModelViewSet):
             return Response({'detail': 'Error interno del servidor.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def get_optimized_queryset(self):
-        print("✔ Usando queryset optimizado")
+        # Optimizar consultas de clientes relacionados con contactos
+        optimized_clients = Prefetch(
+            'contact__clients',
+            queryset=Client.objects.select_related('city', 'business_group')
+        )
+
+        # Optimizar datos financieros
+        optimized_finance = Prefetch(
+            'finance_data',
+            queryset=self.model._meta.get_field('finance_data').related_model.objects.all()
+        )
+
         return Opportunity.objects.select_related(
+            # Status y tipos básicos
             'status_opportunity',
+            'currency',
+            'opportunityType',
+
+            # Contacto y sus relaciones
             'contact',
             'contact__job',
             'contact__city',
-            'currency',
+
+            # Proyecto y todas sus relaciones en una sola consulta
             'project',
             'project__client',
+            'project__client__city',
+            'project__client__business_group',
             'project__specialty',
             'project__subdivision',
+            'project__subdivision__division',  # Agregado: división de subdivisión
             'project__project_status',
             'project__work_cell',
-            'opportunityType'
+            'project__work_cell__udn'  # Agregado: UDN de work_cell
+
         ).prefetch_related(
-            'finance_data',
-            'contact__clients',
-            'contact__clients__city',
-            'contact__clients__business_group'
-        )
+            optimized_finance,
+            optimized_clients
+        ).distinct()
 
 class CommercialActivityViewSet(CachedViewSet):
     model = CommercialActivity
