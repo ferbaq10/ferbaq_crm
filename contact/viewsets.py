@@ -1,8 +1,8 @@
 from .models import Contact
 from .serializers import ContactSerializer, ContactWriteSerializer
-from catalog.viewsets import AuthenticatedModelViewSet
+from catalog.viewsets.base import CachedViewSet
 
-class ContactViewSet(AuthenticatedModelViewSet):
+class ContactViewSet(CachedViewSet):
     model = Contact
     serializer_class = ContactSerializer
 

@@ -1,8 +1,8 @@
 from client.models import Client
 from client.serializers import ClientSerializer, ClientWriteSerializer
-from catalog.viewsets import AuthenticatedModelViewSet
+from catalog.viewsets.base import CachedViewSet
 
-class ClientViewSet(AuthenticatedModelViewSet):
+class ClientViewSet(CachedViewSet):
     model = Client
     serializer_class = ClientSerializer
 

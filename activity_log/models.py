@@ -1,8 +1,11 @@
 from django.db import models
+from django.utils import timezone
+
 from catalog.models import BaseModel, MeetingType, MeetingResult
+from contact.models import Contact
 from opportunity.models import Opportunity, CommercialActivity
 from project.models import Project
-from contact.models import Contact
+
 
 class ActivityLog(BaseModel):
     latitude = models.DecimalField(
@@ -23,7 +26,10 @@ class ActivityLog(BaseModel):
         blank=True,
         null=True,)
 
-    activity_date = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de la actividad")
+    activity_date = models.DateTimeField(default=timezone.now,
+    blank=True,
+    null=True,
+    verbose_name="Fecha de la actividad")
 
     activity_type = models.ForeignKey(
         CommercialActivity,
