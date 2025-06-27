@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 class ListCacheMixin:
     """
-    Mixin para cachear las respuestas del método list con fallback seguro.
+    Mixin para cachear las respuestas del metodo list con fallback seguro.
     Si Redis no está disponible, funciona normalmente sin cache.
     """
     cache_timeout = 60 * 60  # 1 hora por defecto
