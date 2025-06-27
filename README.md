@@ -182,17 +182,20 @@ Si se usa la base de datos de desarrollo, el usuario es admin:admin
 ```
 
 ### 5. Ejecutar Redis de manera local
-Abrir un terminal que se situe en la raíz del proyecto y ejecuta
+Agregar la siguiente configuración en el archivo .env
+```bash
+  REDIS_HOST=127.0.0.1
+  REDIS_PORT=6379
+  REDIS_DB=1
+```
+
+Abrir un terminal y situarse en la raíz del proyecto y ejecutar:
 ```bash
   docker-compose up -d
 ```
+
+Deberías ver un contenedor llamado local-redis expuesto en el puerto 6379 con el siguiente comando:
+
 ```bash
   docker ps
-```
-Deberías ver un contenedor llamado local-redis expuesto en el puerto 6379.
-
-Agregra la siguiente configuracion en el archivo .env
-```bash
-  REDIS_HOST=localhost
-  REDIS_PORT=6379
 ```

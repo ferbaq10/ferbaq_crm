@@ -23,7 +23,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/catalog/', include('catalog.urls')),
 
-    path('auth/jwt/create/', CustomTokenObtainPairView.as_view(), name='custom_token_obtain_pair'),
+    path('auth/login/', CustomTokenObtainPairView.as_view(), name='custom_token_obtain_pair'),
 
     path('auth/', include('djoser.urls')),
     path('auth/', include('djoser.urls.jwt')),
