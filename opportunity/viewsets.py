@@ -14,11 +14,37 @@ from .serializers import (
 )
 
 
-class OpportunityViewSet(CachedViewSet):
+class OpportunityViewSet(AuthenticatedModelViewSet):
     model = Opportunity
     serializer_class = OpportunitySerializer
 
     GANADA_STATUS_ID = 5  # ID del estado 'Ganada'
+
+    queryset = Opportunity.objects.select_related(
+            'status_opportunity',
+            'contact',
+            'contact__job',
+            'contact__city',
+            'currency',
+            'project',
+            'project__client',
+            'project__client__city',
+            'project__client__business_group',
+            'project__specialty',
+            'project__subdivision',
+            'project__project_status',
+            'project__work_cell',
+            'opportunityType'
+        ).prefetch_related(
+            'finance_data',
+            'contact__clients',
+            'contact__clients__city',
+            'contact__clients__business_group'
+        )
+
+
+    # def get_queryset(self):
+    #     return self.get_optimized_queryset()
 
     def get_serializer_class(self):
         return (
@@ -50,6 +76,27 @@ class OpportunityViewSet(CachedViewSet):
             print(e)
             return Response({'detail': 'Error interno del servidor.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+    def get_optimized_queryset(self):
+        print("✔ Usando queryset optimizado")
+        return Opportunity.objects.select_related(
+            'status_opportunity',
+            'contact',
+            'contact__job',
+            'contact__city',
+            'currency',
+            'project',
+            'project__client',
+            'project__specialty',
+            'project__subdivision',
+            'project__project_status',
+            'project__work_cell',
+            'opportunityType'
+        ).prefetch_related(
+            'finance_data',
+            'contact__clients',
+            'contact__clients__city',
+            'contact__clients__business_group'
+        )
 
 class CommercialActivityViewSet(CachedViewSet):
     model = CommercialActivity

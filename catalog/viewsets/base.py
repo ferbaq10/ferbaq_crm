@@ -48,6 +48,13 @@ class AuthenticatedModelViewSet(ModelViewSet):
     model = None
 
     def get_queryset(self):
+        optimized_getter = getattr(self, 'get_optimized_queryset', None)
+        if callable(optimized_getter):
+            return optimized_getter()
+
+        if hasattr(self, 'queryset') and self.queryset is not None:
+            return self.queryset
+
         assert self.model is not None, (
             f"{self.__class__.__name__} debe definir un atributo 'model'."
         )
