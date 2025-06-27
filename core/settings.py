@@ -40,6 +40,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework.authtoken',
+    'djoser',
     'corsheaders',
     'django_filters',
     'project',
@@ -48,7 +50,8 @@ INSTALLED_APPS = [
     'client',
     'objetive',
     'opportunity',
-    'activity_log'
+    'activity_log',
+    'users',
 ]
 
 MIDDLEWARE = [
@@ -74,6 +77,13 @@ SIMPLE_JWT = {
     'ROTATE_REFRESH_TOKENS': False,
     'BLACKLIST_AFTER_ROTATION': False,
     'AUTH_HEADER_TYPES': ('Bearer',),
+}
+
+DJOSER = {
+    'SERIALIZERS': {
+        'token_obtain_pair': 'users.serializers.MyTokenObtainPairSerializer',
+        'current_user': 'users.serializers.UserWithRolesSerializer'
+    }
 }
 
 CORS_ALLOW_ALL_ORIGINS = config('CORS_ALLOW_ALL_ORIGINS', default=False, cast=bool)
