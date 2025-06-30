@@ -33,7 +33,9 @@ class ActivityLog(BaseModel):
 
     activity_type = models.ForeignKey(
         CommercialActivity,
-        on_delete=models.DO_NOTHING,
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
         verbose_name="Actividad comercial"
     )
 
@@ -72,4 +74,4 @@ class ActivityLog(BaseModel):
         verbose_name_plural = "Registro de actividades"
 
     def __str__(self):
-        return self.name
+        return self.project.name

@@ -73,7 +73,7 @@ def remove_roles_and_permissions(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        (app_label, '0002_seed_initial_opportunity'),
+        (app_label, '0001_initial'),
         ('auth', '0012_alter_user_first_name_max_length'),
     ]
 

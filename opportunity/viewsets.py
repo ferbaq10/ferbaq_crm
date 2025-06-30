@@ -10,11 +10,11 @@ from catalog.viewsets.base import CachedViewSet
 from client.models import Client
 from core.di import injector
 from opportunity.services.opportunity_service import OpportunityService
-from .models import Opportunity, CommercialActivity
+from .models import Opportunity, CommercialActivity, LostOpportunityType
 from .serializers import (
     OpportunitySerializer,
     OpportunityWriteSerializer,
-    CommercialActivitySerializer,
+    CommercialActivitySerializer, LostOpportunityTypeSerializer,
 )
 class OpportunityViewSet(CachedViewSet):
     model = Opportunity
@@ -107,3 +107,10 @@ class OpportunityViewSet(CachedViewSet):
 class CommercialActivityViewSet(CachedViewSet):
     model = CommercialActivity
     serializer_class = CommercialActivitySerializer
+
+
+class LostOpportunityTypeViewSet(CachedViewSet):
+    model = LostOpportunityType
+    serializer_class = LostOpportunityTypeSerializer
+
+
