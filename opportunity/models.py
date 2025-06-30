@@ -96,7 +96,31 @@ class FinanceOpportunity(BaseModel):
     class Meta:
         db_table = 'opportunity_finance_opportunities'
         verbose_name = "Dato financiero de la oportunidad"
-        verbose_name_plural = "Datos financieros de la oportunidades"
+        verbose_name_plural = "Datos financieros de las oportunidades"
+
+    def __str__(self):
+        return f"Finanzas - {self.opportunity.name}"
+
+class LostOpportunityType(BaseModel):
+    name = models.CharField(
+        unique=True,
+        max_length=100,
+        verbose_name="Nombre",
+        error_messages={
+            'unique': "Este tipo de pérdida ya existe.",
+            'max_length': "El nombre no puede exceder 100 caracteres."
+        }
+    )
+    opportunity = models.OneToOneField(
+        Opportunity,
+        on_delete=models.DO_NOTHING,
+        related_name = 'lost_type_data'
+    )
+
+    class Meta:
+        db_table = 'opportunity_lost_opportunity_type'
+        verbose_name = "Tipo de pérdida de la oportunidad"
+        verbose_name_plural = "Tipos de pérdidas de las oportunidades"
 
     def __str__(self):
         return f"Finanzas - {self.opportunity.name}"

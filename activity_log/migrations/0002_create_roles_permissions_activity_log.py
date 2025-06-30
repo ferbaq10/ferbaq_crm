@@ -41,7 +41,7 @@ def create_roles_and_permissions(apps, schema_editor):
                 roles['Gerente Comercial'].permissions.add(perm)
 
             # Vendedor: solo ver
-            if perm.codename.startswith(('view_', 'add_', 'change_')):
+            if perm.codename.startswith('view_'):
                 roles['Vendedor'].permissions.add(perm)
 
             # Comprador: sin permisos en estos modelos

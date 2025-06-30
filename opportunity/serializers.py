@@ -9,7 +9,7 @@ from contact.models import Contact
 from contact.serializers import ContactSerializer
 from project.models import Project
 from project.serializers import ProjectSerializer
-from .models import CommercialActivity, FinanceOpportunity, Opportunity
+from .models import CommercialActivity, FinanceOpportunity, Opportunity, LostOpportunityType
 
 User = get_user_model()
 
@@ -163,3 +163,14 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
         validated_data['agent'] = self.context['request'].user
 
         return super().create(validated_data)
+
+
+class LostOpportunityTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LostOpportunityType
+        fields = [
+            'id',
+            'name',
+            'is_removed',
+        ]
+        read_only_fields = ['created', 'modified']
