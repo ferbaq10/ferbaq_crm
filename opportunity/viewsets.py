@@ -1,7 +1,9 @@
+from datetime import datetime
+
 from django.db import transaction, IntegrityError
 from django.db.models import Prefetch
 from rest_framework import status
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import ValidationError, APIException
 from rest_framework.response import Response
 
 from catalog.viewsets.base import CachedViewSet
@@ -14,8 +16,6 @@ from .serializers import (
     OpportunityWriteSerializer,
     CommercialActivitySerializer,
 )
-
-
 class OpportunityViewSet(CachedViewSet):
     model = Opportunity
     serializer_class = OpportunitySerializer
@@ -49,15 +49,18 @@ class OpportunityViewSet(CachedViewSet):
             return Response(self.get_serializer(opportunity).data, status=status.HTTP_200_OK)
 
         except ValidationError as e:
-            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            raise
         except IntegrityError:
-            return Response({'detail': 'Error de integridad en base de datos.'}, status=status.HTTP_409_CONFLICT)
+            # Traducción la excepción de DB a un ValidationError de DRF
+            raise ValidationError({
+                'non_field_errors': ['Error de integridad en base de datos.']
+            })
         except Exception as e:
             print(e)
-            return Response({'detail': 'Error interno del servidor.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            raise APIException('Error interno del servidor.')
 
     def get_optimized_queryset(self):
-        # Optimizar consultas de clientes relacionados con contactos
+        # Optimizar consultas de oportunidad
         optimized_clients = Prefetch(
             'contact__clients',
             queryset=Client.objects.select_related('city', 'business_group')
@@ -68,6 +71,8 @@ class OpportunityViewSet(CachedViewSet):
             'finance_data',
             queryset=self.model._meta.get_field('finance_data').related_model.objects.all()
         )
+
+        current_year = datetime.now().year
 
         return Opportunity.objects.select_related(
             # Status y tipos básicos
@@ -95,7 +100,9 @@ class OpportunityViewSet(CachedViewSet):
         ).prefetch_related(
             optimized_finance,
             optimized_clients
-        ).distinct()
+        ).filter(
+        created__year=current_year,
+    ).distinct().order_by('-created')
 
 class CommercialActivityViewSet(CachedViewSet):
     model = CommercialActivity
