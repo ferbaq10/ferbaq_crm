@@ -18,7 +18,7 @@ class ActivityLogSerializer(serializers.ModelSerializer):
     activity_type = CommercialActivitySerializer(read_only=True)
     meeting_type = MeetingTypeSerializer(read_only=True)
     meeting_result = MeetingResultSerializer(read_only=True)
-
+    activity_date_string = serializers.SerializerMethodField()
 
     class Meta:
         model = ActivityLog
@@ -35,8 +35,14 @@ class ActivityLogSerializer(serializers.ModelSerializer):
             'activity_type',
             'activity_date',
             'meeting_result',
+            'activity_date_string'
         ]
         read_only_fields = ['id', 'is_removed']
+
+    def get_activity_date_string(self, obj):
+        if obj.activity_date:
+            return obj.activity_date.strftime("%d/%m/%Y %I:%M %p")  # Ej: 30/06/2025 10:48 AM
+        return None
 
 
 class ActivityLogWriteSerializer(serializers.ModelSerializer):

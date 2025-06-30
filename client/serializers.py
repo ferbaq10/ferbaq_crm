@@ -21,11 +21,6 @@ class ClientSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['created', 'modified']
 
-    # def to_representation(self, instance):
-    #     # Forzar uso de select_related ya que DRF no lo hace automáticamente
-    #     instance = Client.objects.select_related('city', 'business_group').get(pk=instance.pk)
-    #     return super().to_representation(instance)
-
 
 class ClientWriteSerializer(serializers.ModelSerializer):
     # Entrada: solo IDs
