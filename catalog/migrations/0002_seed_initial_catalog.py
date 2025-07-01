@@ -342,7 +342,7 @@ def remove_initial_purchase_status_type(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('catalog', '0002_create_roles_permissions_catalog'),
+        ('catalog', '0001_initial'),
     ]
 
     operations = [

@@ -5,7 +5,7 @@ from django.db import migrations
 model_names = [
     'UDN', 'WorkCell', 'BusinessGroup', 'Division', 'Subdivision', 'Specialty',
     'ProjectStatus', 'City', 'Period', 'StatusOpportunity', 'Currency', 'Job',
-    'OpportunityType', 'MeetingType', 'MeetingResult'
+    'OpportunityType', 'MeetingType', 'MeetingResult', 'LostOpportunityType', 'PurchaseStatusType'
 ]
 
 app_label='catalog'
@@ -71,7 +71,7 @@ def remove_roles_and_permissions(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        (app_label, '0001_initial'),
+        (app_label, '0002_seed_initial_catalog'),
         ('auth', '0012_alter_user_first_name_max_length'),  # Ajusta según tu historial
     ]
 

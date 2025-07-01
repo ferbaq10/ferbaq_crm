@@ -1,6 +1,5 @@
 from django.db import models
-from catalog.models import StatusOpportunity, City, Currency, BaseModel, OpportunityType, LostOpportunityType, \
-    PurchaseStatusType
+from catalog.models import StatusOpportunity, City, Currency, BaseModel, OpportunityType, LostOpportunityType
 from contact.models import Contact
 from project.models import Project
 from model_utils.models import SoftDeletableModel, TimeStampedModel
@@ -113,18 +112,5 @@ class LostOpportunity(BaseModel):
     opportunity = models.OneToOneField(
         Opportunity,
         on_delete=models.DO_NOTHING,
-        related_name = 'lost_opportunity_data'
-    )
-
-class PurchaseStatus(BaseModel):
-    purchase_status_type = models.OneToOneField(
-        PurchaseStatusType,
-        on_delete=models.DO_NOTHING,
-        related_name = 'purchase_status_type_data'
-    )
-
-    lostOpportunityType = models.ForeignKey(
-        LostOpportunityType,
-        on_delete=models.DO_NOTHING,
-        verbose_name="Tipo de oportunidad perdida"
+        related_name = 'lost_opportunity'
     )

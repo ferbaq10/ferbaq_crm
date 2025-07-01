@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'opportunity',
     'activity_log',
     'users',
+    'purchase'
 ]
 
 MIDDLEWARE = [
