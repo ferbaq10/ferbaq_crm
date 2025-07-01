@@ -1,13 +1,13 @@
 from catalog.models import (
     UDN, WorkCell, BusinessGroup, Division, Subdivision, Specialty,
     ProjectStatus, City, Period, StatusOpportunity, Currency, Job, OpportunityType,
-    MeetingType, MeetingResult
+    MeetingType, MeetingResult, LostOpportunityType, PurchaseStatusType
 )
 from catalog.serializers import (
     UDNSerializer, WorkCellSerializer, BusinessGroupSerializer, DivisionSerializer,
     SubdivisionSerializer, SpecialtySerializer, ProjectStatusSerializer, CitySerializer,
     PeriodSerializer, StatusOpportunitySerializer, CurrencySerializer, JobSerializer, OpportunityTypeSerializer,
-    MeetingTypeSerializer, MeetingResultSerializer
+    MeetingTypeSerializer, MeetingResultSerializer, LostOpportunityTypeSerializer, PurchaseStatusTypeSerializer
 )
 from catalog.viewsets.base import CachedViewSet, AuthenticatedModelViewSet
 
@@ -82,3 +82,13 @@ class MeetingTypeViewSet(CachedViewSet):
 class MeetingResultViewSet(CachedViewSet):
     model = MeetingResult
     serializer_class = MeetingResultSerializer
+
+
+class LostOpportunityTypeViewSet(CachedViewSet):
+    model = LostOpportunityType
+    serializer_class = LostOpportunityTypeSerializer
+
+
+class PurchaseStatusTypeViewSet(CachedViewSet):
+    model = PurchaseStatusType
+    serializer_class = PurchaseStatusTypeSerializer

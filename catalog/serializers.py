@@ -2,7 +2,7 @@ from rest_framework import serializers
 from catalog.models import (
     UDN, WorkCell, BusinessGroup, Division, Subdivision, Specialty,
     ProjectStatus, City, Period, StatusOpportunity, Currency, Job, OpportunityType,
-    MeetingType, MeetingResult
+    MeetingType, MeetingResult, LostOpportunityType, PurchaseStatusType
 )
 
 class UDNSerializer(serializers.ModelSerializer):
@@ -221,7 +221,6 @@ class JobSerializer(serializers.ModelSerializer):
         read_only_fields = ['created', 'modified']
 
 
-
 class OpportunityTypeSerializer(serializers.ModelSerializer):
     name = serializers.CharField(max_length=100, required=True,
                                  error_messages={
@@ -237,6 +236,7 @@ class OpportunityTypeSerializer(serializers.ModelSerializer):
             'is_removed',
         ]
         read_only_fields = ['created', 'modified']
+
 
 class MeetingTypeSerializer(serializers.ModelSerializer):
     name = serializers.CharField(max_length=100, required=True,
@@ -264,6 +264,28 @@ class MeetingResultSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = MeetingResult
+        fields = [
+            'id',
+            'name',
+            'is_removed',
+        ]
+        read_only_fields = ['created', 'modified']
+
+
+class LostOpportunityTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LostOpportunityType
+        fields = [
+            'id',
+            'name',
+            'is_removed',
+        ]
+        read_only_fields = ['created', 'modified']
+
+
+class PurchaseStatusTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PurchaseStatusType
         fields = [
             'id',
             'name',

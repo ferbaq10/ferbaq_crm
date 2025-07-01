@@ -9,7 +9,7 @@ from contact.models import Contact
 from contact.serializers import ContactSerializer
 from project.models import Project
 from project.serializers import ProjectSerializer
-from .models import CommercialActivity, FinanceOpportunity, Opportunity, LostOpportunityType
+from .models import CommercialActivity, FinanceOpportunity, Opportunity, LostOpportunity, PurchaseStatus
 
 User = get_user_model()
 
@@ -51,8 +51,7 @@ class CommercialActivitySerializer(serializers.ModelSerializer):
         read_only_fields = ['created', 'modified']
 
 
-
-# --- SOLO LECTURA ---
+# --- Opportunity SOLO LECTURA ---
 class OpportunitySerializer(serializers.ModelSerializer):
     contact = ContactSerializer()
     project = ProjectSerializer()
@@ -77,8 +76,7 @@ class OpportunitySerializer(serializers.ModelSerializer):
         read_only_fields = ['created', 'modified']
 
 
-
-# --- CREACIÓN / ACTUALIZACIÓN ---
+# --- Opportunity CREACIÓN / ACTUALIZACIÓN ---
 class OpportunityWriteSerializer(serializers.ModelSerializer):
     name = serializers.CharField(
         max_length=100,
@@ -165,12 +163,26 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 
-class LostOpportunityTypeSerializer(serializers.ModelSerializer):
+
+class LostOpportunitySerializer(serializers.ModelSerializer):
     class Meta:
-        model = LostOpportunityType
+        model = LostOpportunity
         fields = [
             'id',
-            'name',
             'is_removed',
+            'opportunity',
+            'lostOpportunityType',
+        ]
+        read_only_fields = ['created', 'modified']
+
+
+class PurchaseStatusSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LostOpportunity
+        fields = [
+            'id',
+            'is_removed',
+            'opportunity',
+            'purchaseStatusType',
         ]
         read_only_fields = ['created', 'modified']

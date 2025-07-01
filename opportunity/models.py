@@ -1,5 +1,6 @@
 from django.db import models
-from catalog.models import StatusOpportunity, City, Currency, BaseModel, OpportunityType
+from catalog.models import StatusOpportunity, City, Currency, BaseModel, OpportunityType, LostOpportunityType, \
+    PurchaseStatusType
 from contact.models import Contact
 from project.models import Project
 from model_utils.models import SoftDeletableModel, TimeStampedModel
@@ -9,6 +10,8 @@ from django.conf import settings
 class Opportunity(BaseModel):
     name = models.CharField(unique=True, max_length=100)
     description = models.TextField(blank=True, null=True)
+    closing_percentage = models.DecimalField(max_digits=4, blank=True, null=True,
+                                             decimal_places=2, verbose_name="Porcentage de cierre")
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     number_fvt = models.CharField(unique=True, max_length=100, verbose_name="Formato de venta")
     date_reception = models.DateTimeField(blank=True, verbose_name="Fecha de recepción")
@@ -101,26 +104,27 @@ class FinanceOpportunity(BaseModel):
     def __str__(self):
         return f"Finanzas - {self.opportunity.name}"
 
-class LostOpportunityType(BaseModel):
-    name = models.CharField(
-        unique=True,
-        max_length=100,
-        verbose_name="Nombre",
-        error_messages={
-            'unique': "Este tipo de pérdida ya existe.",
-            'max_length': "El nombre no puede exceder 100 caracteres."
-        }
+class LostOpportunity(BaseModel):
+    lost_opportunity_type = models.ForeignKey(
+        LostOpportunityType,
+        on_delete=models.DO_NOTHING,
+        verbose_name="Tipo de oportunidad perdida"
     )
     opportunity = models.OneToOneField(
         Opportunity,
         on_delete=models.DO_NOTHING,
-        related_name = 'lost_type_data'
+        related_name = 'lost_opportunity_data'
     )
 
-    class Meta:
-        db_table = 'opportunity_lost_opportunity_type'
-        verbose_name = "Tipo de pérdida de la oportunidad"
-        verbose_name_plural = "Tipos de pérdidas de las oportunidades"
+class PurchaseStatus(BaseModel):
+    purchase_status_type = models.OneToOneField(
+        PurchaseStatusType,
+        on_delete=models.DO_NOTHING,
+        related_name = 'purchase_status_type_data'
+    )
 
-    def __str__(self):
-        return f"Finanzas - {self.opportunity.name}"
+    lostOpportunityType = models.ForeignKey(
+        LostOpportunityType,
+        on_delete=models.DO_NOTHING,
+        verbose_name="Tipo de oportunidad perdida"
+    )

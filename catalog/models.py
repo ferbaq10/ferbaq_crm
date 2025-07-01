@@ -296,8 +296,6 @@ class OpportunityType(BaseModel):
     def __str__(self):
         return self.name
 
-
-
 class MeetingType(BaseModel):
     name = models.CharField(
         unique=True,
@@ -318,7 +316,6 @@ class MeetingType(BaseModel):
     def __str__(self):
         return self.name
 
-
 class MeetingResult(BaseModel):
     name = models.CharField(
         unique=True,
@@ -335,6 +332,44 @@ class MeetingResult(BaseModel):
         db_table = 'catalog_meeting_results'
         verbose_name = "Resultado de reunión"
         verbose_name_plural = "Resultado de reuniones"
+
+    def __str__(self):
+        return self.name
+
+class LostOpportunityType(BaseModel):
+    name = models.CharField(
+        unique=True,
+        max_length=100,
+        verbose_name="Nombre",
+        error_messages={
+            'unique': "Este tipo de pérdida ya existe.",
+            'max_length': "El nombre no puede exceder 100 caracteres."
+        }
+    )
+
+    class Meta:
+        db_table = 'catalog_lost_opportunity_type'
+        verbose_name = "Tipo de pérdida de la oportunidad"
+        verbose_name_plural = "Tipos de pérdidas de las oportunidades"
+
+    def __str__(self):
+        return self.name
+
+class PurchaseStatusType(BaseModel):
+    name = models.CharField(
+        unique=True,
+        max_length=100,
+        verbose_name="Nombre",
+        error_messages={
+            'unique': "Este estado de compra ya existe.",
+            'max_length': "El nombre no puede exceder 100 caracteres."
+        }
+    )
+
+    class Meta:
+        db_table = 'catalog_purchase_status'
+        verbose_name = "Estado de la compra"
+        verbose_name_plural = "Estados de la compra"
 
     def __str__(self):
         return self.name

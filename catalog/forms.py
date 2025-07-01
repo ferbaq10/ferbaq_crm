@@ -3,7 +3,7 @@ from django import forms
 from catalog.models import (
     UDN, WorkCell, BusinessGroup, Division, Subdivision,
     Specialty, ProjectStatus, City, Period, StatusOpportunity,
-    Currency, Job, OpportunityType, MeetingType, MeetingResult
+    Currency, Job, OpportunityType, MeetingType, MeetingResult, LostOpportunityType, PurchaseStatusType
 )
 
 
@@ -186,5 +186,29 @@ class MeetingResultForm(forms.ModelForm):
                 'required': "El nombre del resultado de la reunión es obligatorio.",
                 'max_length': "El nombre no puede exceder 100 caracteres.",
                 'unique': "Este resultado de reunión ya existe.",
+            }
+        }
+
+class LostOpportunityTypeForm(forms.ModelForm):
+    class Meta:
+        model = LostOpportunityType
+        fields = '__all__'
+        error_messages = {
+            'name': {
+                'required': "El nombre del tipo de oportunidad perdida es obligatorio.",
+                'max_length': "El nombre no puede exceder 100 caracteres.",
+                'unique': "Este tipo de oportunidad perdida ya existe.",
+            }
+        }
+
+class PurchaseStatusTypeForm(forms.ModelForm):
+    class Meta:
+        model = PurchaseStatusType
+        fields = '__all__'
+        error_messages = {
+            'name': {
+                'required': "El nombre del tipo de estatus de compra es obligatorio.",
+                'max_length': "El nombre no puede exceder 100 caracteres.",
+                'unique': "Este tipo de estatus de compra ya existe.",
             }
         }

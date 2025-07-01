@@ -1,15 +1,18 @@
 from django.utils import timezone
 from injector import inject
 from opportunity.models import Opportunity
-from opportunity.services.interfaces import AbstractFinanceOpportunityFactory
+from opportunity.services.interfaces import AbstractFinanceOpportunityFactory, AbstractLostOpportunityFactory
 
 
 class OpportunityService:
-    GANADA_STATUS_ID = 5
+    WON_STATUS_ID = 5  # ID del estado 'Ganada'
+
+    LOST_STATUS_ID = 6  # ID del estado 'Perdida'
 
     @inject
-    def __init__(self, finance_factory: AbstractFinanceOpportunityFactory):
+    def __init__(self, finance_factory: AbstractFinanceOpportunityFactory, lost_opportunity_factory: AbstractLostOpportunityFactory):
         self.finance_factory = finance_factory
+        self.lost_opportunity_factory = lost_opportunity_factory
 
     def process_update(self, instance: Opportunity, validated_data: dict, request_data: dict) -> Opportunity:
         new_status = validated_data.get("status_opportunity")
@@ -25,13 +28,19 @@ class OpportunityService:
 
         instance.save()
 
-        if new_status and new_status.id == self.GANADA_STATUS_ID and finance_data:
+        if new_status and new_status.id == self.WON_STATUS_ID and finance_data:
             self.finance_factory.create_or_update(
                 opportunity=instance,
                 cost_subtotal=finance_data.get("cost_subtotal", 0),
                 offer_subtotal=finance_data.get("offer_subtotal", 0),
                 earned_amount=finance_data.get("earned_amount", 0),
-                order_closing_date=finance_data.get("order_closing_date", None)
+                order_closing_date=finance_data.get("order_closing_date")
+            )
+
+        if new_status and new_status.id == self.LOST_STATUS_ID:
+            self.lost_opportunity_factory = self.lost_opportunity_factory.create_or_update(
+                opportunity=instance,
+                lost_opportunity_type=request_data.get("lost_opportunity_type")
             )
 
         return instance
