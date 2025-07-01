@@ -52,11 +52,15 @@ class ActivityLog(BaseModel):
     meeting_type = models.ForeignKey(
         MeetingType,
         on_delete=models.DO_NOTHING,
+        blank=True,
+        null=True,
         verbose_name="Tipo de reunión"
     )
     meeting_result = models.ForeignKey(
         MeetingResult,
         on_delete=models.DO_NOTHING,
+        blank=True,
+        null=True,
         verbose_name="Resultado de la reunión"
     )
 
