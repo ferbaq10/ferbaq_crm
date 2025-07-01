@@ -60,7 +60,8 @@ class ActivityLogWriteSerializer(serializers.ModelSerializer):
     )
     meeting_type = serializers.PrimaryKeyRelatedField(
         queryset=MeetingType.objects.all(),
-        error_messages={'required': 'El tipo de reunión es obligatorio.'}
+        allow_null=True,
+        required=False,
     )
     meeting_result = serializers.PrimaryKeyRelatedField(
         queryset=MeetingResult.objects.all(),

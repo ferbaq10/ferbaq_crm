@@ -1,58 +1,32 @@
 from datetime import datetime
 
-from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from catalog.models import OpportunityType, StatusOpportunity, Currency
-from catalog.serializers import StatusOpportunitySerializer, CurrencySerializer, OpportunityTypeSerializer
+from catalog.models import Currency, OpportunityType, StatusOpportunity
+from catalog.serializers import StatusOpportunitySerializer, CurrencySerializer, OpportunityTypeSerializer, \
+    PurchaseStatusTypeSerializer
 from contact.models import Contact
 from contact.serializers import ContactSerializer
+from opportunity.models import Opportunity
+from opportunity.serializers import FinanceOpportunitySerializer
 from project.models import Project
 from project.serializers import ProjectSerializer
-from .models import CommercialActivity, FinanceOpportunity, Opportunity, LostOpportunity
-
-User = get_user_model()
+from .models import PurchaseStatus
 
 
-class FinanceOpportunitySerializer(serializers.ModelSerializer):
+class PurchaseStatusSerializer(serializers.ModelSerializer):
+    purchase_status_type = PurchaseStatusTypeSerializer()
+
     class Meta:
-        model = FinanceOpportunity
+        model = PurchaseStatus
         fields = [
-            'id',
-            'is_removed',
-            'opportunity',
-            'earned_amount',
-            'cost_subtotal',
-            'offer_subtotal',
-            'order_closing_date',
+            'id', 'is_removed', 'opportunity', 'purchase_status_type'
         ]
         read_only_fields = ['created', 'modified']
 
 
 
-class CommercialActivitySerializer(serializers.ModelSerializer):
-    name = serializers.CharField(
-        max_length=100,
-        required=True,
-        error_messages={
-            'required': 'El nombre es obligatorio.',
-            'max_length': 'El nombre no puede exceder los 100 caracteres.',
-            'unique': 'Ya existe una actividad con este nombre.'
-        }
-    )
-
-    class Meta:
-        model = CommercialActivity
-        fields = [
-            'id',
-            'name',
-            'is_removed',
-        ]
-        read_only_fields = ['created', 'modified']
-
-
-# --- Opportunity SOLO LECTURA ---
-class OpportunitySerializer(serializers.ModelSerializer):
+class PurchaseSerializer(serializers.ModelSerializer):
     contact = ContactSerializer()
     project = ProjectSerializer()
     currency = CurrencySerializer()
@@ -63,6 +37,10 @@ class OpportunitySerializer(serializers.ModelSerializer):
         source='finance_data',
         read_only=True
     )
+    status_purchase = PurchaseStatusSerializer(
+        source='purchase_data',
+        read_only=True
+    )
 
     class Meta:
         model = Opportunity
@@ -71,13 +49,14 @@ class OpportunitySerializer(serializers.ModelSerializer):
             'date_reception', 'sent_date', 'date_status',
             'status_opportunity', 'contact', 'currency',
             'project', 'opportunityType',
-            'finance_opportunity', 'is_removed'
+            'finance_opportunity', 'is_removed',
+            'status_purchase'
         ]
         read_only_fields = ['created', 'modified']
 
 
 # --- Opportunity CREACIÓN / ACTUALIZACIÓN ---
-class OpportunityWriteSerializer(serializers.ModelSerializer):
+class PurchaseWriteSerializer(serializers.ModelSerializer):
     name = serializers.CharField(
         max_length=100,
         required=True,
@@ -161,16 +140,3 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
         validated_data['agent'] = self.context['request'].user
 
         return super().create(validated_data)
-
-
-
-class LostOpportunitySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = LostOpportunity
-        fields = [
-            'id',
-            'is_removed',
-            'opportunity',
-            'lost_opportunity_type',
-        ]
-        read_only_fields = ['created', 'modified']

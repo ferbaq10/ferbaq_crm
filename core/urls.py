@@ -36,4 +36,8 @@ urlpatterns = [
     path('api/', include('project.urls')),
 
     path('api/', include('activity_log.urls')),
+
+    path('api/', include('purchase.urls')),
+
+
 ]

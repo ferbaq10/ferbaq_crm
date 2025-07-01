@@ -2,10 +2,10 @@ from django.db import migrations
 
 # Modelos del mismo módulo
 model_names = [
-    'ActivityLog'
+    'PurchaseStatus',
 ]
 
-app_label = 'activity_log'
+app_label = 'purchase'
 
 def create_roles_and_permissions(apps, schema_editor):
     Group = apps.get_model('auth', 'Group')
@@ -41,10 +41,13 @@ def create_roles_and_permissions(apps, schema_editor):
                 roles['Gerente Comercial'].permissions.add(perm)
 
             # Vendedor: solo ver
-            if perm.codename.startswith('view_'):
+            if perm.codename.startswith(('view_', 'add_', 'change_')):
                 roles['Vendedor'].permissions.add(perm)
 
-            # Comprador: sin permisos en estos modelos
+            # Comprador: con permiso para ver, agregar y cambiar
+            if perm.codename.startswith(('view_', 'add_', 'change_')):
+                roles['Comprador'].permissions.add(perm)
+
 def remove_roles_and_permissions(apps, schema_editor):
     Group = apps.get_model('auth', 'Group')
     Permission = apps.get_model('auth', 'Permission')
