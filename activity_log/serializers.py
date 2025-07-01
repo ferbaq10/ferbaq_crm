@@ -64,7 +64,8 @@ class ActivityLogWriteSerializer(serializers.ModelSerializer):
     )
     meeting_result = serializers.PrimaryKeyRelatedField(
         queryset=MeetingResult.objects.all(),
-        error_messages={'required': 'El resultado de reunión es obligatorio.'}
+        allow_null=True,
+        required=False,
     )
     opportunity = serializers.PrimaryKeyRelatedField(
         queryset=Opportunity.objects.all(),

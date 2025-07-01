@@ -12,8 +12,6 @@ def create_roles_and_permissions(apps, schema_editor):
     Permission = apps.get_model('auth', 'Permission')
     ContentType = apps.get_model('contenttypes', 'ContentType')
 
-
-
     # Crear grupos
     roles = {
         'Director Comercial': [],

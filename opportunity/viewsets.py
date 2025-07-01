@@ -10,17 +10,14 @@ from catalog.viewsets.base import CachedViewSet
 from client.models import Client
 from core.di import injector
 from opportunity.services.opportunity_service import OpportunityService
-from .models import Opportunity, CommercialActivity, LostOpportunityType
+from .models import Opportunity, CommercialActivity
 from .serializers import (
-    OpportunitySerializer,
-    OpportunityWriteSerializer,
-    CommercialActivitySerializer, LostOpportunityTypeSerializer,
+    OpportunitySerializer, OpportunityWriteSerializer,
+    CommercialActivitySerializer
 )
 class OpportunityViewSet(CachedViewSet):
     model = Opportunity
     serializer_class = OpportunitySerializer
-
-    GANADA_STATUS_ID = 5  # ID del estado 'Ganada'
 
     def get_queryset(self):
         return self.get_optimized_queryset()
@@ -107,10 +104,5 @@ class OpportunityViewSet(CachedViewSet):
 class CommercialActivityViewSet(CachedViewSet):
     model = CommercialActivity
     serializer_class = CommercialActivitySerializer
-
-
-class LostOpportunityTypeViewSet(CachedViewSet):
-    model = LostOpportunityType
-    serializer_class = LostOpportunityTypeSerializer
 
 

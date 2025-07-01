@@ -46,25 +46,6 @@ def create_roles_and_permissions(apps, schema_editor):
 
             # Comprador: sin permisos en estos modelos
 
-
-def create_custom_permissions(apps, schema_editor):
-    Permission = apps.get_model('auth', 'Permission')
-    ContentType = apps.get_model('contenttypes', 'ContentType')
-
-    dummy_ct = ContentType.objects.get(app_label='auth', model='group')
-
-    Permission.objects.get_or_create(
-        codename='view_dashboard',
-        name='Puede ver el dashboard',
-        content_type=dummy_ct,
-    )
-
-    Permission.objects.get_or_create(
-        codename='view_catalog',
-        name='Puede ver el catálogo',
-        content_type=dummy_ct,
-    )
-
 def remove_roles_and_permissions(apps, schema_editor):
     Group = apps.get_model('auth', 'Group')
     Permission = apps.get_model('auth', 'Permission')
@@ -87,19 +68,13 @@ def remove_roles_and_permissions(apps, schema_editor):
                 continue
 
 
-def remove_custom_permissions(apps, schema_editor):
-    Permission = apps.get_model('auth', 'Permission')
-    # Solo eliminamos los permisos con codename específico
-    Permission.objects.filter(codename__in=['view_dashboard', 'view_catalog']).delete()
-
-
 class Migration(migrations.Migration):
 
     dependencies = [
-        (app_label, '0002_seed_initial_catalog'),
+        (app_label, '0001_initial'),
         ('auth', '0012_alter_user_first_name_max_length'),  # Ajusta según tu historial
     ]
 
     operations = [
         migrations.RunPython(create_roles_and_permissions, remove_roles_and_permissions),
-        migrations.RunPython(create_custom_permissions, reverse_code=remove_custom_permissions),    ]
+    ]

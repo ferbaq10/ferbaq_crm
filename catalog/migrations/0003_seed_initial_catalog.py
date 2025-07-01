@@ -126,6 +126,52 @@ meeting_results = [
     (6, "Detección de nuevos proyectos")
 ]
 
+lost_opportunity_types = [
+    (1, "Precio muy alto para el cliente"),
+    (2, "El cliente no tenía presupuesto"),
+    (3, "El competidor ofreció mejor precio"),
+    (4, "Oportunidad ganada por un competidor"),
+    (5, "Competidor ya tenía relación previa"),
+    (6, "Mejor oferta de valor del competidor"),
+    (7, "Cliente se quedó con proveedor actual"),
+    (8, "No se justificó el valor por el costo"),
+    (9, "No cubre necesidades del cliente"),
+    (10, "Falta de funcionalidades o personalización"),
+    (11, "Problemas de compatibilidad"),
+    (12, "Producto/servicio en desarrollo o sin disponibilidad"),
+    (13, "Falta de seguimiento oportuno"),
+    (14, "Mala experiencia en el proceso comercial"),
+    (15, "Retraso en la cotización o respuesta"),
+    (16, "Comunicación deficiente del ejecutivo"),
+    (17, "Proyecto cancelado o pausado"),
+    (18, "Cambio de prioridades internas"),
+    (19, "Cambio en el equipo decisor"),
+    (20, "Cliente decidió no hacer nada"),
+    (20, "Propuesta entregada fuera de tiempo"),
+    (21, "Cliente requería entrega inmediata"),
+    (22, "Nuestro tiempo de implementación era muy largo"),
+    (23, "Formas de pago no aceptadas"),
+    (24, "Condiciones de entrega inadecuadas"),
+    (25, "Requieren financiamiento o crédito"),
+    (26, "Sin stock o sin capacidad operativa"),
+    (27, "Problemas logísticos"),
+    (28, "Demora en la producción"),
+    (29, "Cliente no dio razón específica"),
+    (30, "Información insuficiente para clasificar"),
+    (31, "Error interno (cotización mal enviada, etc.)"),
+]
+
+purchase_status_type = [
+    (1, "Pendiente"),
+    (2, "En proceso"),
+    (3, "Esperando retroalimentación"),
+    (4, "Parcial"),
+    (5, "Finalizada"),
+    (6, "Rechazada")
+]
+
+
+
 
 # --- Inserciones ---
 def insert_initial_periods(apps, schema_editor):
@@ -205,6 +251,20 @@ def insert_initial_meeting_results(apps, schema_editor):
     for id_val, name in meeting_results:
         MeetingResult.objects.update_or_create(id=id_val, defaults={'name': name})
 
+
+def insert_initial_lost_opportunity_type(apps, schema_editor):
+    LostOpportunityType = apps.get_model('catalog', 'LostOpportunityType')
+    for id_val, name in lost_opportunity_types:
+        LostOpportunityType.objects.update_or_create(id=id_val, defaults={'name': name})
+
+
+def insert_initial_purchase_status_type(apps, schema_editor):
+    PurchaseStatusType = apps.get_model('catalog', 'PurchaseStatusType')
+    for id_val, name in purchase_status_type:
+        PurchaseStatusType.objects.update_or_create(id=id_val, defaults={'name': name})
+
+
+
 # --- Eliminaciones ---
 def remove_initial_periods(apps, schema_editor):
     Period = apps.get_model('catalog', 'Period')
@@ -267,12 +327,22 @@ def remove_initial_meeting_result(apps, schema_editor):
     MeetingResult.objects.filter(name__in=[name for _, name in jobs]).delete()
 
 
+def remove_initial_lost_opportunity_type(apps, schema_editor):
+    LostOpportunityType = apps.get_model('catalog', 'LostOpportunityType')
+    LostOpportunityType.objects.filter(name__in=[name for _, name in jobs]).delete()
+
+
+def remove_initial_purchase_status_type(apps, schema_editor):
+    PurchaseStatusType = apps.get_model('catalog', 'PurchaseStatusType')
+    PurchaseStatusType.objects.filter(name__in=[name for _, name in jobs]).delete()
+
+
 
 # --- Configuración de la migración ---
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('catalog', '0001_initial'),
+        ('catalog', '0002_create_roles_permissions_catalog'),
     ]
 
     operations = [
@@ -291,4 +361,7 @@ class Migration(migrations.Migration):
         migrations.RunPython(insert_initial_opportunity_types, reverse_code=remove_initial_opportunity_type),
         migrations.RunPython(insert_initial_meeting_types, reverse_code=remove_initial_meeting_type),
         migrations.RunPython(insert_initial_meeting_results, reverse_code=remove_initial_meeting_result),
+        migrations.RunPython(insert_initial_lost_opportunity_type, reverse_code=remove_initial_lost_opportunity_type),
+        migrations.RunPython(insert_initial_purchase_status_type, reverse_code=remove_initial_purchase_status_type),
+
     ]

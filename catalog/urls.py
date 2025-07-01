@@ -3,7 +3,7 @@ from catalog.viewsets.catalog_viewsets import (
     UDNViewSet, WorkCellViewSet, BusinessGroupViewSet, DivisionViewSet,
     SubdivisionViewSet, SpecialtyViewSet, ProjectStatusViewSet, CityViewSet,
     PeriodViewSet, StatusOpportunityViewSet, CurrencyViewSet, JobViewSet, OpportunityTypeViewSet,
-    MeetingTypeViewSet, MeetingResultViewSet
+    MeetingTypeViewSet, MeetingResultViewSet, LostOpportunityTypeViewSet, PurchaseStatusTypeViewSet
 )
 
 router = DefaultRouter()
@@ -27,6 +27,11 @@ router.register(r'opportunity-types', OpportunityTypeViewSet, basename='opportun
 router.register(r'meeting-types', MeetingTypeViewSet, basename='meeting-types')
 
 router.register(r'meeting-results', MeetingResultViewSet, basename='meeting-results')
+
+router.register(r'lost-opportunity-type', LostOpportunityTypeViewSet, basename='lost-opportunity-type')
+
+router.register(r'purchase-status-type', PurchaseStatusTypeViewSet, basename='purchase-status-type')
+
 
 
 
