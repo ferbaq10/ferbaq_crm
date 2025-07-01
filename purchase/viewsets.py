@@ -1,12 +1,17 @@
 from datetime import datetime
 
+from django.db import IntegrityError
 from django.db.models import Prefetch
 from django.db.models import Q
-
+from rest_framework import status
+from rest_framework.exceptions import ValidationError, APIException
+from rest_framework.response import Response
+from core.di import injector
 from catalog.viewsets.base import CachedViewSet
 from client.models import Client
 from opportunity.models import Opportunity
 from purchase.serializers import PurchaseSerializer, PurchaseWriteSerializer
+from purchase.services.purchase_service import PurchaseService
 
 
 class PurchaseViewSet(CachedViewSet):
@@ -28,6 +33,30 @@ class PurchaseViewSet(CachedViewSet):
             else PurchaseWriteSerializer
         )
 
+
+    def update(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            serializer = self.get_serializer(instance, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            validated = serializer.validated_data
+
+            validated['agent'] = request.user
+
+            purchase_service = injector.get(PurchaseService)
+            opportunity = purchase_service.process_update(instance, validated, request.data)
+            return Response(self.get_serializer(opportunity).data, status=status.HTTP_200_OK)
+
+        except ValidationError as e:
+            raise
+        except IntegrityError:
+            # Traducción la excepción de DB a un ValidationError de DRF
+            raise ValidationError({
+                'non_field_errors': ['Error de integridad en base de datos.']
+            })
+        except Exception as e:
+            print(e)
+            raise APIException('Error interno del servidor.')
 
 
 
