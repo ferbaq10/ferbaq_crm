@@ -227,6 +227,34 @@ files = [
 ]
 
 [[package]]
+name = "click"
+version = "8.2.1"
+description = "Composable command line interface toolkit"
+optional = false
+python-versions = ">=3.10"
+groups = ["main"]
+files = [
+    {file = "click-8.2.1-py3-none-any.whl", hash = "sha256:61a3265b914e850b85317d0b3109c7f8cd35a670f963866005d6ef1d5175a12b"},
+    {file = "click-8.2.1.tar.gz", hash = "sha256:27c491cc05d968d271d5a1db13e3b5a184636d9d930f148c50b038f0d0646202"},
+]
+
+[package.dependencies]
+colorama = {version = "*", markers = "platform_system == \"Windows\""}
+
+[[package]]
+name = "colorama"
+version = "0.4.6"
+description = "Cross-platform colored terminal text."
+optional = false
+python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*,!=3.6.*,>=2.7"
+groups = ["main"]
+markers = "platform_system == \"Windows\""
+files = [
+    {file = "colorama-0.4.6-py2.py3-none-any.whl", hash = "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6"},
+    {file = "colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44"},
+]
+
+[[package]]
 name = "cryptography"
 version = "45.0.4"
 description = "cryptography is a package which provides cryptographic recipes and primitives to Python developers."
@@ -385,6 +413,26 @@ redis = ">=4.0.2"
 hiredis = ["redis[hiredis] (>=4.0.2)"]
 
 [[package]]
+name = "django-rq"
+version = "3.0.1"
+description = "An app that provides django integration for RQ (Redis Queue)"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "django_rq-3.0.1-py2.py3-none-any.whl", hash = "sha256:bc0b7ef849592b699d0d388d8e6021c41271ac0f07db2a903352d0a1edcde16b"},
+    {file = "django_rq-3.0.1.tar.gz", hash = "sha256:d111f436608b95a58a6960174eaf44aa021e0a4a32f83a28a7221a9a916dd1ae"},
+]
+
+[package.dependencies]
+django = ">=3.2"
+redis = ">=3.5"
+rq = ">=2"
+
+[package.extras]
+sentry = ["sentry-sdk (>=1.0.0)"]
+
+[[package]]
 name = "djangorestframework"
 version = "3.16.0"
 description = "Web APIs for Django, made easy."
@@ -476,6 +524,26 @@ files = [
 dev = ["black (==24.3.0) ; implementation_name == \"cpython\"", "build (==1.0.3)", "check-manifest (==0.49)", "click (==8.1.7)", "coverage[toml] (==7.3.2)", "exceptiongroup (==1.2.0)", "importlib-metadata (==7.0.0)", "iniconfig (==2.0.0)", "mypy (==1.7.1) ; implementation_name == \"cpython\"", "mypy-extensions (==1.0.0)", "packaging (==23.2)", "pathspec (==0.12.1)", "platformdirs (==4.1.0)", "pluggy (==1.3.0)", "pyproject-hooks (==1.0.0)", "pytest (==7.4.3)", "pytest-cov (==4.1.0)", "tomli (==2.0.1)", "typing-extensions (==4.9.0) ; python_version < \"3.9\"", "zipp (==3.17.0)"]
 
 [[package]]
+name = "msal"
+version = "1.32.3"
+description = "The Microsoft Authentication Library (MSAL) for Python library enables your app to access the Microsoft Cloud by supporting authentication of users with Microsoft Azure Active Directory accounts (AAD) and Microsoft Accounts (MSA) using industry standard OAuth2 and OpenID Connect."
+optional = false
+python-versions = ">=3.7"
+groups = ["main"]
+files = [
+    {file = "msal-1.32.3-py3-none-any.whl", hash = "sha256:b2798db57760b1961b142f027ffb7c8169536bf77316e99a0df5c4aaebb11569"},
+    {file = "msal-1.32.3.tar.gz", hash = "sha256:5eea038689c78a5a70ca8ecbe1245458b55a857bd096efb6989c69ba15985d35"},
+]
+
+[package.dependencies]
+cryptography = ">=2.5,<47"
+PyJWT = {version = ">=1.0.0,<3", extras = ["crypto"]}
+requests = ">=2.0.0,<3"
+
+[package.extras]
+broker = ["pymsalruntime (>=0.14,<0.18) ; python_version >= \"3.6\" and platform_system == \"Windows\"", "pymsalruntime (>=0.17,<0.18) ; python_version >= \"3.8\" and platform_system == \"Darwin\""]
+
+[[package]]
 name = "oauthlib"
 version = "3.3.1"
 description = "A generic, spec-compliant, thorough implementation of the OAuth request-signing logic"
@@ -491,6 +559,27 @@ files = [
 rsa = ["cryptography (>=3.0.0)"]
 signals = ["blinker (>=1.4.0)"]
 signedtoken = ["cryptography (>=3.0.0)", "pyjwt (>=2.0.0,<3)"]
+
+[[package]]
+name = "office365-rest-python-client"
+version = "2.6.2"
+description = "Microsoft 365 & Microsoft Graph Library for Python"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "Office365_REST_Python_Client-2.6.2-py3-none-any.whl", hash = "sha256:06fc6829c39b503897caa9d881db419d7f97a8e4f1c95c4c2d12db36ea6c955d"},
+    {file = "office365_rest_python_client-2.6.2.tar.gz", hash = "sha256:ce27f5a1c0cc3ff97041ccd9b386145692be4c64739f243f7d6ac3edbe0a3c46"},
+]
+
+[package.dependencies]
+msal = "*"
+pytz = "*"
+requests = "*"
+typing-extensions = ">=4.0.0"
+
+[package.extras]
+ntlmprovider = ["requests-ntlm"]
 
 [[package]]
 name = "psycopg2-binary"
@@ -595,6 +684,9 @@ files = [
     {file = "pyjwt-2.9.0.tar.gz", hash = "sha256:7e1e5b56cc735432a7369cbfa0efe50fa113ebecdc04ae6922deba8b84582d0c"},
 ]
 
+[package.dependencies]
+cryptography = {version = ">=3.4.0", optional = true, markers = "extra == \"crypto\""}
+
 [package.extras]
 crypto = ["cryptography (>=3.4.0)"]
 dev = ["coverage[toml] (==5.0.4)", "cryptography (>=3.4.0)", "pre-commit", "pytest (>=6.0.0,<7.0.0)", "sphinx", "sphinx-rtd-theme", "zope.interface"]
@@ -631,6 +723,18 @@ defusedxml = "*"
 [package.extras]
 mysql = ["mysql-connector-python"]
 postgresql = ["psycopg2"]
+
+[[package]]
+name = "pytz"
+version = "2025.2"
+description = "World timezone definitions, modern and historical"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "pytz-2025.2-py2.py3-none-any.whl", hash = "sha256:5ddf76296dd8c44c26eb8f4b6f35488f3ccbf6fbbd7adee0b7262d43f0ec2f00"},
+    {file = "pytz-2025.2.tar.gz", hash = "sha256:360b9e3dbb49a209c21ad61809c7fb453643e048b38924c765813546746e81c3"},
+]
 
 [[package]]
 name = "redis"
@@ -692,6 +796,22 @@ requests = ">=2.0.0"
 
 [package.extras]
 rsa = ["oauthlib[signedtoken] (>=3.0.0)"]
+
+[[package]]
+name = "rq"
+version = "2.4.0"
+description = "RQ is a simple, lightweight, library for creating background jobs, and processing them."
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "rq-2.4.0-py3-none-any.whl", hash = "sha256:4b854d27ad0d9687b9e6f686e001a3043807694ace5340a3f9697b42c6a9c65a"},
+    {file = "rq-2.4.0.tar.gz", hash = "sha256:750bab5dbb7cf1ec8a0aa2ebe8949472fa58fc121afd446c7bf5f7797f5e0655"},
+]
+
+[package.dependencies]
+click = ">=5"
+redis = ">=3.5,<6.0.0 || >6.0.0"
 
 [[package]]
 name = "social-auth-app-django"
@@ -766,7 +886,6 @@ description = "Backported and Experimental Type Hints for Python 3.9+"
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
-markers = "python_version == \"3.10\""
 files = [
     {file = "typing_extensions-4.14.0-py3-none-any.whl", hash = "sha256:a1514509136dd0b477638fc68d6a91497af5076466ad0fa6c338e44e359944af"},
     {file = "typing_extensions-4.14.0.tar.gz", hash = "sha256:8676b788e32f02ab42d9e7c61324048ae4c6d844a399eebace3d4979d75ceef4"},
@@ -806,4 +925,4 @@ zstd = ["zstandard (>=0.18.0)"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.14"
-content-hash = "fdfbfd598176db2443a4918ab79ec2d7886af6eb826c47fa9bc2672bb004e4af"
+content-hash = "8e2b74523dc4158efbc9b31f8e75ab6584247eb88d5b44d17a6acec4e60d7692"

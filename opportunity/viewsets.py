@@ -15,6 +15,7 @@ from .serializers import (
     OpportunitySerializer, OpportunityWriteSerializer,
     CommercialActivitySerializer
 )
+
 class OpportunityViewSet(CachedViewSet):
     model = Opportunity
     serializer_class = OpportunitySerializer
@@ -41,8 +42,14 @@ class OpportunityViewSet(CachedViewSet):
 
             validated['agent'] = request.user
 
+            file = request.FILES.get('document')
+
             opportunity_service = injector.get(OpportunityService)
-            opportunity = opportunity_service.process_update(instance, validated, request.data)
+            opportunity = opportunity_service.process_update(instance, validated, request.data, file)
+
+
+
+
             return Response(self.get_serializer(opportunity).data, status=status.HTTP_200_OK)
 
         except ValidationError as e:
