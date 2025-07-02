@@ -1,25 +1,15 @@
-from django.utils import timezone
-from datetime import datetime
 from opportunity.models import Opportunity, FinanceOpportunity
-from opportunity.services.interfaces import AbstractFinanceOpportunityFactory
+from purchase.services.interfaces import AbstractPurchaseOpportunityFactory
 
 
-class DefaultFinanceOpportunityFactory(AbstractFinanceOpportunityFactory):
+class DefaultPurchaseStatusFactory(AbstractPurchaseOpportunityFactory):
     def create_or_update(
         self,
         opportunity: Opportunity,
-        cost_subtotal: float,
-        offer_subtotal: float,
-        earned_amount: float,
-        order_closing_date: datetime,
+        purchase_status_type
 
     ) -> tuple[FinanceOpportunity, bool]:
         return FinanceOpportunity.objects.update_or_create(
             opportunity=opportunity,
-            defaults={
-                'cost_subtotal': cost_subtotal,
-                'offer_subtotal': offer_subtotal,
-                'earned_amount': earned_amount,
-                'order_closing_date': timezone.now(),
-            }
+            purchase_status_type=purchase_status_type
         )

@@ -1,42 +1,38 @@
-from datetime import datetime
-
 from rest_framework import serializers
+from rest_framework.exceptions import MethodNotAllowed
 
-from catalog.models import Currency, OpportunityType, StatusOpportunity
-from catalog.serializers import StatusOpportunitySerializer, CurrencySerializer, OpportunityTypeSerializer, \
-    PurchaseStatusTypeSerializer
-from contact.models import Contact
+from catalog.models import PurchaseStatusType
+from catalog.serializers import PurchaseStatusTypeSerializer, StatusOpportunitySerializer, CurrencySerializer, \
+    OpportunityTypeSerializer
 from contact.serializers import ContactSerializer
 from opportunity.models import Opportunity
 from opportunity.serializers import FinanceOpportunitySerializer
-from project.models import Project
 from project.serializers import ProjectSerializer
 from .models import PurchaseStatus
 
 
 class PurchaseStatusSerializer(serializers.ModelSerializer):
-    purchase_status_type = PurchaseStatusTypeSerializer()
+    purchase_status_type = PurchaseStatusTypeSerializer(read_only=True)
 
     class Meta:
         model = PurchaseStatus
-        fields = [
-            'id', 'is_removed', 'opportunity', 'purchase_status_type'
-        ]
-        read_only_fields = ['created', 'modified']
+        fields = ['id', 'is_removed', 'purchase_status_type']
+        read_only_fields = ['id', 'is_removed']
 
 
 
-class PurchaseSerializer(serializers.ModelSerializer):
-    contact = ContactSerializer()
-    project = ProjectSerializer()
-    currency = CurrencySerializer()
-    opportunityType = OpportunityTypeSerializer()
-    status_opportunity = StatusOpportunitySerializer()
+class PurchaseOpportunitySerializer(serializers.ModelSerializer):
+    status_opportunity = StatusOpportunitySerializer(read_only=True)
+    currency = CurrencySerializer(read_only=True)
+    opportunityType = OpportunityTypeSerializer(read_only=True)
+    contact = ContactSerializer(read_only=True)
+    project = ProjectSerializer(read_only=True)
 
     finance_opportunity = FinanceOpportunitySerializer(
         source='finance_data',
         read_only=True
     )
+
     status_purchase = PurchaseStatusSerializer(
         source='purchase_data',
         read_only=True
@@ -47,96 +43,55 @@ class PurchaseSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'description', 'amount', 'number_fvt',
             'date_reception', 'sent_date', 'date_status',
-            'status_opportunity', 'contact', 'currency',
-            'project', 'opportunityType',
-            'finance_opportunity', 'is_removed',
-            'status_purchase'
+            'status_opportunity', 'currency', 'opportunityType',
+            'contact', 'project', 'finance_opportunity',
+            'status_purchase', 'is_removed'
         ]
-        read_only_fields = ['created', 'modified']
+        read_only_fields = ['id', 'created', 'modified']
 
 
-# --- Opportunity CREACIÓN / ACTUALIZACIÓN ---
-class PurchaseWriteSerializer(serializers.ModelSerializer):
-    name = serializers.CharField(
-        max_length=100,
+
+# --- Purchase CREACIÓN / ACTUALIZACIÓN ---
+class PurchaseStatusWriteSerializer(serializers.ModelSerializer):
+    purchase_status_type = serializers.PrimaryKeyRelatedField(
+        queryset=PurchaseStatusType.objects.all(),
         required=True,
         error_messages={
-            'required': 'El nombre es obligatorio.',
-            'max_length': 'El nombre no puede exceder los 100 caracteres.',
-            'unique': 'Ya existe una oportunidad con este nombre.'
+            'required': 'El tipo de estatus de compra es obligatorio.',
+            'does_not_exist': 'El tipo de estatus de compra seleccionado no existe.',
+            'incorrect_type': 'El valor proporcionado no es un ID válido.'
         }
     )
-    project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all(), write_only=True)
-    contact = serializers.PrimaryKeyRelatedField(queryset=Contact.objects.all(), write_only=True)
-    currency = serializers.PrimaryKeyRelatedField(queryset=Currency.objects.all(), write_only=True)
-    opportunityType = serializers.PrimaryKeyRelatedField(queryset=OpportunityType.objects.all(), write_only=True)
-    status_opportunity = serializers.PrimaryKeyRelatedField(queryset=StatusOpportunity.objects.all(), write_only=True)
 
-    finance_opportunity = FinanceOpportunitySerializer(write_only=True, required=False)
+    opportunity = serializers.PrimaryKeyRelatedField(
+        queryset=Opportunity.objects.all(),
+        required=True,
+        error_messages={
+            'required': 'La oportunidad es obligatoria.',
+            'does_not_exist': 'La oportunidad seleccionada no existe.',
+            'incorrect_type': 'El valor proporcionado no es un ID válido.'
+        }
+    )
 
     class Meta:
-        model = Opportunity
-        fields = [
-            'id', 'name', 'description', 'amount', 'number_fvt',
-            'date_reception', 'sent_date', 'date_status',
-            'status_opportunity', 'contact', 'currency',
-            'project', 'opportunityType',
-            'finance_opportunity', 'is_removed',
-        ]
-        extra_kwargs = {
-            'number_fvt': {'error_messages': {'unique': 'Este formato de venta ya está registrado.'}},
-            'amount': {'error_messages': {'required': 'El monto es obligatorio.'}},
-            'status_opportunity': {'error_messages': {'required': 'El estado es obligatorio.'}},
-            'contact': {'error_messages': {'required': 'El contacto es obligatorio.'}},
-            'currency': {'error_messages': {'required': 'La moneda es obligatoria.'}},
-            'project': {'error_messages': {'required': 'El proyecto es obligatorio.'}},
-            'opportunityType': {'error_messages': {'required': 'El tipo de oportunidad es obligatorio.'}},
-        }
-        read_only_fields = ['created']
-
-
-    def validate_amount(self, value):
-        if value <= 0:
-            raise serializers.ValidationError("El monto debe ser mayor a cero.")
-        return value
+        model = PurchaseStatus
+        fields = ['id', 'purchase_status_type', 'opportunity']
 
     def validate(self, data):
-        sent_date = data.get("sent_date")
-        date_status = data.get("date_status")
-        date_reception = data.get("date_reception")
+        # Validación adicional (opcional): evitar duplicados
+        opportunity = data.get('opportunity')
 
-        # Validar que sean datetime válidos
-        if date_reception and not isinstance(date_reception, datetime):
-            raise serializers.ValidationError(
-                {"date_reception": "La fecha de recepción debe ser un valor datetime válido."})
+        existing = PurchaseStatus.objects.filter(opportunity=opportunity)
+        if self.instance:
+            # Si estamos en update, excluirse a sí mismo
+            existing = existing.exclude(pk=self.instance.pk)
 
-        # Validar que sean datetime válidos
-        if date_status and not isinstance(date_status, datetime):
-            raise serializers.ValidationError(
-                {"date_status": "La fecha del estado debe ser un valor datetime válido."})
+        if existing.exists():
+            raise serializers.ValidationError({
+                'opportunity': 'Ya existe un estado de compra registrado para esta oportunidad.'
+            })
 
-        if sent_date and not isinstance(sent_date, datetime):
-            raise serializers.ValidationError({"sent_date": "La fecha de envío debe ser un valor datetime válido."})
-
-
-        if date_reception and sent_date and sent_date < date_reception:
-            raise serializers.ValidationError("La fecha de envío no puede ser anterior a la de recepción.")
         return data
 
-    def to_representation(self, instance):
-        """Devuelve la representación con objetos anidados aunque sea un serializer de escritura"""
-        ret = super().to_representation(instance)
-        ret['contact'] = ContactSerializer(instance.contact).data if instance.contact else None
-        ret['project'] = ProjectSerializer(instance.project).data if instance.project else None
-        ret['currency'] = CurrencySerializer(instance.currency).data if instance.currency else None
-        ret['opportunityType'] = OpportunityTypeSerializer(instance.opportunityType).data if instance.opportunityType else None
-        ret['status_opportunity'] = StatusOpportunitySerializer(instance.status_opportunity).data if instance.status_opportunity else None
-        ret['finance_opportunity'] = FinanceOpportunitySerializer(
-            getattr(instance, 'finance_data', None)
-        ).data if hasattr(instance, 'finance_data') and instance.finance_data else None
-        return ret
-
-    def create(self, validated_data):
-        validated_data['agent'] = self.context['request'].user
-
-        return super().create(validated_data)
+    def create(self, request, *args, **kwargs):
+        raise MethodNotAllowed("POST", detail="No está permitido crear oportunidades desde este endpoint.")
