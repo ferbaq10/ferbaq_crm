@@ -2,6 +2,8 @@ from django.utils import timezone
 from injector import inject
 from rest_framework.exceptions import ValidationError
 from django.db import transaction
+
+from catalog.constants import StatusIDs
 from catalog.models import LostOpportunityType
 from opportunity.models import Opportunity
 from opportunity.services.interfaces import AbstractFinanceOpportunityFactory, AbstractLostOpportunityFactory
@@ -9,10 +11,6 @@ from opportunity.tasks import upload_to_sharepoint
 
 
 class OpportunityService:
-    WON_STATUS_ID = 5  # ID del estado 'Ganada'
-
-    LOST_STATUS_ID = 6  # ID del estado 'Perdida'
-
     @inject
     def __init__(self, finance_factory: AbstractFinanceOpportunityFactory,
                  lost_opportunity_factory: AbstractLostOpportunityFactory):
@@ -43,7 +41,7 @@ class OpportunityService:
             # Ejecutar tarea tras commit
             transaction.on_commit(lambda: upload_to_sharepoint.delay(instance.id, file_data, file_name))
 
-        if new_status and new_status.id == self.WON_STATUS_ID and finance_data:
+        if new_status and new_status.id == StatusIDs.WON and finance_data:
             self.finance_factory.create_or_update(
                 opportunity=instance,
                 cost_subtotal=finance_data.get("cost_subtotal", 0),
@@ -52,7 +50,7 @@ class OpportunityService:
                 order_closing_date=finance_data.get("order_closing_date")
             )
 
-        if new_status and new_status.id == self.LOST_STATUS_ID:
+        if new_status and new_status.id == StatusIDs.LOST:
             try:
                 lost_opportunity_type = LostOpportunityType.objects.get(id=request_data.get("lost_opportunity_type"))
 

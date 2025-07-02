@@ -8,24 +8,18 @@ from rest_framework import status
 from rest_framework.exceptions import ValidationError, APIException
 from rest_framework.response import Response
 
+from catalog.constants import CurrencyIDs, StatusIDs, OpportunityFilters
 from catalog.viewsets.base import CachedViewSet
 from client.models import Client
 from core.di import injector
 from opportunity.models import Opportunity
-from purchase.serializers import PurchaseOpportunitySerializer, PurchaseWriteSerializer
+from purchase.serializers import PurchaseOpportunitySerializer, PurchaseWriteSerializer, PurchaseStatusSerializer
 from purchase.services.purchase_service import PurchaseService
 
 
 class PurchaseViewSet(CachedViewSet):
     model = Opportunity
     serializer_class = PurchaseOpportunitySerializer
-    NEGOTIATING_STATUS_ID = 4  # Id del estado de la oportunidad 'Negociando'
-    WON_STATUS_ID = 5  # Id del estado de la oportunidad 'Ganada'
-    CLOSING_PERCENTAGE = 80
-    AMOUNT_MXN = 250000
-    AMOUNT_USD = 13000
-    CURRENCY_MN = 1 # ID de la divisa para MN
-    CURRENCY_USD = 2 # ID de la divisa para USD
 
     def get_queryset(self):
         return self.get_optimized_queryset()
@@ -57,8 +51,9 @@ class PurchaseViewSet(CachedViewSet):
             validated = serializer.validated_data
 
             purchase_service = injector.get(PurchaseService)
-            opportunity = purchase_service.process_update(opportunity, validated, request.data)
-            return Response(self.get_serializer(opportunity).data, status=status.HTTP_200_OK)
+            purchase_status = purchase_service.process_update(opportunity, validated, request.data)
+            purchaseStatusSerializers= PurchaseStatusSerializer(purchase_status)
+            return Response(purchaseStatusSerializers.data, status=status.HTTP_200_OK)
 
         except ValidationError as e:
             raise
@@ -117,11 +112,11 @@ class PurchaseViewSet(CachedViewSet):
             optimized_clients
         ).filter(
             created__year=current_year,
-            closing_percentage__gte=self.CLOSING_PERCENTAGE,
+            closing_percentage__gte=OpportunityFilters.CLOSING_PERCENTAGE,
         ).filter(
-            Q(currency_id=self.CURRENCY_MN, amount__gte=self.AMOUNT_MXN) |
-            Q(currency_id=self.CURRENCY_USD, amount__gte=self.AMOUNT_USD)
+            Q(currency_id=CurrencyIDs.MN, amount__gte=OpportunityFilters.AMOUNT_MN) |
+            Q(currency_id=CurrencyIDs.USD, amount__gte=OpportunityFilters.AMOUNT_USD)
         ).filter(
-            Q(status_opportunity_id=self.NEGOTIATING_STATUS_ID) |
-            Q(status_opportunity_id=self.WON_STATUS_ID))
+            Q(status_opportunity_id=StatusIDs.NEGOTIATING) |
+            Q(status_opportunity_id=StatusIDs.WON))
         .distinct().order_by('-created'))

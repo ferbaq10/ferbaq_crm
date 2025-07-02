@@ -16,7 +16,7 @@ class PurchaseStatusSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PurchaseStatus
-        fields = ['id', 'is_removed', 'purchase_status_type']
+        fields = ['id', 'is_removed', 'purchase_status_type', 'opportunity']
         read_only_fields = ['id', 'is_removed']
 
 

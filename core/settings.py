@@ -11,8 +11,9 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
-from decouple import config, Csv, Config, RepositoryEnv
+from decouple import config
 from datetime import timedelta
+from redis.exceptions import ConnectionError as RedisConnectionError
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -158,17 +159,35 @@ DATABASES = {
 
 REDIS_URL = f"redis://{config('REDIS_HOST', default='127.0.0.1')}:{config('REDIS_PORT', default='6379')}/{config('REDIS_DB', default='1')}"
 
-CACHES = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": REDIS_URL,
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "PASSWORD": config('REDIS_PASSWORD', default=None),
-            "SERIALIZER": "django_redis.serializers.json.JSONSerializer",
+# Configuración con fallback
+try:
+    # Probar conexión a Redis
+    import redis
+    r = redis.Redis(host='localhost', port=6379, db=1)
+    r.ping()
+    
+    # Si funciona, usar Redis
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": REDIS_URL,
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+                "SERIALIZER": "django_redis.serializers.json.JSONSerializer",
+            }
         }
     }
-}
+    print("Usando Redis para cache")
+    
+except (RedisConnectionError, Exception):
+    # Fallback a memoria si Redis no está disponible
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "catalog-cache",
+        }
+    }
+    print("⚠️ Redis no disponible, usando cache en memoria")
 
 RQ_QUEUES = {
     'default': {
