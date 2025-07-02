@@ -20,6 +20,7 @@ class PurchaseViewSet(CachedViewSet):
     model = Opportunity
     serializer_class = PurchaseOpportunitySerializer
     NEGOTIATING_STATUS_ID = 4  # Id del estado de la oportunidad 'Negociando'
+    WON_STATUS_ID = 5  # Id del estado de la oportunidad 'Ganada'
     CLOSING_PERCENTAGE = 80
     AMOUNT_MXN = 250000
     AMOUNT_USD = 13000
@@ -85,7 +86,7 @@ class PurchaseViewSet(CachedViewSet):
 
         current_year = datetime.now().year
 
-        return Opportunity.objects.select_related(
+        return (Opportunity.objects.select_related(
             # Status y tipos básicos
             'status_opportunity',
             'currency',
@@ -117,8 +118,10 @@ class PurchaseViewSet(CachedViewSet):
         ).filter(
             created__year=current_year,
             closing_percentage__gte=self.CLOSING_PERCENTAGE,
-            status_opportunity_id=self.NEGOTIATING_STATUS_ID
         ).filter(
             Q(currency_id=self.CURRENCY_MN, amount__gte=self.AMOUNT_MXN) |
             Q(currency_id=self.CURRENCY_USD, amount__gte=self.AMOUNT_USD)
-        ).distinct().order_by('-created')
+        ).filter(
+            Q(status_opportunity_id=self.NEGOTIATING_STATUS_ID) |
+            Q(status_opportunity_id=self.WON_STATUS_ID))
+        .distinct().order_by('-created'))
