@@ -45,7 +45,7 @@ class PurchaseOpportunitySerializer(serializers.ModelSerializer):
             'date_reception', 'sent_date', 'date_status',
             'status_opportunity', 'currency', 'opportunityType',
             'contact', 'project', 'finance_opportunity',
-            'status_purchase', 'is_removed',
+            'status_purchase', 'is_removed', 'closing_percentage'
         ]
         read_only_fields = ['id']
 

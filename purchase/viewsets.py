@@ -19,6 +19,7 @@ from purchase.services.purchase_service import PurchaseService
 class PurchaseViewSet(CachedViewSet):
     model = Opportunity
     serializer_class = PurchaseOpportunitySerializer
+    NEGOTIATING_STATUS_ID = 4  # Id del estado de la oportunidad 'Negociando'
     CLOSING_PERCENTAGE = 80
     AMOUNT_MXN = 250000
     AMOUNT_USD = 13000
@@ -115,7 +116,8 @@ class PurchaseViewSet(CachedViewSet):
             optimized_clients
         ).filter(
             created__year=current_year,
-            closing_percentage__gte=self.CLOSING_PERCENTAGE
+            closing_percentage__gte=self.CLOSING_PERCENTAGE,
+            status_opportunity_id=self.NEGOTIATING_STATUS_ID
         ).filter(
             Q(currency_id=self.CURRENCY_MN, amount__gte=self.AMOUNT_MXN) |
             Q(currency_id=self.CURRENCY_USD, amount__gte=self.AMOUNT_USD)

@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'djoser',
     'corsheaders',
     'django_filters',
+    'django_rq',
     'project',
     'catalog',
     'contact',
@@ -155,15 +156,24 @@ DATABASES = {
     }
 }
 
+REDIS_URL = f"redis://{config('REDIS_HOST', default='127.0.0.1')}:{config('REDIS_PORT', default='6379')}/{config('REDIS_DB', default='1')}"
+
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": f"redis://{config('REDIS_HOST', default='127.0.0.1')}:{config('REDIS_PORT', default='6379')}/{config('REDIS_DB', default='1')}",
+        "LOCATION": REDIS_URL,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
             "PASSWORD": config('REDIS_PASSWORD', default=None),
             "SERIALIZER": "django_redis.serializers.json.JSONSerializer",
         }
+    }
+}
+
+RQ_QUEUES = {
+    'default': {
+        'URL':REDIS_URL,
+        'DEFAULT_TIMEOUT': 360,
     }
 }
 

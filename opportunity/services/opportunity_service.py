@@ -1,10 +1,11 @@
 from django.utils import timezone
 from injector import inject
 from rest_framework.exceptions import ValidationError
-
+from django.db import transaction
 from catalog.models import LostOpportunityType
 from opportunity.models import Opportunity
 from opportunity.services.interfaces import AbstractFinanceOpportunityFactory, AbstractLostOpportunityFactory
+from opportunity.tasks import upload_to_sharepoint
 
 
 class OpportunityService:
@@ -18,7 +19,7 @@ class OpportunityService:
         self.finance_factory = finance_factory
         self.lost_opportunity_factory = lost_opportunity_factory
 
-    def process_update(self, instance: Opportunity, validated_data: dict, request_data: dict) -> Opportunity:
+    def process_update(self, instance: Opportunity, validated_data: dict, request_data: dict, file=None) -> Opportunity:
         new_status = validated_data.get("status_opportunity")
 
         if new_status and new_status.id != instance.status_opportunity_id:
@@ -31,6 +32,16 @@ class OpportunityService:
             setattr(instance, attr, value)
 
         instance.save()
+
+        if file:
+            self._validate_file(file)
+
+            # Leer binario antes de que se cierre la request
+            file_data = file.read()
+            file_name = file.name
+
+            # Ejecutar tarea tras commit
+            transaction.on_commit(lambda: upload_to_sharepoint.delay(instance.id, file_data, file_name))
 
         if new_status and new_status.id == self.WON_STATUS_ID and finance_data:
             self.finance_factory.create_or_update(
@@ -57,3 +68,13 @@ class OpportunityService:
                 print(e)
                 raise
         return instance
+
+    def _validate_file(self, file):
+        max_size = 5 * 1024 * 1024  # 5 MB
+        allowed_extensions = ('.pdf', '.docx', '.xlsx')
+
+        if file.size > max_size:
+            raise ValidationError({'documento': 'El archivo excede el tamaño permitido (5 MB).'})
+
+        if not file.name.lower().endswith(allowed_extensions):
+            raise ValidationError({'documento': 'Formato de archivo no permitido.'})
