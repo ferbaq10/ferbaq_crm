@@ -1,6 +1,6 @@
-from opportunity.models import Opportunity, FinanceOpportunity
+from opportunity.models import Opportunity
 from purchase.services.interfaces import AbstractPurchaseOpportunityFactory
-
+from purchase.models import PurchaseStatus
 
 class DefaultPurchaseStatusFactory(AbstractPurchaseOpportunityFactory):
     def create_or_update(
@@ -8,8 +8,10 @@ class DefaultPurchaseStatusFactory(AbstractPurchaseOpportunityFactory):
         opportunity: Opportunity,
         purchase_status_type
 
-    ) -> tuple[FinanceOpportunity, bool]:
-        return FinanceOpportunity.objects.update_or_create(
+    ) -> tuple[PurchaseStatus, bool]:
+        return PurchaseStatus.objects.update_or_create(
             opportunity=opportunity,
-            purchase_status_type=purchase_status_type
+            defaults={
+                "purchase_status_type": purchase_status_type
+            }
         )

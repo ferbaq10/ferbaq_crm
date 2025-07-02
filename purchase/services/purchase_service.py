@@ -1,4 +1,7 @@
 from injector import inject
+from rest_framework.exceptions import ValidationError
+
+from catalog.models import PurchaseStatusType
 from opportunity.models import Opportunity
 from purchase.services.interfaces import AbstractPurchaseOpportunityFactory
 
@@ -11,12 +14,20 @@ class PurchaseService:
         self.purchase_factory = purchase_factory
 
     def process_update(self, instance: Opportunity, validated_data: dict, request_data: dict) -> Opportunity:
-        status_opportunity = validated_data.get("status_opportunity")
+        purchase_status_type_id = request_data.get("purchase_status_type")
+        try:
+            purchase_status_type = PurchaseStatusType.objects.get(id=purchase_status_type_id)
+        except PurchaseStatusType.DoesNotExist:
+            raise ValidationError({"purchase_status_type": "El tipo de estatus de compra no existe."})
 
-        if status_opportunity and status_opportunity.id == self.NEGOTIATING_STATUS_ID:
-            self.purchase_factory = self.purchase_factory.create_or_update(
-                opportunity=instance,
-                    purchase_status_type=request_data.get("purchase_status_type")
-            )
+        try:
 
+            if instance.status_opportunity_id == self.NEGOTIATING_STATUS_ID:
+                self.purchase_factory.create_or_update(
+                    opportunity=instance,
+                    purchase_status_type=purchase_status_type
+                )
+        except Exception as e:
+            print(e)
+            raise
         return instance

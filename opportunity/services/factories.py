@@ -35,5 +35,6 @@ class DefaultLostOpportunityFactory(AbstractLostOpportunityFactory):
     ) -> tuple[FinanceOpportunity, bool]:
         return FinanceOpportunity.objects.update_or_create(
             opportunity=opportunity,
-            lost_opportunity_type=lost_opportunity_type,
-        )
+            defaults={
+                "lost_opportunity_type": lost_opportunity_type
+            })
