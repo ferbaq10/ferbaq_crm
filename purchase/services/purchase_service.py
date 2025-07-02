@@ -17,16 +17,15 @@ class PurchaseService:
         purchase_status_type_id = request_data.get("purchase_status_type")
         try:
             purchase_status_type = PurchaseStatusType.objects.get(id=purchase_status_type_id)
-        except PurchaseStatusType.DoesNotExist:
-            raise ValidationError({"purchase_status_type": "El tipo de estatus de compra no existe."})
-
-        try:
 
             if instance.status_opportunity_id == self.NEGOTIATING_STATUS_ID:
                 self.purchase_factory.create_or_update(
                     opportunity=instance,
                     purchase_status_type=purchase_status_type
                 )
+        except PurchaseStatusType.DoesNotExist:
+            raise ValidationError({"purchase_status_type": "El tipo de estatus de compra no existe."})
+
         except Exception as e:
             print(e)
             raise

@@ -44,11 +44,16 @@ class OpportunityService:
         if new_status and new_status.id == self.LOST_STATUS_ID:
             try:
                 lost_opportunity_type = LostOpportunityType.objects.get(id=request_data.get("lost_opportunity_type"))
+
+                self.lost_opportunity_factory.create_or_update(
+                    opportunity=instance,
+                    lost_opportunity_type=lost_opportunity_type
+                )
+
             except LostOpportunityType.DoesNotExist:
                 raise ValidationError({"lost_opportunity_type": "El tipo de oportunidad perdida no existe."})
-            self.lost_opportunity_factory = self.lost_opportunity_factory.create_or_update(
-                opportunity=instance,
-                lost_opportunity_type=lost_opportunity_type
-            )
 
+            except Exception as e:
+                print(e)
+                raise
         return instance
