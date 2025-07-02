@@ -10,13 +10,13 @@ from core.di import injector
 from catalog.viewsets.base import CachedViewSet
 from client.models import Client
 from opportunity.models import Opportunity
-from purchase.serializers import PurchaseSerializer, PurchaseWriteSerializer
+from purchase.serializers import PurchaseOpportunitySerializer, PurchaseStatusWriteSerializer
 from purchase.services.purchase_service import PurchaseService
 
 
 class PurchaseViewSet(CachedViewSet):
     model = Opportunity
-    serializer_class = PurchaseSerializer
+    serializer_class = PurchaseOpportunitySerializer
     CLOSING_PERCENTAGE = 80
     AMOUNT_MXN = 250000
     AMOUNT_USD = 13000
@@ -28,9 +28,9 @@ class PurchaseViewSet(CachedViewSet):
 
     def get_serializer_class(self):
         return (
-            PurchaseSerializer
+            PurchaseOpportunitySerializer
             if self.action in ('list', 'retrieve')
-            else PurchaseWriteSerializer
+            else PurchaseStatusWriteSerializer
         )
 
 
@@ -40,8 +40,6 @@ class PurchaseViewSet(CachedViewSet):
             serializer = self.get_serializer(instance, data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
             validated = serializer.validated_data
-
-            validated['agent'] = request.user
 
             purchase_service = injector.get(PurchaseService)
             opportunity = purchase_service.process_update(instance, validated, request.data)
@@ -58,8 +56,6 @@ class PurchaseViewSet(CachedViewSet):
             print(e)
             raise APIException('Error interno del servidor.')
 
-
-
     def get_optimized_queryset(self):
         # Optimizar consultas de oportunidad
         optimized_clients = Prefetch(
@@ -73,15 +69,9 @@ class PurchaseViewSet(CachedViewSet):
             queryset=self.model._meta.get_field('finance_data').related_model.objects.all()
         )
 
-        # Optimizar con tipo de estado de compra
-        optimized_purchase = Prefetch(
-            'purchase_data',
-            queryset=self.model._meta.get_field('purchase_data').related_model.objects.all()
-        )
-
         current_year = datetime.now().year
 
-        return (Opportunity.objects.select_related(
+        return Opportunity.objects.select_related(
             # Status y tipos básicos
             'status_opportunity',
             'currency',
@@ -92,26 +82,28 @@ class PurchaseViewSet(CachedViewSet):
             'contact__job',
             'contact__city',
 
-            # Proyecto y todas sus relaciones en una sola consulta
+            # Proyecto y todas sus relaciones
             'project',
             'project__client',
             'project__client__city',
             'project__client__business_group',
             'project__specialty',
             'project__subdivision',
-            'project__subdivision__division',  # Agregado: división de subdivisión
+            'project__subdivision__division',
             'project__project_status',
             'project__work_cell',
-            'project__work_cell__udn'  # Agregado: UDN de work_cell
+            'project__work_cell__udn',
 
+            # PurchaseStatus y su tipo
+            'purchase_data',
+            'purchase_data__purchase_status_type'  # <-- ¡esta línea es clave!
         ).prefetch_related(
             optimized_finance,
-            optimized_purchase,
             optimized_clients
         ).filter(
             created__year=current_year,
             closing_percentage__gte=self.CLOSING_PERCENTAGE
         ).filter(
             Q(currency_id=self.CURRENCY_MN, amount__gte=self.AMOUNT_MXN) |
-            Q(currency_id=self.CURRENCY_USD, amount__gte=self.AMOUNT_USD))
-                .distinct().order_by('-created'))
+            Q(currency_id=self.CURRENCY_USD, amount__gte=self.AMOUNT_USD)
+        ).distinct().order_by('-created')

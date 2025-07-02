@@ -1,7 +1,9 @@
 from django.utils import timezone
 from datetime import datetime
+
+from catalog.models import LostOpportunityType
 from opportunity.models import Opportunity, FinanceOpportunity
-from opportunity.services.interfaces import AbstractFinanceOpportunityFactory
+from opportunity.services.interfaces import AbstractFinanceOpportunityFactory, AbstractLostOpportunityFactory
 
 
 class DefaultFinanceOpportunityFactory(AbstractFinanceOpportunityFactory):
@@ -22,4 +24,16 @@ class DefaultFinanceOpportunityFactory(AbstractFinanceOpportunityFactory):
                 'earned_amount': earned_amount,
                 'order_closing_date': timezone.now(),
             }
+        )
+
+
+class DefaultLostOpportunityFactory(AbstractLostOpportunityFactory):
+    def create_or_update(
+        self,
+        opportunity: Opportunity,
+        lost_opportunity_type: LostOpportunityType,
+    ) -> tuple[FinanceOpportunity, bool]:
+        return FinanceOpportunity.objects.update_or_create(
+            opportunity=opportunity,
+            lost_opportunity_type=lost_opportunity_type,
         )

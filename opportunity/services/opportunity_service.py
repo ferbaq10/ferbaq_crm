@@ -10,7 +10,8 @@ class OpportunityService:
     LOST_STATUS_ID = 6  # ID del estado 'Perdida'
 
     @inject
-    def __init__(self, finance_factory: AbstractFinanceOpportunityFactory, lost_opportunity_factory: AbstractLostOpportunityFactory):
+    def __init__(self, finance_factory: AbstractFinanceOpportunityFactory,
+                 lost_opportunity_factory: AbstractLostOpportunityFactory):
         self.finance_factory = finance_factory
         self.lost_opportunity_factory = lost_opportunity_factory
 
