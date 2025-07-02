@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from rest_framework.exceptions import MethodNotAllowed
 
-from catalog.models import PurchaseStatusType
+from catalog.models import PurchaseStatusType, StatusOpportunity
 from catalog.serializers import PurchaseStatusTypeSerializer, StatusOpportunitySerializer, CurrencySerializer, \
     OpportunityTypeSerializer
 from contact.serializers import ContactSerializer
@@ -45,53 +45,42 @@ class PurchaseOpportunitySerializer(serializers.ModelSerializer):
             'date_reception', 'sent_date', 'date_status',
             'status_opportunity', 'currency', 'opportunityType',
             'contact', 'project', 'finance_opportunity',
-            'status_purchase', 'is_removed'
+            'status_purchase', 'is_removed',
         ]
-        read_only_fields = ['id', 'created', 'modified']
+        read_only_fields = ['id']
 
 
 
 # --- Purchase CREACIÓN / ACTUALIZACIÓN ---
-class PurchaseStatusWriteSerializer(serializers.ModelSerializer):
+class PurchaseWriteSerializer(serializers.ModelSerializer):
     purchase_status_type = serializers.PrimaryKeyRelatedField(
         queryset=PurchaseStatusType.objects.all(),
         required=True,
+        write_only=True,
         error_messages={
             'required': 'El tipo de estatus de compra es obligatorio.',
             'does_not_exist': 'El tipo de estatus de compra seleccionado no existe.',
-            'incorrect_type': 'El valor proporcionado no es un ID válido.'
-        }
-    )
-
-    opportunity = serializers.PrimaryKeyRelatedField(
-        queryset=Opportunity.objects.all(),
-        required=True,
-        error_messages={
-            'required': 'La oportunidad es obligatoria.',
-            'does_not_exist': 'La oportunidad seleccionada no existe.',
-            'incorrect_type': 'El valor proporcionado no es un ID válido.'
+            'incorrect_type': 'El valor proporcionado para el tipo de estado no es válido.'
         }
     )
 
     class Meta:
-        model = PurchaseStatus
-        fields = ['id', 'purchase_status_type', 'opportunity']
+        model = Opportunity
+        fields = ['id', 'purchase_status_type']
+        read_only_fields = ['id']
 
     def validate(self, data):
-        # Validación adicional (opcional): evitar duplicados
-        opportunity = data.get('opportunity')
+        status_compra = data.get('purchase_status_type')
 
-        existing = PurchaseStatus.objects.filter(opportunity=opportunity)
-        if self.instance:
-            # Si estamos en update, excluirse a sí mismo
-            existing = existing.exclude(pk=self.instance.pk)
-
-        if existing.exists():
+        if not status_compra:
             raise serializers.ValidationError({
-                'opportunity': 'Ya existe un estado de compra registrado para esta oportunidad.'
+                'purchase_status_type': 'El tipo de estatus de compra es obligatorio.',
+                'does_not_exist': 'El tipo de estatus de compra seleccionado no existe.',
+                'incorrect_type': 'El valor proporcionado para el tipo de estado no es válido.'
             })
 
         return data
 
     def create(self, request, *args, **kwargs):
         raise MethodNotAllowed("POST", detail="No está permitido crear oportunidades desde este endpoint.")
+

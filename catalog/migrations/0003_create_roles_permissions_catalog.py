@@ -10,11 +10,14 @@ model_names = [
 
 app_label='catalog'
 
+
 def create_roles_and_permissions(apps, schema_editor):
     Group = apps.get_model('auth', 'Group')
     Permission = apps.get_model('auth', 'Permission')
     ContentType = apps.get_model('contenttypes', 'ContentType')
 
+    # Crear permisos sin modelo asociado
+    generic_ct = ContentType.objects.get_for_model(Permission)
 
     # Crear grupos
     roles = {
@@ -23,6 +26,20 @@ def create_roles_and_permissions(apps, schema_editor):
         'Vendedor': [],
         'Comprador': [],
     }
+
+    # Permiso: view_dashboard
+    view_dashboard_perm, _ = Permission.objects.get_or_create(
+        codename='view_dashboard',
+        name='Puede ver el dashboard',
+        content_type=generic_ct
+    )
+
+    # Permiso: view_catalog
+    view_catalog_perm, _ = Permission.objects.get_or_create(
+        codename='view_catalog',
+        name='Puede ver el catálogo',
+        content_type=generic_ct
+    )
 
     for role_name in roles.keys():
         group, _ = Group.objects.get_or_create(name=role_name)
@@ -46,10 +63,20 @@ def create_roles_and_permissions(apps, schema_editor):
 
             # Comprador: sin permisos en estos modelos
 
+        # Asignar view_dashboard a todos los roles
+        for group in roles.values():
+            group.permissions.add(view_dashboard_perm)
+
+        # Asignar view_catalog a todos excepto Vendedor y Comprador
+        for role_name in ['Director Comercial', 'Gerente Comercial']:
+            roles[role_name].permissions.add(view_catalog_perm)
+
 def remove_roles_and_permissions(apps, schema_editor):
     Group = apps.get_model('auth', 'Group')
     Permission = apps.get_model('auth', 'Permission')
     ContentType = apps.get_model('contenttypes', 'ContentType')
+
+    generic_ct = ContentType.objects.get_for_model(Permission)
 
     group_names = ['Director Comercial', 'Gerente Comercial', 'Vendedor', 'Comprador']
 
@@ -66,6 +93,20 @@ def remove_roles_and_permissions(apps, schema_editor):
                 group.permissions.remove(*perms)
             except ContentType.DoesNotExist:
                 continue
+
+    # Eliminar permisos view_dashboard y view_catalog
+    try:
+        view_dashboard_perm = Permission.objects.get(codename='view_dashboard', content_type=generic_ct)
+        view_catalog_perm = Permission.objects.get(codename='view_catalog', content_type=generic_ct)
+    except Permission.DoesNotExist:
+        return
+
+    for group_name in group_names:
+        try:
+            group = Group.objects.get(name=group_name)
+            group.permissions.remove(view_dashboard_perm, view_catalog_perm)
+        except Group.DoesNotExist:
+            continue
 
 
 class Migration(migrations.Migration):

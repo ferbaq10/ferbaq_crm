@@ -3,14 +3,16 @@ from datetime import datetime
 from django.db import IntegrityError
 from django.db.models import Prefetch
 from django.db.models import Q
+from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.exceptions import ValidationError, APIException
 from rest_framework.response import Response
-from core.di import injector
+
 from catalog.viewsets.base import CachedViewSet
 from client.models import Client
+from core.di import injector
 from opportunity.models import Opportunity
-from purchase.serializers import PurchaseOpportunitySerializer, PurchaseStatusWriteSerializer
+from purchase.serializers import PurchaseOpportunitySerializer, PurchaseWriteSerializer
 from purchase.services.purchase_service import PurchaseService
 
 
@@ -30,19 +32,30 @@ class PurchaseViewSet(CachedViewSet):
         return (
             PurchaseOpportunitySerializer
             if self.action in ('list', 'retrieve')
-            else PurchaseStatusWriteSerializer
+            else PurchaseWriteSerializer
         )
+
+    def get_object(self):
+        """
+        En update, necesitamos evitar filtrar por año, monto, etc.
+        """
+        queryset = Opportunity.objects.select_related(
+            'purchase_data',
+            'purchase_data__purchase_status_type'
+        )
+        return get_object_or_404(queryset, pk=self.kwargs.get('pk'))
 
 
     def update(self, request, *args, **kwargs):
         try:
-            instance = self.get_object()
-            serializer = self.get_serializer(instance, data=request.data, partial=True)
+            opportunity = self.get_object()
+            serializer = PurchaseWriteSerializer(opportunity, data=request.data, partial=True)
+
             serializer.is_valid(raise_exception=True)
             validated = serializer.validated_data
 
             purchase_service = injector.get(PurchaseService)
-            opportunity = purchase_service.process_update(instance, validated, request.data)
+            opportunity = purchase_service.process_update(opportunity, validated, request.data)
             return Response(self.get_serializer(opportunity).data, status=status.HTTP_200_OK)
 
         except ValidationError as e:
