@@ -53,12 +53,6 @@ class StatusOpportunityViewSet(CachedViewSet):
     model = StatusOpportunity
     serializer_class = StatusOpportunitySerializer
 
-
-class StatusOpportunityViewSet(CachedViewSet):
-    model = StatusOpportunity
-    serializer_class = StatusOpportunitySerializer
-
-
 class CurrencyViewSet(CachedViewSet):
     model = Currency
     serializer_class = CurrencySerializer

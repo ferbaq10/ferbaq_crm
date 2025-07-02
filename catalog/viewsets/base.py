@@ -40,6 +40,7 @@ class ListCacheMixin:
     def _safe_cache_set(self, key, data):
         try:
             cache.set(key, data, self.cache_timeout)
+            logger.info(f"Cache SET: {key}")  # Para debugging
         except RedisConnectionError:
             logger.warning(f"Redis no disponible (set): clave '{key}'")
 
