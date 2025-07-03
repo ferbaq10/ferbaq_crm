@@ -6,7 +6,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-CATALOG_MODELS = ['PurchaseStatus']
+CATALOG_MODELS = ['PurchaseStatus', 'Opportunity']
 APP_NAME = 'purchase'
 
 def clear_list_cache_for(model_name, prefix="catalog"):
