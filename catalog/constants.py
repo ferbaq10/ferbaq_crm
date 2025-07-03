@@ -11,3 +11,6 @@ class OpportunityFilters:
     CLOSING_PERCENTAGE = 80
     AMOUNT_MN = 250000
     AMOUNT_USD = 13000
+
+class StatusPurchaseTypeIDs:
+    PENDING = 1

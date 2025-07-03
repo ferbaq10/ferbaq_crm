@@ -31,6 +31,33 @@ class OpportunityViewSet(CachedViewSet):
             else OpportunityWriteSerializer
         )
 
+    @transaction.atomic
+    def create(self, request, *args, **kwargs):
+        try:
+            serializer = self.get_serializer(data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            validated = serializer.validated_data
+
+            # El agente autenticado siempre será quien crea
+            validated['agent'] = request.user
+
+            file = request.FILES.get('document')
+
+            opportunity_service = injector.get(OpportunityService)
+            opportunity = opportunity_service.process_create(validated, request.data, file)
+
+            return Response(self.get_serializer(opportunity).data, status=status.HTTP_200_OK)
+
+        except ValidationError as e:
+            raise
+        except IntegrityError:
+            raise ValidationError({
+                'non_field_errors': ['Error de integridad en base de datos.']
+            })
+        except Exception as e:
+            print(f"[ERROR - create()]: {e}")
+            raise APIException('Error interno del servidor.')
+
 
     @transaction.atomic
     def update(self, request, *args, **kwargs):
@@ -46,9 +73,6 @@ class OpportunityViewSet(CachedViewSet):
 
             opportunity_service = injector.get(OpportunityService)
             opportunity = opportunity_service.process_update(instance, validated, request.data, file)
-
-
-
 
             return Response(self.get_serializer(opportunity).data, status=status.HTTP_200_OK)
 

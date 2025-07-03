@@ -5,7 +5,7 @@ import io
 import logging
 
 # Cargar tus credenciales (idealmente desde variables de entorno)
-SHAREPOINT_SITE_URL = os.getenv("SHAREPOINT_SITE_URL")  # Ej: https://tudominio.sharepoint.com/sites/ventas
+SHAREPOINT_SITE_URL = os.getenv("SHAREPOINT_SITE_URL")
 SHAREPOINT_DOC_LIB = os.getenv("SHAREPOINT_DOC_LIB", "Documentos compartidos")
 SHAREPOINT_USERNAME = os.getenv("SHAREPOINT_USERNAME")
 SHAREPOINT_PASSWORD = os.getenv("SHAREPOINT_PASSWORD")
