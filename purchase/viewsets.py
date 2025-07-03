@@ -88,10 +88,9 @@ class PurchaseViewSet(CachedViewSet):
             serializer = PurchaseWriteSerializer(opportunity, data=request.data, partial=True)
 
             serializer.is_valid(raise_exception=True)
-            validated = serializer.validated_data
 
             purchase_service = injector.get(PurchaseService)
-            opportunity = purchase_service.process_update(opportunity, validated, request.data)
+            opportunity = purchase_service.process_update(opportunity, request.data)
             response_serializer = PurchaseOpportunitySerializer(opportunity)
             return Response(response_serializer.data, status=status.HTTP_200_OK)
 

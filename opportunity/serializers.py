@@ -144,6 +144,12 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("La fecha de envío no puede ser anterior a la de recepción.")
         return data
 
+    def validate_name(self, value):
+        # Verifica que no exista otra oportunidad con el mismo nombre
+        if Opportunity.objects.filter(name=value).exists():
+            raise serializers.ValidationError("Ya existe una oportunidad con este nombre.")
+        return value
+
     def to_representation(self, instance):
         """Devuelve la representación con objetos anidados aunque sea un serializer de escritura"""
         ret = super().to_representation(instance)

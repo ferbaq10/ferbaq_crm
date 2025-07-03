@@ -36,15 +36,11 @@ class OpportunityViewSet(CachedViewSet):
         try:
             serializer = self.get_serializer(data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
-            validated = serializer.validated_data
-
-            # El agente autenticado siempre será quien crea
-            validated['agent'] = request.user
 
             file = request.FILES.get('document')
 
             opportunity_service = injector.get(OpportunityService)
-            opportunity = opportunity_service.process_create(validated, request.data, file)
+            opportunity = opportunity_service.process_create(serializer, request, file)
 
             return Response(self.get_serializer(opportunity).data, status=status.HTTP_200_OK)
 
@@ -65,14 +61,11 @@ class OpportunityViewSet(CachedViewSet):
             instance = self.get_object()
             serializer = self.get_serializer(instance, data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
-            validated = serializer.validated_data
-
-            validated['agent'] = request.user
 
             file = request.FILES.get('document')
 
             opportunity_service = injector.get(OpportunityService)
-            opportunity = opportunity_service.process_update(instance, validated, request.data, file)
+            opportunity = opportunity_service.process_update(serializer, request.data, file)
 
             return Response(self.get_serializer(opportunity).data, status=status.HTTP_200_OK)
 

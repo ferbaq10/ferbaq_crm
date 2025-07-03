@@ -1,4 +1,6 @@
 import logging
+from django.db import IntegrityError
+
 from django.db import transaction
 from django.utils import timezone
 from injector import inject
@@ -21,11 +23,12 @@ class OpportunityService:
         self.finance_factory = finance_factory
         self.lost_opportunity_factory = lost_opportunity_factory
 
-    def process_create(self, validated_data: dict, request_data: dict, file=None) -> Opportunity:
-        validated_data["date_status"] = timezone.now()
-
+    def process_create(self, serializer, request, file=None) -> Opportunity:
+        serializer.validated_data["date_status"] = timezone.now()
         try:
-            opportunity = Opportunity.objects.create(**validated_data)
+            opportunity = serializer.save(
+                agent=request.user,
+                date_status=timezone.now())
 
             PurchaseStatus.objects.create(
                 opportunity=opportunity,
@@ -33,58 +36,77 @@ class OpportunityService:
             )
 
             self.upload_file_related(file, opportunity)
+
             return opportunity
         except AttributeError:
             message = f"UDN no disponible para la oportunidad, no se subió archivo."
             logger.warning(message)
             raise ValidationError({"non_field_errors": [message]})
+        except IntegrityError as e:
+            message = f"Error de integridad. {e}"
+            logger.warning(message)
+            raise
 
         except Exception as e:
-            print(f"[ERROR - process_create]: {e}")
-            raise ValidationError({"non_field_errors": ["Error al crear la oportunidad."]})
+            message = f"ERROR - en la creación de la oportunidad "
+            logger.error(F"{message} {e}")
+            raise ValidationError({"non_field_errors": [message]})
 
+    def process_update(self, serializer, request_data: dict, file=None) -> Opportunity:
+        instance: Opportunity = serializer.instance
+        validated_data = serializer.validated_data
+        try:
+            # Actualizar fecha si cambia el estado
+            new_status = validated_data.get("status_opportunity")
+            if new_status and new_status.id != instance.status_opportunity_id:
+                validated_data["date_status"] = timezone.now()
 
-    def process_update(self, instance: Opportunity, validated_data: dict, request_data: dict, file=None) -> Opportunity:
-        new_status = validated_data.get("status_opportunity")
+            # Extraer datos financieros si vienen
+            finance_data = validated_data.pop("finance_opportunity", {})
 
-        if new_status and new_status.id != instance.status_opportunity_id:
-            validated_data["date_status"] = timezone.now()
+            # Aplicar todos los campos actualizados
+            for attr, value in validated_data.items():
+                setattr(instance, attr, value)
 
-        # Extraer objeto anidado de datos financieros (si se incluye)
-        finance_data = validated_data.pop("finance_opportunity", {})
+            instance.save()
 
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
+            # Si es GANADA y hay datos financieros → crear/actualizar FinanceOpportunity
+            if new_status and new_status.id == StatusIDs.WON and finance_data:
+                self.finance_factory.create_or_update(
+                    opportunity=instance,
+                    cost_subtotal=finance_data.get("cost_subtotal", 0),
+                    offer_subtotal=finance_data.get("offer_subtotal", 0),
+                    earned_amount=finance_data.get("earned_amount", 0),
+                    order_closing_date=finance_data.get("order_closing_date")
+                )
 
-        instance.save()
-
-
-        if new_status and new_status.id == StatusIDs.WON and finance_data:
-            self.finance_factory.create_or_update(
-                opportunity=instance,
-                cost_subtotal=finance_data.get("cost_subtotal", 0),
-                offer_subtotal=finance_data.get("offer_subtotal", 0),
-                earned_amount=finance_data.get("earned_amount", 0),
-                order_closing_date=finance_data.get("order_closing_date")
-            )
-
-        if new_status and new_status.id == StatusIDs.LOST:
-            try:
-                lost_opportunity_type = LostOpportunityType.objects.get(id=request_data.get("lost_opportunity_type"))
+            # Si es PERDIDA → guardar tipo de oportunidad perdida
+            if new_status and new_status.id == StatusIDs.LOST:
+                lost_type_id = request_data.get("lost_opportunity_type")
+                try:
+                    lost_type = LostOpportunityType.objects.get(id=lost_type_id)
+                except LostOpportunityType.DoesNotExist:
+                    logger.error(f"[LOST TYPE NOT FOUND] ID={lost_type_id}")
+                    raise ValidationError({"lost_opportunity_type": "El tipo de oportunidad perdida no existe."})
 
                 self.lost_opportunity_factory.create_or_update(
                     opportunity=instance,
-                    lost_opportunity_type=lost_opportunity_type
+                    lost_opportunity_type=lost_type
                 )
 
-            except LostOpportunityType.DoesNotExist:
-                logger.error(f"El tipo de oportunidad perdida no existe.{request_data.get("lost_opportunity_type")}")
-                raise ValidationError({"lost_opportunity_type": "El tipo de oportunidad perdida no existe."})
+            # Subida de archivo si aplica
+            self.upload_file_related(file, instance)
 
-            except Exception as e:
-                logger.error(f"Error al actualizar la oportunidad{e}")
-                raise
-        return instance
+            # Refrescar relaciones por si se usan al serializar
+            instance.refresh_from_db()
+
+            return instance
+
+        except ValidationError:
+            raise
+        except Exception as e:
+            logger.error(f"[ERROR - process_update] {e}")
+            raise ValidationError({"non_field_errors": ["Error al actualizar la oportunidad."]})
 
     def _validate_file(self, file):
         max_size = 5 * 1024 * 1024  # 5 MB
@@ -95,7 +117,6 @@ class OpportunityService:
 
         if not file.name.lower().endswith(allowed_extensions):
             raise ValidationError({'documento': 'Formato de archivo no permitido.'})
-
 
     def upload_file_related(self, file, instance: Opportunity):
         if file:
@@ -112,7 +133,7 @@ class OpportunityService:
                     and getattr(instance.project.work_cell.udn, "name", None)
             )
 
-            udn_name = instance.project.work_cell.udn.name
+           # udn_name = instance.project.work_cell.udn.name
             if udn_name:
                 transaction.on_commit(
                     lambda: upload_to_sharepoint.delay(udn_name, instance.id, file_data, file_name)
