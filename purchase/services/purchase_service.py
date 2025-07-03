@@ -15,7 +15,7 @@ class PurchaseService:
     def __init__(self, purchase_factory: AbstractPurchaseOpportunityFactory):
         self.purchase_factory = purchase_factory
 
-    def process_update(self, instance: Opportunity, validated_data: dict, request_data: dict) -> Opportunity:
+    def process_update(self, instance: Opportunity, request_data: dict) -> Opportunity:
         purchase_status_type_id = request_data.get("purchase_status_type")
         try:
             purchase_status_type = PurchaseStatusType.objects.get(id=purchase_status_type_id)
