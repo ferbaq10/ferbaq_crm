@@ -6,5 +6,9 @@ class PurchaseConfig(AppConfig):
     name = 'purchase'
 
     def ready(self):
-        from .signals import register_catalog_signals
-        register_catalog_signals()
+        try:
+            from . import signals
+            signals.register_catalog_signals()
+            print("✅ Purchase signals registradas correctamente")
+        except Exception as e:
+            print(f"❌ Error registrando purchase signals: {e}")
