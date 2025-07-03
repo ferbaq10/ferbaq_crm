@@ -1,13 +1,17 @@
+import logging
+from django.db import transaction
 from django.utils import timezone
 from injector import inject
 from rest_framework.exceptions import ValidationError
-from django.db import transaction
 
-from catalog.constants import StatusIDs
+from catalog.constants import StatusIDs, StatusPurchaseTypeIDs
 from catalog.models import LostOpportunityType
 from opportunity.models import Opportunity
 from opportunity.services.interfaces import AbstractFinanceOpportunityFactory, AbstractLostOpportunityFactory
 from opportunity.tasks import upload_to_sharepoint
+from purchase.models import PurchaseStatus
+
+logger = logging.getLogger(__name__)
 
 
 class OpportunityService:
@@ -16,6 +20,43 @@ class OpportunityService:
                  lost_opportunity_factory: AbstractLostOpportunityFactory):
         self.finance_factory = finance_factory
         self.lost_opportunity_factory = lost_opportunity_factory
+
+    def process_create(self, validated_data: dict, request_data: dict, file=None) -> Opportunity:
+        validated_data["date_status"] = timezone.now()
+
+        try:
+            opportunity = Opportunity.objects.create(**validated_data)
+
+            PurchaseStatus.objects.create(
+                opportunity=opportunity,
+                purchase_status_type_id=StatusPurchaseTypeIDs.PENDING,
+            )
+
+            if file:
+                self._validate_file(file)
+                file_data = file.read()  # Puedes almacenarlo si vas a guardarlo más adelante
+                file_name = file.name
+                # Ejecutar tarea tras commit
+                udn_name = (
+                        getattr(opportunity.project, "work_cell", None)
+                        and getattr(opportunity.project.work_cell, "udn", None)
+                        and getattr(opportunity.project.work_cell.udn, "name", None)
+                )
+
+                try:
+                    udn_name = opportunity.project.work_cell.udn.name
+                    if udn_name:
+                        transaction.on_commit(
+                            lambda: upload_to_sharepoint.delay(udn_name, opportunity.id, file_data, file_name)
+                        )
+                except AttributeError:
+                    logger.warning(f"UDN no disponible para la oportunidad {opportunity.id}, no se subió archivo.")
+            return opportunity
+
+        except Exception as e:
+            print(f"[ERROR - process_create]: {e}")
+            raise ValidationError({"non_field_errors": ["Error al crear la oportunidad."]})
+
 
     def process_update(self, instance: Opportunity, validated_data: dict, request_data: dict, file=None) -> Opportunity:
         new_status = validated_data.get("status_opportunity")
@@ -60,10 +101,11 @@ class OpportunityService:
                 )
 
             except LostOpportunityType.DoesNotExist:
+                logger.error(f"El tipo de oportunidad perdida no existe.{request_data.get("lost_opportunity_type")}")
                 raise ValidationError({"lost_opportunity_type": "El tipo de oportunidad perdida no existe."})
 
             except Exception as e:
-                print(e)
+                logger.error(f"Error al actualizar la oportunidad{e}")
                 raise
         return instance
 

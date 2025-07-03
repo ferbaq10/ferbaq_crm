@@ -1,10 +1,11 @@
+import logging
 from injector import inject
 from rest_framework.exceptions import ValidationError
-
 from catalog.models import PurchaseStatusType
 from opportunity.models import Opportunity
 from purchase.services.interfaces import AbstractPurchaseOpportunityFactory
-from purchase.models import PurchaseStatus
+
+logger = logging.getLogger(__name__)
 
 
 class PurchaseService:
@@ -25,8 +26,9 @@ class PurchaseService:
             )
             return instance
         except PurchaseStatusType.DoesNotExist:
+            logger.error(f"Error al actualizar el estado de compra de la oportunidad{e}")
             raise ValidationError({"purchase_status_type": "El tipo de estatus de compra no existe."})
 
         except Exception as e:
-            print(e)
+            logger.error(f"Error al actualizar el estado de compra de la oportunidad{e}")
             raise

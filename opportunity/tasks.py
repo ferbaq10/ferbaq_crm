@@ -1,13 +1,15 @@
-from django_rq import job
-from opportunity.sharepoint import upload_file
 import logging
+
+from django_rq import job
+
+from opportunity.sharepoint import upload_file
 
 logger = logging.getLogger(__name__)
 
 @job
-def upload_to_sharepoint(opportunity_id: int, file_data: bytes, file_name: str):
+def upload_to_sharepoint(udn: str, opportunity_id: int, file_data: bytes, file_name: str):
     try:
-        sharepoint_path = f"/opportunities/{opportunity_id}"
+        sharepoint_path = f"/{udn}/opportunities/{opportunity_id}"
         full_path = f"{sharepoint_path}/{file_name}"
 
         url = upload_file(full_path, file_data)
