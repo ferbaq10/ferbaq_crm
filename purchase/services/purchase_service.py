@@ -24,6 +24,8 @@ class PurchaseService:
                 opportunity=instance,
                 purchase_status_type=purchase_status_type
             )
+            instance.refresh_from_db()
+
             return instance
         except PurchaseStatusType.DoesNotExist:
             logger.error(f"Error al actualizar el estado de compra de la oportunidad{e}")

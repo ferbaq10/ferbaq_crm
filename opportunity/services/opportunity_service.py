@@ -32,26 +32,12 @@ class OpportunityService:
                 purchase_status_type_id=StatusPurchaseTypeIDs.PENDING,
             )
 
-            if file:
-                self._validate_file(file)
-                file_data = file.read()  # Puedes almacenarlo si vas a guardarlo más adelante
-                file_name = file.name
-                # Ejecutar tarea tras commit
-                udn_name = (
-                        getattr(opportunity.project, "work_cell", None)
-                        and getattr(opportunity.project.work_cell, "udn", None)
-                        and getattr(opportunity.project.work_cell.udn, "name", None)
-                )
-
-                try:
-                    udn_name = opportunity.project.work_cell.udn.name
-                    if udn_name:
-                        transaction.on_commit(
-                            lambda: upload_to_sharepoint.delay(udn_name, opportunity.id, file_data, file_name)
-                        )
-                except AttributeError:
-                    logger.warning(f"UDN no disponible para la oportunidad {opportunity.id}, no se subió archivo.")
+            self.upload_file_related(file, opportunity)
             return opportunity
+        except AttributeError:
+            message = f"UDN no disponible para la oportunidad, no se subió archivo."
+            logger.warning(message)
+            raise ValidationError({"non_field_errors": [message]})
 
         except Exception as e:
             print(f"[ERROR - process_create]: {e}")
@@ -72,15 +58,6 @@ class OpportunityService:
 
         instance.save()
 
-        if file:
-            self._validate_file(file)
-
-            # Leer binario antes de que se cierre la request
-            file_data = file.read()
-            file_name = file.name
-
-            # Ejecutar tarea tras commit
-            transaction.on_commit(lambda: upload_to_sharepoint.delay(instance.id, file_data, file_name))
 
         if new_status and new_status.id == StatusIDs.WON and finance_data:
             self.finance_factory.create_or_update(
@@ -118,3 +95,25 @@ class OpportunityService:
 
         if not file.name.lower().endswith(allowed_extensions):
             raise ValidationError({'documento': 'Formato de archivo no permitido.'})
+
+
+    def upload_file_related(self, file, instance: Opportunity):
+        if file:
+            self._validate_file(file)
+
+            # Leer binario antes de que se cierre la request
+            file_data = file.read()
+            file_name = file.name
+
+            # Ejecutar tarea tras commit
+            udn_name = (
+                    getattr(instance.project, "work_cell", None)
+                    and getattr(instance.project.work_cell, "udn", None)
+                    and getattr(instance.project.work_cell.udn, "name", None)
+            )
+
+            udn_name = instance.project.work_cell.udn.name
+            if udn_name:
+                transaction.on_commit(
+                    lambda: upload_to_sharepoint.delay(udn_name, instance.id, file_data, file_name)
+                )
