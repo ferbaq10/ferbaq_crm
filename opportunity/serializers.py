@@ -145,9 +145,15 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
         return data
 
     def validate_name(self, value):
-        # Verifica que no exista otra oportunidad con el mismo nombre
-        if Opportunity.objects.filter(name=value).exists():
+        opportunity_id = self.instance.id if self.instance else None
+        if Opportunity.objects.filter(name=value).exclude(id=opportunity_id).exists():
             raise serializers.ValidationError("Ya existe una oportunidad con este nombre.")
+        return value
+
+    def validate_number_fvt(self, value):
+        opportunity_id = self.instance.id if self.instance else None
+        if Opportunity.objects.filter(number_fvt=value).exclude(id=opportunity_id).exists():
+            raise serializers.ValidationError("Ya existe Oportunidad con este Formato de venta.")
         return value
 
     def to_representation(self, instance):

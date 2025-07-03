@@ -59,7 +59,8 @@ class OpportunityViewSet(CachedViewSet):
     def update(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            serializer = self.get_serializer(instance, data=request.data, partial=True)
+            partial = kwargs.pop('partial', request.method == 'PATCH')
+            serializer = self.get_serializer(instance, data=request.data, partial=partial)
             serializer.is_valid(raise_exception=True)
 
             file = request.FILES.get('document')
