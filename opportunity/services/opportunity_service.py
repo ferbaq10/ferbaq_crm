@@ -109,7 +109,8 @@ class OpportunityService:
             raise ValidationError({"non_field_errors": ["Error al actualizar la oportunidad."]})
 
     def _validate_file(self, file):
-        max_size = 5 * 1024 * 1024  # 5 MB
+        # 4 MB  TIENE UQE SER HASTA 4 MB PARA ELE ENVÍO A SHAREPOINT, SINO HAY QUE HACER OTRA SOLUCION
+        max_size = 4 * 1024 * 1024
         allowed_extensions = ('.pdf', '.docx', '.xlsx')
 
         if file.size > max_size:
@@ -136,5 +137,5 @@ class OpportunityService:
            # udn_name = instance.project.work_cell.udn.name
             if udn_name:
                 transaction.on_commit(
-                    lambda: upload_to_sharepoint.delay(udn_name, instance.id, file_data, file_name)
+                    lambda: upload_to_sharepoint.delay(udn_name, instance.name, file_data, file_name)
                 )
