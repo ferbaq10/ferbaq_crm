@@ -137,5 +137,5 @@ class OpportunityService:
            # udn_name = instance.project.work_cell.udn.name
             if udn_name:
                 transaction.on_commit(
-                    lambda: upload_to_sharepoint(udn_name, instance.name, file_data, file_name)
+                    lambda: upload_to_sharepoint.delay(udn_name, instance.name, file_data, file_name)
                 )
