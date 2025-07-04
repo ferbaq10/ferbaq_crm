@@ -10,7 +10,7 @@ from catalog.viewsets.base import CachedViewSet
 from client.models import Client
 from core.di import injector
 from opportunity.services.opportunity_service import OpportunityService
-from .models import Opportunity, CommercialActivity
+from .models import Opportunity, CommercialActivity, OpportunityDocument
 from .serializers import (
     OpportunitySerializer, OpportunityWriteSerializer,
     CommercialActivitySerializer
@@ -29,6 +29,12 @@ class OpportunityViewSet(CachedViewSet):
         optimized_finance = Prefetch(
             'finance_data',
             queryset=self.model._meta.get_field('finance_data').related_model.objects.all()
+        )
+        optimized_documents = Prefetch(
+            'documents',
+            queryset=OpportunityDocument.objects.only(
+                'id', 'file_name', 'sharepoint_url', 'uploaded_at', 'opportunity'
+            )
         )
 
         return (Opportunity.objects.select_related(
@@ -51,7 +57,8 @@ class OpportunityViewSet(CachedViewSet):
         )
         .prefetch_related(
             optimized_finance,
-            optimized_clients
+            optimized_clients,
+            optimized_documents
         ))
 
 
@@ -78,10 +85,10 @@ class OpportunityViewSet(CachedViewSet):
             serializer = self.get_serializer(data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
 
-            file = request.FILES.get('document')
+            files = request.FILES.getlist('documents')
 
             opportunity_service = injector.get(OpportunityService)
-            opportunity = opportunity_service.process_create(serializer, request, file)
+            opportunity = opportunity_service.process_create(serializer, request, files)
 
             opportunity = self.get_base_optimized_queryset().get(pk=opportunity.pk)
 
@@ -106,10 +113,10 @@ class OpportunityViewSet(CachedViewSet):
             serializer = self.get_serializer(instance, data=request.data, partial=partial)
             serializer.is_valid(raise_exception=True)
 
-            file = request.FILES.get('document')
+            files = request.FILES.getlist('documents')
 
             opportunity_service = injector.get(OpportunityService)
-            opportunity = opportunity_service.process_update(serializer, request.data, file)
+            opportunity = opportunity_service.process_update(serializer, request.data, files)
 
             opportunity = self.get_base_optimized_queryset().get(pk=opportunity.pk)
 

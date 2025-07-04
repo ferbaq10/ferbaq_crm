@@ -9,9 +9,14 @@ from contact.models import Contact
 from contact.serializers import ContactSerializer
 from project.models import Project
 from project.serializers import ProjectSerializer
-from .models import CommercialActivity, FinanceOpportunity, Opportunity, LostOpportunity
+from .models import CommercialActivity, FinanceOpportunity, Opportunity, LostOpportunity, OpportunityDocument
 
 User = get_user_model()
+
+class OpportunityDocumentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OpportunityDocument
+        fields = ['id', 'file_name', 'sharepoint_url', 'uploaded_at']
 
 
 class FinanceOpportunitySerializer(serializers.ModelSerializer):
@@ -63,6 +68,7 @@ class OpportunitySerializer(serializers.ModelSerializer):
         source='finance_data',
         read_only=True
     )
+    documents = OpportunityDocumentSerializer(many=True, read_only=True)
 
     class Meta:
         model = Opportunity
@@ -70,8 +76,8 @@ class OpportunitySerializer(serializers.ModelSerializer):
             'id', 'name', 'description', 'amount', 'number_fvt',
             'date_reception', 'sent_date', 'date_status',
             'status_opportunity', 'contact', 'currency',
-            'project', 'opportunityType',
-            'finance_opportunity', 'is_removed'
+            'project', 'opportunityType', 'closing_percentage',
+            'finance_opportunity', 'is_removed', 'documents'
         ]
         read_only_fields = ['created', 'modified']
 
@@ -150,18 +156,6 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 
-class OpportunityUpdateSerializer(serializers.ModelSerializer):
-    contact_name = serializers.CharField(source='contact.name', read_only=True)
-    project_name = serializers.CharField(source='project.name', read_only=True)
-    status_opportunity_name = serializers.CharField(source='status_opportunity.name', read_only=True)
-
-    class Meta:
-        model = Opportunity
-        fields = [
-            'id', 'name', 'amount', 'number_fvt', 'date_status',
-            'contact_name', 'project_name', 'status_opportunity_name'
-        ]
-
 
 class LostOpportunitySerializer(serializers.ModelSerializer):
     class Meta:
@@ -173,3 +167,5 @@ class LostOpportunitySerializer(serializers.ModelSerializer):
             'lost_opportunity_type',
         ]
         read_only_fields = ['created', 'modified']
+
+
