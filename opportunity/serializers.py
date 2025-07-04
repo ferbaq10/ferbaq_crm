@@ -144,36 +144,23 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("La fecha de envío no puede ser anterior a la de recepción.")
         return data
 
-    def validate_name(self, value):
-        opportunity_id = self.instance.id if self.instance else None
-        if Opportunity.objects.filter(name=value).exclude(id=opportunity_id).exists():
-            raise serializers.ValidationError("Ya existe una oportunidad con este nombre.")
-        return value
-
-    def validate_number_fvt(self, value):
-        opportunity_id = self.instance.id if self.instance else None
-        if Opportunity.objects.filter(number_fvt=value).exclude(id=opportunity_id).exists():
-            raise serializers.ValidationError("Ya existe Oportunidad con este Formato de venta.")
-        return value
-
-    def to_representation(self, instance):
-        """Devuelve la representación con objetos anidados aunque sea un serializer de escritura"""
-        ret = super().to_representation(instance)
-        ret['contact'] = ContactSerializer(instance.contact).data if instance.contact else None
-        ret['project'] = ProjectSerializer(instance.project).data if instance.project else None
-        ret['currency'] = CurrencySerializer(instance.currency).data if instance.currency else None
-        ret['opportunityType'] = OpportunityTypeSerializer(instance.opportunityType).data if instance.opportunityType else None
-        ret['status_opportunity'] = StatusOpportunitySerializer(instance.status_opportunity).data if instance.status_opportunity else None
-        ret['finance_opportunity'] = FinanceOpportunitySerializer(
-            getattr(instance, 'finance_data', None)
-        ).data if hasattr(instance, 'finance_data') and instance.finance_data else None
-        return ret
-
     def create(self, validated_data):
         validated_data['agent'] = self.context['request'].user
 
         return super().create(validated_data)
 
+
+class OpportunityUpdateSerializer(serializers.ModelSerializer):
+    contact_name = serializers.CharField(source='contact.name', read_only=True)
+    project_name = serializers.CharField(source='project.name', read_only=True)
+    status_opportunity_name = serializers.CharField(source='status_opportunity.name', read_only=True)
+
+    class Meta:
+        model = Opportunity
+        fields = [
+            'id', 'name', 'amount', 'number_fvt', 'date_status',
+            'contact_name', 'project_name', 'status_opportunity_name'
+        ]
 
 
 class LostOpportunitySerializer(serializers.ModelSerializer):

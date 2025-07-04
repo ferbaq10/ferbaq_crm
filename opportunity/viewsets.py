@@ -20,6 +20,47 @@ class OpportunityViewSet(CachedViewSet):
     model = Opportunity
     serializer_class = OpportunitySerializer
 
+    def get_base_optimized_queryset(self):
+        optimized_clients = Prefetch(
+            'contact__clients',
+            queryset=Client.objects.select_related('city', 'business_group')
+        )
+
+        optimized_finance = Prefetch(
+            'finance_data',
+            queryset=self.model._meta.get_field('finance_data').related_model.objects.all()
+        )
+
+        return (Opportunity.objects.select_related(
+            'status_opportunity',
+            'currency',
+            'opportunityType',
+            'contact',
+            'contact__job',
+            'contact__city',
+            'project',
+            'project__client',
+            'project__client__city',
+            'project__client__business_group',
+            'project__specialty',
+            'project__subdivision',
+            'project__subdivision__division',
+            'project__project_status',
+            'project__work_cell',
+            'project__work_cell__udn'
+        )
+        .prefetch_related(
+            optimized_finance,
+            optimized_clients
+        ))
+
+
+    def get_optimized_queryset(self):
+        return self.get_base_optimized_queryset().filter(
+            created__year=datetime.now().year
+        ).distinct().order_by('-created')
+
+
     def get_queryset(self):
         return self.get_optimized_queryset()
 
@@ -42,7 +83,9 @@ class OpportunityViewSet(CachedViewSet):
             opportunity_service = injector.get(OpportunityService)
             opportunity = opportunity_service.process_create(serializer, request, file)
 
-            return Response(self.get_serializer(opportunity).data, status=status.HTTP_200_OK)
+            opportunity = self.get_base_optimized_queryset().get(pk=opportunity.pk)
+
+            return Response(OpportunitySerializer(opportunity).data, status=status.HTTP_200_OK)
 
         except ValidationError as e:
             raise
@@ -68,7 +111,9 @@ class OpportunityViewSet(CachedViewSet):
             opportunity_service = injector.get(OpportunityService)
             opportunity = opportunity_service.process_update(serializer, request.data, file)
 
-            return Response(self.get_serializer(opportunity).data, status=status.HTTP_200_OK)
+            opportunity = self.get_base_optimized_queryset().get(pk=opportunity.pk)
+
+            return Response(OpportunitySerializer(opportunity).data, status=status.HTTP_200_OK)
 
         except ValidationError as e:
             raise
@@ -81,50 +126,6 @@ class OpportunityViewSet(CachedViewSet):
             print(e)
             raise APIException('Error interno del servidor.')
 
-    def get_optimized_queryset(self):
-        # Optimizar consultas de oportunidad
-        optimized_clients = Prefetch(
-            'contact__clients',
-            queryset=Client.objects.select_related('city', 'business_group')
-        )
-
-        # Optimizar datos financieros
-        optimized_finance = Prefetch(
-            'finance_data',
-            queryset=self.model._meta.get_field('finance_data').related_model.objects.all()
-        )
-
-        current_year = datetime.now().year
-
-        return Opportunity.objects.select_related(
-            # Status y tipos básicos
-            'status_opportunity',
-            'currency',
-            'opportunityType',
-
-            # Contacto y sus relaciones
-            'contact',
-            'contact__job',
-            'contact__city',
-
-            # Proyecto y todas sus relaciones en una sola consulta
-            'project',
-            'project__client',
-            'project__client__city',
-            'project__client__business_group',
-            'project__specialty',
-            'project__subdivision',
-            'project__subdivision__division',  # Agregado: división de subdivisión
-            'project__project_status',
-            'project__work_cell',
-            'project__work_cell__udn'  # Agregado: UDN de work_cell
-
-        ).prefetch_related(
-            optimized_finance,
-            optimized_clients
-        ).filter(
-        created__year=current_year,
-    ).distinct().order_by('-created')
 
 class CommercialActivityViewSet(CachedViewSet):
     model = CommercialActivity
