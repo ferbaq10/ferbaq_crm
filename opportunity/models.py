@@ -114,3 +114,21 @@ class LostOpportunity(BaseModel):
         on_delete=models.DO_NOTHING,
         related_name = 'lost_opportunity'
     )
+
+class OpportunityDocument(models.Model):
+    opportunity = models.ForeignKey(
+        Opportunity,
+        on_delete=models.CASCADE,
+        related_name="documents"
+    )
+    file_name = models.CharField(max_length=255)
+    sharepoint_url = models.URLField()
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "opportunity_documents"
+        verbose_name = "Documento de oportunidad"
+        verbose_name_plural = "Documentos de oportunidad"
+
+    def __str__(self):
+        return self.file_name

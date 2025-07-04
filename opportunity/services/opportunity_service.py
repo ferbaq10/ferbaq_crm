@@ -1,6 +1,6 @@
 import logging
-from django.db import IntegrityError
 
+from django.db import IntegrityError
 from django.db import transaction
 from django.utils import timezone
 from injector import inject
@@ -8,9 +8,9 @@ from rest_framework.exceptions import ValidationError
 
 from catalog.constants import StatusIDs, StatusPurchaseTypeIDs
 from catalog.models import LostOpportunityType
-from opportunity.models import Opportunity
+from opportunity.models import Opportunity, OpportunityDocument
 from opportunity.services.interfaces import AbstractFinanceOpportunityFactory, AbstractLostOpportunityFactory
-from opportunity.tasks import upload_to_sharepoint
+from opportunity.tasks import upload_to_sharepoint, delete_file_from_sharepoint
 from purchase.models import PurchaseStatus
 
 logger = logging.getLogger(__name__)
@@ -23,24 +23,24 @@ class OpportunityService:
         self.finance_factory = finance_factory
         self.lost_opportunity_factory = lost_opportunity_factory
 
-    def process_create(self, serializer, request, file=None) -> Opportunity:
+    def process_create(self, serializer, request, files=None) -> Opportunity:
         serializer.validated_data["date_status"] = timezone.now()
         try:
             opportunity = serializer.save(
                 agent=request.user,
                 date_status=timezone.now())
 
-            PurchaseStatus.objects.create(
+            PurchaseStatus.objects.create_or_update(
                 opportunity=opportunity,
                 purchase_status_type_id=StatusPurchaseTypeIDs.PENDING,
             )
 
-            self.upload_file_related(file, opportunity)
+            self.upload_files_related(files, opportunity)
 
             return opportunity
-        except AttributeError:
+        except AttributeError as e:
             message = f"UDN no disponible para la oportunidad, no se subió archivo."
-            logger.warning(message)
+            logger.warning(f"{message} + {e}" )
             raise ValidationError({"non_field_errors": [message]})
         except IntegrityError as e:
             message = f"Error de integridad. {e}"
@@ -52,7 +52,7 @@ class OpportunityService:
             logger.error(F"{message} {e}")
             raise ValidationError({"non_field_errors": [message]})
 
-    def process_update(self, serializer, request_data: dict, file=None) -> Opportunity:
+    def process_update(self, serializer, request_data: dict, files=None) -> Opportunity:
         instance: Opportunity = serializer.instance
         validated_data = serializer.validated_data
         try:
@@ -69,6 +69,11 @@ class OpportunityService:
                 setattr(instance, attr, value)
 
             instance.save()
+
+            # --- Manejar eliminación de documentos ---
+            deleted_ids = request_data.get('deleted_documents', [])
+            if deleted_ids:
+                self._delete_opportunity_documents(instance, deleted_ids)
 
             # Si es GANADA y hay datos financieros → crear/actualizar FinanceOpportunity
             if new_status and new_status.id == StatusIDs.WON and finance_data:
@@ -95,7 +100,7 @@ class OpportunityService:
                 )
 
             # Subida de archivo si aplica
-            self.upload_file_related(file, instance)
+            self.upload_files_related(files, instance)
 
             # Refrescar relaciones por si se usan al serializar
             instance.refresh_from_db()
@@ -119,23 +124,38 @@ class OpportunityService:
         if not file.name.lower().endswith(allowed_extensions):
             raise ValidationError({'documento': 'Formato de archivo no permitido.'})
 
-    def upload_file_related(self, file, instance: Opportunity):
-        if file:
+    def upload_files_related(self, files, instance: Opportunity):
+        if not files:
+            return
+
+        for file in files:
             self._validate_file(file)
 
-            # Leer binario antes de que se cierre la request
             file_data = file.read()
             file_name = file.name
 
-            # Ejecutar tarea tras commit
             udn_name = (
                     getattr(instance.project, "work_cell", None)
                     and getattr(instance.project.work_cell, "udn", None)
                     and getattr(instance.project.work_cell.udn, "name", None)
             )
 
-           # udn_name = instance.project.work_cell.udn.name
             if udn_name:
                 transaction.on_commit(
-                    lambda: upload_to_sharepoint.delay(udn_name, instance.name, file_data, file_name)
+                    lambda f_data=file_data, f_name=file_name:
+                    upload_to_sharepoint.delay(udn_name, instance.pk, f_data, f_name)
                 )
+
+    def _delete_opportunity_documents(self, instance: Opportunity, document_ids: list):
+        documents = OpportunityDocument.objects.filter(opportunity=instance, id__in=document_ids)
+        for doc in documents:
+            try:
+                delete_file_from_sharepoint.delay(doc.sharepoint_url, doc.id)
+                logger.info(f"🗑️ Documento eliminado: {doc.file_name}")
+            except Exception as e:
+                logger.warning(f"⚠️ No se pudo eliminar el archivo {doc.file_name} de SharePoint: {e}")
+
+
+
+
+

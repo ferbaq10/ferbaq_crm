@@ -1,7 +1,8 @@
 import io
 import logging
 import os
-from urllib.parse import urlparse
+from urllib.parse import urlparse, unquote
+
 from decouple import config
 from office365.runtime.auth.authentication_context import AuthenticationContext
 from office365.sharepoint.client_context import ClientContext
@@ -74,3 +75,17 @@ def ensure_folder(ctx, parent_folder, folder_parts):
     # ✅ Asegúrate de que las propiedades estén cargadas
     current_folder.get().execute_query()
     return current_folder
+
+
+def _delete_file_from_sharepoint(full_url: str):
+    parsed = urlparse(full_url)
+    relative_url = unquote(parsed.path)  # /sites/CRM_PRUEBA/Documentos compartidos/...
+
+    ctx_auth = AuthenticationContext(SHAREPOINT_SITE_URL)
+    if not ctx_auth.acquire_token_for_user(SHAREPOINT_USERNAME, SHAREPOINT_PASSWORD):
+        raise Exception("Autenticación con SharePoint fallida")
+
+    ctx = ClientContext(SHAREPOINT_SITE_URL, ctx_auth)
+    file = ctx.web.get_file_by_server_relative_url(relative_url)
+    file.delete_object()
+    ctx.execute_query()
