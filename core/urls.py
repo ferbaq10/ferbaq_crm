@@ -17,13 +17,15 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 
-from users.views import CustomTokenObtainPairView
+from users.viewsets import CustomTokenObtainPairView, UserViewSet
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/catalog/', include('catalog.urls')),
 
     path('auth/login/', CustomTokenObtainPairView.as_view(), name='custom_token_obtain_pair'),
+
+    path('api/', include('users.urls')),
 
     path('auth/', include('djoser.urls')),
     path('auth/', include('djoser.urls.jwt')),
