@@ -1,16 +1,21 @@
 import logging
+from datetime import datetime
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError
 from django.db import transaction
+from django.db.models import Prefetch
 from django.utils import timezone
 from injector import inject
 from rest_framework.exceptions import ValidationError
 
 from catalog.constants import StatusIDs, StatusPurchaseTypeIDs
 from catalog.models import LostOpportunityType
-from opportunity.models import Opportunity, OpportunityDocument
+from client.models import Client
+from opportunity.models import Opportunity
+from opportunity.models import OpportunityDocument
 from opportunity.services.interfaces import AbstractFinanceOpportunityFactory, AbstractLostOpportunityFactory
-from opportunity.tasks import upload_to_sharepoint, delete_file_from_sharepoint
+from opportunity.tasks import upload_to_sharepoint_db, delete_file_from_sharepoint_db
 from purchase.models import PurchaseStatus
 
 logger = logging.getLogger(__name__)
@@ -23,6 +28,52 @@ class OpportunityService:
         self.finance_factory = finance_factory
         self.lost_opportunity_factory = lost_opportunity_factory
 
+    def get_base_queryset(self):
+        optimized_clients = Prefetch(
+            'contact__clients',
+            queryset=Client.objects.select_related('city', 'business_group')
+        )
+
+        optimized_finance = Prefetch(
+            'finance_data',
+            queryset=Opportunity._meta.get_field('finance_data').related_model.objects.all()
+        )
+
+        optimized_documents = Prefetch(
+            'documents',
+            queryset=OpportunityDocument.objects.only(
+                'id', 'file_name', 'sharepoint_url', 'uploaded_at', 'opportunity'
+            )
+        )
+
+        return Opportunity.objects.select_related(
+            'status_opportunity',
+            'currency',
+            'opportunityType',
+            'contact',
+            'contact__job',
+            'contact__city',
+            'project',
+            'project__client',
+            'project__client__city',
+            'project__client__business_group',
+            'project__specialty',
+            'project__subdivision',
+            'project__subdivision__division',
+            'project__project_status',
+            'project__work_cell',
+            'project__work_cell__udn'
+        ).prefetch_related(
+            optimized_finance,
+            optimized_clients,
+            optimized_documents
+        )
+
+    def get_filtered_queryset(self):
+        return self.get_base_queryset().filter(
+            created__year=datetime.now().year
+        ).distinct().order_by('-created')
+
     def process_create(self, serializer, request, files=None) -> Opportunity:
         print(f"🎯 OpportunityService.process_create INICIADO - Files: {len(files) if files else 0}")
         logger.info(f"🎯 OpportunityService.process_create INICIADO - Files: {len(files) if files else 0}")
@@ -32,7 +83,6 @@ class OpportunityService:
                 agent=request.user,
                 date_status=timezone.now())
 
-            # ✅ CORREGIR: Usar update_or_create en lugar de create_or_update
             PurchaseStatus.objects.update_or_create(
                 opportunity=opportunity,
                 defaults={
@@ -40,7 +90,6 @@ class OpportunityService:
                 }
             )
 
-            # ✅ AGREGAR: Recargar con las relaciones necesarias para UDN
             opportunity = Opportunity.objects.select_related(
                 'project__work_cell__udn'
             ).get(pk=opportunity.pk)
@@ -80,11 +129,6 @@ class OpportunityService:
 
             instance.save()
 
-            # --- Manejar eliminación de documentos ---
-            deleted_ids = request_data.get('deleted_documents', [])
-            if deleted_ids:
-                self._delete_opportunity_documents(instance, deleted_ids)
-
             # Si es GANADA y hay datos financieros → crear/actualizar FinanceOpportunity
             if new_status and new_status.id == StatusIDs.WON and finance_data:
                 self.finance_factory.create_or_update(
@@ -108,12 +152,6 @@ class OpportunityService:
                     opportunity=instance,
                     lost_opportunity_type=lost_type
                 )
-
-            # ✅ AGREGAR: Recargar con las relaciones necesarias para UDN antes de subir archivos
-            if files:
-                instance = Opportunity.objects.select_related(
-                    'project__work_cell__udn'
-                ).get(pk=instance.pk)
 
             # Subida de archivo si aplica
             self.upload_files_related(files, instance)
@@ -141,68 +179,51 @@ class OpportunityService:
             raise ValidationError({'documento': 'Formato de archivo no permitido.'})
 
     def upload_files_related(self, files, instance: Opportunity):
-        print(f"🔍 upload_files_related llamado. Files recibidos: {len(files) if files else 0}")
-        
         if not files:
-            print("❌ No hay archivos para subir")
+            print(" No hay archivos para subir")
             return
 
-        print("✅ Iniciando loop de archivos...")
         for i, file in enumerate(files):
-            print(f"📁 Procesando archivo {i+1}: {file.name}, tamaño: {file.size} bytes")
-            
             try:
-                print(f"🔍 Validando archivo {file.name}...")
                 self._validate_file(file)
-                print(f"✅ Archivo {file.name} pasó validación")
             except ValidationError as e:
-                print(f"❌ Archivo {file.name} falló validación: {e}")
+                logger.error(f"Archivo {file.name} falló validación: {e}")
                 continue
 
-            print(f"📖 Leyendo datos del archivo {file.name}...")
             file_data = file.read()
             file_name = file.name
-            print(f"✅ Datos leídos: {len(file_data)} bytes")
-
-            print("🔍 Obteniendo UDN...")
             udn_name = (
                     getattr(instance.project, "work_cell", None)
                     and getattr(instance.project.work_cell, "udn", None)
                     and getattr(instance.project.work_cell.udn, "name", None)
             )
-            
-            print(f"🏢 UDN encontrada: {udn_name}")
 
             if udn_name:
-                print(f"📤 Subiendo {file_name} directamente a SharePoint...")
-                
                 try:
-                    # ✅ CREAR FUNCIÓN CON CAPTURA DE VARIABLES para evitar problemas de scope
-                    def create_upload_function(data, name, udn, opp_id):
-                        def execute_upload():
-                            from opportunity.tasks import upload_to_sharepoint
-                            print(f"🚀 Ejecutando upload_to_sharepoint para {name}...")
-                            return upload_to_sharepoint(udn, opp_id, data, name)
-                        return execute_upload
-                    
-                    upload_func = create_upload_function(file_data, file_name, udn_name, instance.pk)
-                    transaction.on_commit(upload_func)
-                    print(f"✅ Upload programado exitosamente para {file_name}")
+                    transaction.on_commit(
+                        lambda f_data=file_data, f_name=file_name:
+                        upload_to_sharepoint_db.delay(udn_name, instance.pk, f_data, f_name)
+                    )
+                    logger.info(f"Subido archivo {file_name}")
                     
                 except Exception as e:
-                    print(f"❌ Error al subir {file_name}: {e}")
                     import traceback
                     traceback.print_exc()
+                    logger.error(f" Error al subir {file_name}: {e}")
             else:
-                print(f"❌ No se pudo obtener UDN para {file_name}")
-        
-        print("🏁 upload_files_related COMPLETADO")
+                logger.error(f"No se pudo obtener UDN para {file_name}")
 
-    def _delete_opportunity_documents(self, instance: Opportunity, document_ids: list):
-        documents = OpportunityDocument.objects.filter(opportunity=instance, id__in=document_ids)
-        for doc in documents:
-            try:
-                delete_file_from_sharepoint.delay(doc.sharepoint_url, doc.id)
-                logger.info(f"🗑️ Documento eliminado: {doc.file_name}")
-            except Exception as e:
-                logger.warning(f"⚠️ No se pudo eliminar el archivo {doc.file_name} de SharePoint: {e}")
+    def delete_document(self, opportunity, document_id: int) -> dict:
+        try:
+            document = OpportunityDocument.objects.get(id=document_id, opportunity=opportunity)
+        except OpportunityDocument.DoesNotExist:
+            raise ObjectDoesNotExist("Documento no encontrado.")
+
+        try:
+            # Eliminar en SharePoint y BD
+            delete_file_from_sharepoint_db(document.sharepoint_url, document.id)
+        except Exception as e:
+            logger.error(f" Error al eliminar en SharePoint o en base de datos: {e}")
+
+        file_name = document.file_name
+        return {"message": f"Documento '{file_name}' eliminado exitosamente"}

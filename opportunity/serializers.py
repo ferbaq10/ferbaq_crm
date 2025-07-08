@@ -18,15 +18,12 @@ class OpportunityDocumentSerializer(serializers.ModelSerializer):
         model = OpportunityDocument
         fields = ['id', 'file_name', 'sharepoint_url', 'uploaded_at']
 
-
-# ✅ CORREGIDO: Sin campo 'opportunity'
 class FinanceOpportunitySerializer(serializers.ModelSerializer):
     class Meta:
         model = FinanceOpportunity
         fields = [
             'id',
             'is_removed',
-            # 'opportunity',  # ❌ REMOVIDO: Causaba conflicto
             'earned_amount',
             'cost_subtotal',
             'offer_subtotal',
@@ -148,7 +145,7 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("La fecha de envío no puede ser anterior a la de recepción.")
         return data
 
-    # ✅ NUEVO: Método update personalizado
+    # NUEVO: Método update personalizado
     def update(self, instance, validated_data):
         print(f"🔍 Actualizando oportunidad {instance.id}: {instance.name}")
         

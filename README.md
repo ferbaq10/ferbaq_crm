@@ -199,3 +199,16 @@ Deberías ver un contenedor llamado local-redis expuesto en el puerto 6379 con e
 ```bash
   docker ps
 ```
+
+### Ejecutar el worker
+
+Ejecutar el worker para que ejecute tareas asíncronas para proyecto local en Windows:
+```bash
+  python run_simple_worker.py
+```
+
+Para correr en linux
+```bash
+  python manage.py rqworker default
+```
+

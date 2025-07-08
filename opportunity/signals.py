@@ -4,11 +4,9 @@ from django.db.models.signals import post_save, post_delete
 from redis.exceptions import ConnectionError as RedisConnectionError
 import logging
 
-# ✅ IMPORTS PARA PurchaseStatus
 from purchase.models import PurchaseStatus
 from catalog.models import PurchaseStatusType
 from catalog.constants import OpportunityFilters, StatusIDs, CurrencyIDs
-from django.db.models import Q
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +17,6 @@ def clear_list_cache_for(model_name, prefix="catalog"):
     try:
         cache_key = f"{prefix}_{model_name}ViewSet_list"
 
-
-        
         print(f"🚨 Intentando invalidar cache: {cache_key}")
         cache.delete(cache_key)
         print(f"Cache invalidado: {cache_key}")
