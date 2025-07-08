@@ -1,5 +1,6 @@
 import logging
 from urllib.parse import quote
+from urllib.parse import urljoin, urlparse
 
 from decouple import config
 from django_rq import job
@@ -11,14 +12,14 @@ logger = logging.getLogger(__name__)
 SHAREPOINT_SITE_URL = config("SHAREPOINT_SITE_URL")
 
 @job
-def upload_to_sharepoint(udn: str, opportunity_id: int, file_data: bytes, file_name: str):
+def upload_to_sharepoint_db(udn: str, opportunity_id: int, file_data: bytes, file_name: str):
     try:
         opportunity = Opportunity.objects.get(pk=opportunity_id)
         sharepoint_path = f"/{udn}/opportunities/{opportunity.name}"
         full_path = f"{sharepoint_path}/{file_name}"
 
         relative_url = upload_file(full_path, file_data)
-        full_url = f"{SHAREPOINT_SITE_URL}{relative_url}"
+        full_url = build_sharepoint_url(SHAREPOINT_SITE_URL, relative_url)
         full_url = quote(full_url, safe=':/')
 
         OpportunityDocument.objects.update_or_create(
@@ -33,9 +34,18 @@ def upload_to_sharepoint(udn: str, opportunity_id: int, file_data: bytes, file_n
     except Exception as e:
         logger.exception(f"Fallo al subir archivo para oportunidad: {e}")
 
+def build_sharepoint_url(base_url: str, relative_url: str) -> str:
+    base_path = urlparse(base_url).path.rstrip('/')
+    relative_clean = relative_url
+
+    if relative_url.startswith(base_path):
+        relative_clean = relative_url[len(base_path):]
+
+    return urljoin(base_url + '/', relative_clean.lstrip('/'))
+
 
 @job
-def delete_file_from_sharepoint(full_url: str, doc_id):
+def delete_file_from_sharepoint_db(full_url: str, doc_id):
     try:
         _delete_file_from_sharepoint(full_url)
         logger.info(f"Archivo eliminado de SharePoint: {full_url}")
