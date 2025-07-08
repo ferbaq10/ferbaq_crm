@@ -24,16 +24,26 @@ class OpportunityService:
         self.lost_opportunity_factory = lost_opportunity_factory
 
     def process_create(self, serializer, request, files=None) -> Opportunity:
+        print(f"🎯 OpportunityService.process_create INICIADO - Files: {len(files) if files else 0}")
+        logger.info(f"🎯 OpportunityService.process_create INICIADO - Files: {len(files) if files else 0}")
         serializer.validated_data["date_status"] = timezone.now()
         try:
             opportunity = serializer.save(
                 agent=request.user,
                 date_status=timezone.now())
 
-            PurchaseStatus.objects.create_or_update(
+            # ✅ CORREGIR: Usar update_or_create en lugar de create_or_update
+            PurchaseStatus.objects.update_or_create(
                 opportunity=opportunity,
-                purchase_status_type_id=StatusPurchaseTypeIDs.PENDING,
+                defaults={
+                    'purchase_status_type_id': StatusPurchaseTypeIDs.PENDING,
+                }
             )
+
+            # ✅ AGREGAR: Recargar con las relaciones necesarias para UDN
+            opportunity = Opportunity.objects.select_related(
+                'project__work_cell__udn'
+            ).get(pk=opportunity.pk)
 
             self.upload_files_related(files, opportunity)
 
@@ -99,6 +109,12 @@ class OpportunityService:
                     lost_opportunity_type=lost_type
                 )
 
+            # ✅ AGREGAR: Recargar con las relaciones necesarias para UDN antes de subir archivos
+            if files:
+                instance = Opportunity.objects.select_related(
+                    'project__work_cell__udn'
+                ).get(pk=instance.pk)
+
             # Subida de archivo si aplica
             self.upload_files_related(files, instance)
 
@@ -125,26 +141,62 @@ class OpportunityService:
             raise ValidationError({'documento': 'Formato de archivo no permitido.'})
 
     def upload_files_related(self, files, instance: Opportunity):
+        print(f"🔍 upload_files_related llamado. Files recibidos: {len(files) if files else 0}")
+        
         if not files:
+            print("❌ No hay archivos para subir")
             return
 
-        for file in files:
-            self._validate_file(file)
+        print("✅ Iniciando loop de archivos...")
+        for i, file in enumerate(files):
+            print(f"📁 Procesando archivo {i+1}: {file.name}, tamaño: {file.size} bytes")
+            
+            try:
+                print(f"🔍 Validando archivo {file.name}...")
+                self._validate_file(file)
+                print(f"✅ Archivo {file.name} pasó validación")
+            except ValidationError as e:
+                print(f"❌ Archivo {file.name} falló validación: {e}")
+                continue
 
+            print(f"📖 Leyendo datos del archivo {file.name}...")
             file_data = file.read()
             file_name = file.name
+            print(f"✅ Datos leídos: {len(file_data)} bytes")
 
+            print("🔍 Obteniendo UDN...")
             udn_name = (
                     getattr(instance.project, "work_cell", None)
                     and getattr(instance.project.work_cell, "udn", None)
                     and getattr(instance.project.work_cell.udn, "name", None)
             )
+            
+            print(f"🏢 UDN encontrada: {udn_name}")
 
             if udn_name:
-                transaction.on_commit(
-                    lambda f_data=file_data, f_name=file_name:
-                    upload_to_sharepoint.delay(udn_name, instance.pk, f_data, f_name)
-                )
+                print(f"📤 Subiendo {file_name} directamente a SharePoint...")
+                
+                try:
+                    # ✅ CREAR FUNCIÓN CON CAPTURA DE VARIABLES para evitar problemas de scope
+                    def create_upload_function(data, name, udn, opp_id):
+                        def execute_upload():
+                            from opportunity.tasks import upload_to_sharepoint
+                            print(f"🚀 Ejecutando upload_to_sharepoint para {name}...")
+                            return upload_to_sharepoint(udn, opp_id, data, name)
+                        return execute_upload
+                    
+                    upload_func = create_upload_function(file_data, file_name, udn_name, instance.pk)
+                    transaction.on_commit(upload_func)
+                    print(f"✅ Upload programado exitosamente para {file_name}")
+                    
+                except Exception as e:
+                    print(f"❌ Error al subir {file_name}: {e}")
+                    import traceback
+                    traceback.print_exc()
+            else:
+                print(f"❌ No se pudo obtener UDN para {file_name}")
+        
+        print("🏁 upload_files_related COMPLETADO")
 
     def _delete_opportunity_documents(self, instance: Opportunity, document_ids: list):
         documents = OpportunityDocument.objects.filter(opportunity=instance, id__in=document_ids)
@@ -154,8 +206,3 @@ class OpportunityService:
                 logger.info(f"🗑️ Documento eliminado: {doc.file_name}")
             except Exception as e:
                 logger.warning(f"⚠️ No se pudo eliminar el archivo {doc.file_name} de SharePoint: {e}")
-
-
-
-
-

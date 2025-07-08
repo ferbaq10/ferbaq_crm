@@ -19,20 +19,20 @@ class OpportunityDocumentSerializer(serializers.ModelSerializer):
         fields = ['id', 'file_name', 'sharepoint_url', 'uploaded_at']
 
 
+# ✅ CORREGIDO: Sin campo 'opportunity'
 class FinanceOpportunitySerializer(serializers.ModelSerializer):
     class Meta:
         model = FinanceOpportunity
         fields = [
             'id',
             'is_removed',
-            'opportunity',
+            # 'opportunity',  # ❌ REMOVIDO: Causaba conflicto
             'earned_amount',
             'cost_subtotal',
             'offer_subtotal',
             'order_closing_date',
         ]
         read_only_fields = ['created', 'modified']
-
 
 
 class CommercialActivitySerializer(serializers.ModelSerializer):
@@ -107,7 +107,7 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
             'id', 'name', 'description', 'amount', 'number_fvt',
             'date_reception', 'sent_date', 'date_status',
             'status_opportunity', 'contact', 'currency',
-            'project', 'opportunityType',
+            'project', 'opportunityType', 'closing_percentage',
             'finance_opportunity', 'is_removed',
         ]
         extra_kwargs = {
@@ -120,7 +120,6 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
             'opportunityType': {'error_messages': {'required': 'El tipo de oportunidad es obligatorio.'}},
         }
         read_only_fields = ['created']
-
 
     def validate_amount(self, value):
         if value <= 0:
@@ -145,16 +144,68 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
         if sent_date and not isinstance(sent_date, datetime):
             raise serializers.ValidationError({"sent_date": "La fecha de envío debe ser un valor datetime válido."})
 
-
         if date_reception and sent_date and sent_date < date_reception:
             raise serializers.ValidationError("La fecha de envío no puede ser anterior a la de recepción.")
         return data
 
+    # ✅ NUEVO: Método update personalizado
+    def update(self, instance, validated_data):
+        print(f"🔍 Actualizando oportunidad {instance.id}: {instance.name}")
+        
+        # Extraer finance_opportunity del validated_data
+        finance_data = validated_data.pop('finance_opportunity', None)
+        
+        # Actualizar campos principales de la oportunidad
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        
+        # Manejar finance_opportunity si viene en los datos
+        if finance_data:
+            print(f"🔍 Procesando finance_data: {finance_data}")
+            try:
+                # Intentar obtener FinanceOpportunity existente
+                finance_obj = instance.finance_data
+                print(f"✅ FinanceOpportunity existente encontrado, actualizando...")
+                
+                # Actualizar campos
+                for field, value in finance_data.items():
+                    setattr(finance_obj, field, value)
+                finance_obj.save()
+                
+            except FinanceOpportunity.DoesNotExist:
+                print(f"🔍 No existe FinanceOpportunity, creando nuevo...")
+                
+                # Crear nuevo FinanceOpportunity
+                finance_obj = FinanceOpportunity.objects.create(
+                    opportunity=instance,
+                    **finance_data
+                )
+                print(f"✅ FinanceOpportunity creado: {finance_obj}")
+                
+        instance.refresh_from_db()
+        return instance
+
+    # ✅ ACTUALIZADO: Método create para manejar finance_opportunity
     def create(self, validated_data):
+        # Extraer finance_opportunity del validated_data
+        finance_data = validated_data.pop('finance_opportunity', None)
+        
+        # Establecer el usuario
         validated_data['agent'] = self.context['request'].user
-
-        return super().create(validated_data)
-
+        
+        # Crear la oportunidad
+        instance = super().create(validated_data)
+        
+        # Crear FinanceOpportunity si viene en los datos
+        if finance_data:
+            print(f"🔍 Creando FinanceOpportunity para nueva oportunidad: {finance_data}")
+            FinanceOpportunity.objects.create(
+                opportunity=instance,
+                **finance_data
+            )
+            
+        return instance
 
 
 class LostOpportunitySerializer(serializers.ModelSerializer):
@@ -167,5 +218,3 @@ class LostOpportunitySerializer(serializers.ModelSerializer):
             'lost_opportunity_type',
         ]
         read_only_fields = ['created', 'modified']
-
-

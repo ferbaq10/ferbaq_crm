@@ -5,7 +5,8 @@ from django.db.models import Prefetch
 from rest_framework import status
 from rest_framework.exceptions import ValidationError, APIException
 from rest_framework.response import Response
-
+import logging
+from rest_framework.decorators import action
 from catalog.viewsets.base import CachedViewSet
 from client.models import Client
 from core.di import injector
@@ -15,6 +16,7 @@ from .serializers import (
     OpportunitySerializer, OpportunityWriteSerializer,
     CommercialActivitySerializer
 )
+logger = logging.getLogger(__name__)
 
 class OpportunityViewSet(CachedViewSet):
     model = Opportunity
@@ -81,11 +83,28 @@ class OpportunityViewSet(CachedViewSet):
 
     @transaction.atomic
     def create(self, request, *args, **kwargs):
+        print("🚀🚀🚀 METODO CREATE EJECUTANDOSE 🚀🚀🚀")  # ← AGREGA ESTA LÍNEA
         try:
             serializer = self.get_serializer(data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
 
-            files = request.FILES.getlist('documents')
+            # ✅ DEBUG: Capturar TODOS los archivos
+            print(f"🔍 Todos los campos en request.FILES: {list(request.FILES.keys())}")
+            print(f"🔍 request.FILES completo: {dict(request.FILES)}")
+            
+            files_documents = request.FILES.getlist('documents')
+            files_files = request.FILES.getlist('files') 
+            files_document = request.FILES.getlist('document')
+            
+            print(f"🔍 'documents': {len(files_documents)}")
+            print(f"🔍 'files': {len(files_files)}")
+            print(f"🔍 'document': {len(files_document)}")
+            
+            files = files_documents or files_files or files_document
+            
+            print(f"🔍 Archivos finales: {len(files)}")
+            for i, file in enumerate(files):
+                print(f"📁 Archivo {i+1}: {file.name}, tamaño: {file.size}")
 
             opportunity_service = injector.get(OpportunityService)
             opportunity = opportunity_service.process_create(serializer, request, files)
@@ -132,6 +151,58 @@ class OpportunityViewSet(CachedViewSet):
         except Exception as e:
             print(e)
             raise APIException('Error interno del servidor.')
+        
+    @action(detail=True, methods=['delete'], url_path='documents/(?P<document_id>[^/.]+)')
+    def delete_document(self, request, pk=None, document_id=None):
+        print(f"🔍 DELETE recibido - User: {request.user}")
+        print(f"🔍 Headers: {dict(request.headers)}")
+        print(f"🔍 Auth: {request.auth}")       
+        """
+        Eliminar un documento específico de una oportunidad.
+        
+        URL: DELETE /api/opportunities/{opportunity_id}/documents/{document_id}/
+        """
+        try:
+            opportunity = self.get_object()
+            
+            # Buscar el documento
+            try:
+                document = OpportunityDocument.objects.get(
+                    id=document_id, 
+                    opportunity=opportunity
+                )
+            except OpportunityDocument.DoesNotExist:
+                return Response(
+                    {"error": "Documento no encontrado"}, 
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            print(f"🗑️ Eliminando documento: {document.file_name}")
+            
+            # Eliminar de SharePoint de forma síncrona (para Windows)
+            try:
+                from opportunity.tasks import delete_file_from_sharepoint
+                delete_file_from_sharepoint(document.sharepoint_url, document.id)
+                print(f"✅ Documento eliminado de SharePoint: {document.file_name}")
+            except Exception as e:
+                print(f"⚠️ Error al eliminar de SharePoint: {e}")
+                # Continuar eliminando de BD aunque falle SharePoint
+            
+            # Eliminar de base de datos
+            document.delete()
+            print(f"✅ Documento eliminado de BD: {document.file_name}")
+            
+            return Response(
+                {"message": f"Documento '{document.file_name}' eliminado exitosamente"}, 
+                status=status.HTTP_200_OK
+            )
+            
+        except Exception as e:
+            print(f"❌ Error al eliminar documento: {e}")
+            return Response(
+                {"error": "Error interno del servidor"}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class CommercialActivityViewSet(CachedViewSet):
