@@ -30,7 +30,6 @@ class Client(BaseModel):
         on_delete=models.DO_NOTHING,
         verbose_name="Grupo empresarial"
     )
-    is_removed = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'client_clients'

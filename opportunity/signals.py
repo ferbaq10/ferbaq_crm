@@ -126,12 +126,10 @@ def register_catalog_signals():
             cache.set("signal_test", "1", timeout=1)
             post_save.connect(handler, sender=model, weak=False)
             post_delete.connect(handler, sender=model, weak=False)
-            print(f"✅ Signals registradas exitosamente para {model_name}")
         except RedisConnectionError:
             logger.warning(f"Redis no disponible al registrar señales para {model_name}. Señales omitidas.")
         except Exception as e:
             logger.error(f"Error registrando signals para {model_name}: {e}")
-            print(f"❌ Error registrando signals: {e}")
 
 # ✅ SIGNAL ADICIONAL DIRECTO (por si el anterior falla)
 from django.dispatch import receiver

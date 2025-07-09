@@ -56,9 +56,6 @@ def register_catalog_signals():
 
             def make_handler(model_name):
                 def handler(sender, **kwargs):
-                    print(f"📌 SIGNAL ACTIVADA: post_save/post_delete para {model_name}")
-                    print(f"📌 Sender: {sender}")
-                    print(f"📌 Instance: {kwargs.get('instance')}")
                     clear_list_cache_for(model_name)
 
                 return handler
@@ -68,10 +65,8 @@ def register_catalog_signals():
             cache.set("signal_test", "1", timeout=1)
             post_save.connect(handler, sender=model, weak=False)
             post_delete.connect(handler, sender=model, weak=False)
-            print(f"✅ Signals registradas exitosamente para {model_name}")
 
         except RedisConnectionError:
             logger.warning(f"Redis no disponible al registrar señales para {model_name}. Señales omitidas.")
         except Exception as e:
             logger.error(f"Error registrando signals para {model_name}: {e}")
-            print(f"❌ Error registrando signals: {e}")

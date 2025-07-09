@@ -1,15 +1,12 @@
 from rest_framework import serializers
 
 from catalog.models import Specialty, ProjectStatus, Subdivision, WorkCell
-from catalog.serializers import BusinessGroupSerializer, SpecialtySerializer, SubdivisionSerializer, \
+from catalog.serializers import SpecialtySerializer, SubdivisionSerializer, \
     ProjectStatusSerializer, WorkCellSerializer
-from client.serializers import ClientSerializer
-from .models import Client
 from .models import Project
 
 
 class ProjectSerializer(serializers.ModelSerializer):
-    client = ClientSerializer()
     specialty = SpecialtySerializer()
     subdivision = SubdivisionSerializer()
     project_status = ProjectStatusSerializer()
@@ -23,7 +20,6 @@ class ProjectSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'name',
-            'client',
             'latitude',
             'work_cell',
             'longitude',
@@ -38,7 +34,6 @@ class ProjectSerializer(serializers.ModelSerializer):
 
 
 class ProjectWriteSerializer(serializers.ModelSerializer):
-    client = serializers.PrimaryKeyRelatedField(queryset=Client.objects.all())
     specialty = serializers.PrimaryKeyRelatedField(queryset=Specialty.objects.all(), required=False, allow_null=True)
     subdivision = serializers.PrimaryKeyRelatedField(queryset=Subdivision.objects.all())
     project_status = serializers.PrimaryKeyRelatedField(queryset=ProjectStatus.objects.all())
@@ -49,7 +44,6 @@ class ProjectWriteSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'name',
-            'client',
             'latitude',
             'work_cell',
             'longitude',
@@ -108,7 +102,6 @@ class ProjectWriteSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         """Devuelve la representación con objetos anidados aunque sea un serializer de escritura"""
         ret = super().to_representation(instance)
-        ret['client'] = ClientSerializer(instance.client).data if instance.client else None
         ret['specialty'] = SpecialtySerializer(instance.specialty).data if instance.specialty else None
         ret['subdivision'] = SubdivisionSerializer(instance.subdivision).data if instance.subdivision else None
         ret['project_status'] = ProjectStatusSerializer(instance.project_status).data if instance.project_status else None

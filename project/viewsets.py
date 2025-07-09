@@ -17,9 +17,9 @@ class ProjectViewSet(CachedViewSet):
 
 
     def get_optimized_queryset(self):
-        # Optimizada consulta de proyectos
+        user = self.request.user
+
         return Project.objects.select_related(
-            # Status y tipos básicos
             'client',
             'client__city',
             'client__business_group',
@@ -28,4 +28,5 @@ class ProjectViewSet(CachedViewSet):
             'subdivision__division',  # Agregado: división de subdivisión
             'project_status',
             'work_cell',
-            'work_cell__udn')
+            'work_cell__udn'
+        ).filter(work_cell__users=user)

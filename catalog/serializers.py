@@ -30,12 +30,16 @@ class WorkCellSerializer(serializers.ModelSerializer):
         })
     udn = serializers.PrimaryKeyRelatedField(queryset=UDN.objects.all(), required=True)
 
+    # Para lectura (GET)
+    udn_data = UDNSerializer(source='udn', read_only=True)
+
     class Meta:
         model = WorkCell
         fields = [
             'id',
             'name',
             'udn',
+            'udn_data',
             'is_removed'
         ]
         read_only_fields = ['created', 'modified']

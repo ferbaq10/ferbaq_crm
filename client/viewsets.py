@@ -19,8 +19,17 @@ class ClientViewSet(CachedViewSet):
 
 
     def get_optimized_queryset(self):
+        user = self.request.user
+        workcells = user.workcell.all()
+
+        if not workcells.exists():
+            return Client.objects.none()
+
         # Optimizada consulta de clientes
         return Client.objects.select_related(
             # Status y tipos básicos
             'city',
-            'business_group')
+            'business_group'
+        ).filter(
+            project__work_cell__in=workcells
+        ).distinct()

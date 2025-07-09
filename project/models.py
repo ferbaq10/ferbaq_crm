@@ -59,7 +59,9 @@ class Project(BaseModel):
     client = models.ForeignKey(
         Client,
         on_delete=models.DO_NOTHING,
-        verbose_name="Cliente"
+        verbose_name="Cliente",
+        blank=True,
+        null=True
     )
 
     class Meta:
