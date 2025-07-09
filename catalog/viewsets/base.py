@@ -3,6 +3,7 @@ import logging
 from django.core.cache import cache
 from redis.exceptions import ConnectionError as RedisConnectionError  # Import directo de redis-py
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated, DjangoModelPermissions
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
@@ -15,6 +16,12 @@ class ListCacheMixin:
     cache_enabled = True
 
     def list(self, request, *args, **kwargs):
+        model = getattr(self, "model", None)
+        if model is not None:
+            codename = f"{model._meta.app_label}.view_{model._meta.model_name}"
+            if not request.user.has_perm(codename):
+                raise PermissionDenied(f"No tienes permiso")
+
         if not self.cache_enabled:
             return super().list(request, *args, **kwargs)
 
