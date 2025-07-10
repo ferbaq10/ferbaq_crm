@@ -1,3 +1,5 @@
+from rest_framework.exceptions import PermissionDenied
+
 from catalog.models import (
     UDN, WorkCell, BusinessGroup, Division, Subdivision, Specialty,
     ProjectStatus, City, Period, StatusOpportunity, Currency, Job, OpportunityType,
@@ -15,6 +17,7 @@ from catalog.viewsets.base import CachedViewSet, AuthenticatedModelViewSet
 class UDNViewSet(CachedViewSet):
     model = UDN
     serializer_class = UDNSerializer
+
 
 class WorkCellViewSet(CachedViewSet):
     model = WorkCell

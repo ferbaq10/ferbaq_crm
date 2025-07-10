@@ -73,6 +73,9 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.DjangoModelPermissions',
+    ],
 }
 
 SIMPLE_JWT = {
@@ -159,14 +162,12 @@ DATABASES = {
 
 REDIS_URL = f"redis://{config('REDIS_HOST', default='127.0.0.1')}:{config('REDIS_PORT', default='6379')}/{config('REDIS_DB', default='1')}"
 
-# Configuración con fallback
 try:
-    # Probar conexión a Redis
     import redis
     r = redis.Redis(host='localhost', port=6379, db=1)
     r.ping()
-    
-    # Si funciona, usar Redis
+
+    # Si Redis está disponible, usarlo como caché
     CACHES = {
         "default": {
             "BACKEND": "django_redis.cache.RedisCache",
@@ -177,17 +178,16 @@ try:
             }
         }
     }
-    print("Usando Redis para cache")
-    
-except (RedisConnectionError, Exception):
-    # Fallback a memoria si Redis no está disponible
+    print("✅ Usando Redis para cache")
+
+except Exception:
+    # Sin Redis: desactivar cache completamente (usar dummy backend)
     CACHES = {
         "default": {
-            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-            "LOCATION": "catalog-cache",
+            "BACKEND": "django.core.cache.backends.dummy.DummyCache",
         }
     }
-    print("⚠️ Redis no disponible, usando cache en memoria")
+    print("⚠️ Redis no disponible, cache deshabilitado. Todas las consultas irán a la base de datos.")
 
 RQ_QUEUES = {
     'default': {

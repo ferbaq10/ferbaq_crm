@@ -1,5 +1,6 @@
 from django.db import models
 from catalog.models import City, BusinessGroup, BaseModel
+from project.models import Project
 
 
 class Client(BaseModel):
@@ -30,7 +31,13 @@ class Client(BaseModel):
         on_delete=models.DO_NOTHING,
         verbose_name="Grupo empresarial"
     )
-    is_removed = models.BooleanField(default=False)
+
+    projects = models.ManyToManyField(
+        Project,
+        related_name='clients',
+        verbose_name="Proyectos",
+        blank=True
+    )
 
     class Meta:
         db_table = 'client_clients'

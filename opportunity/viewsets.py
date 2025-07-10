@@ -37,28 +37,15 @@ class OpportunityViewSet(CachedViewSet):
 
     @transaction.atomic
     def create(self, request, *args, **kwargs):
-        print("🚀🚀🚀 METODO CREATE EJECUTANDOSE 🚀🚀🚀")  # ← AGREGA ESTA LÍNEA
         try:
             serializer = self.get_serializer(data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
 
-            # ✅ DEBUG: Capturar TODOS los archivos
-            print(f"🔍 Todos los campos en request.FILES: {list(request.FILES.keys())}")
-            print(f"🔍 request.FILES completo: {dict(request.FILES)}")
-            
             files_documents = request.FILES.getlist('documents')
             files_files = request.FILES.getlist('files') 
             files_document = request.FILES.getlist('document')
             
-            print(f"🔍 'documents': {len(files_documents)}")
-            print(f"🔍 'files': {len(files_files)}")
-            print(f"🔍 'document': {len(files_document)}")
-            
             files = files_documents or files_files or files_document
-            
-            print(f"🔍 Archivos finales: {len(files)}")
-            for i, file in enumerate(files):
-                print(f"📁 Archivo {i+1}: {file.name}, tamaño: {file.size}")
 
             opportunity_service = injector.get(OpportunityService)
             opportunity = opportunity_service.process_create(serializer, request, files)

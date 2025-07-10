@@ -75,8 +75,6 @@ class OpportunityService:
         ).distinct().order_by('-created')
 
     def process_create(self, serializer, request, files=None) -> Opportunity:
-        print(f"🎯 OpportunityService.process_create INICIADO - Files: {len(files) if files else 0}")
-        logger.info(f"🎯 OpportunityService.process_create INICIADO - Files: {len(files) if files else 0}")
         serializer.validated_data["date_status"] = timezone.now()
         try:
             opportunity = serializer.save(

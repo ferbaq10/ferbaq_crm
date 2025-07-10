@@ -25,19 +25,6 @@ udns = [
     (3, "Sureste"),
 ]
 
-work_cells = [
-    (1, "Célula 1"),
-    (2, "Célula 2"),
-    (3, "Célula 3"),
-    (4, "Célula 4"),
-    (5, "Célula 5"),
-    (6, "Célula 6"),
-    (7, "Célula 7"),
-    (8, "Célula 8"),
-    (9, "Célula 9"),
-    (10, "Célula 10"),
-]
-
 business_groups = [
     (1, "Bonatti"),
     (2, "ICA"),
@@ -189,11 +176,6 @@ def insert_initial_udns(apps, schema_editor):
     for id_val, name in udns:
         UDN.objects.update_or_create(id=id_val, defaults={'name': name})
 
-def insert_initial_work_cells(apps, schema_editor):
-    WorkCell = apps.get_model('catalog', 'WorkCell')
-    for id_val, name in work_cells:
-        WorkCell.objects.update_or_create(id=id_val, defaults={'name': name})
-
 def insert_initial_business_groups(apps, schema_editor):
     BusinessGroup = apps.get_model('catalog', 'BusinessGroup')
     for id_val, name in business_groups:
@@ -278,10 +260,6 @@ def remove_initial_udns(apps, schema_editor):
     UDN = apps.get_model('catalog', 'UDN')
     UDN.objects.filter(name__in=[name for _, name in udns]).delete()
 
-def remove_initial_work_cells(apps, schema_editor):
-    WorkCell = apps.get_model('catalog', 'WorkCell')
-    WorkCell.objects.filter(name__in=[name for _, name in work_cells]).delete()
-
 def remove_initial_business_groups(apps, schema_editor):
     BusinessGroup = apps.get_model('catalog', 'BusinessGroup')
     BusinessGroup.objects.filter(name__in=[name for _, name in business_groups]).delete()
@@ -349,7 +327,6 @@ class Migration(migrations.Migration):
         migrations.RunPython(insert_initial_periods, reverse_code=remove_initial_periods),
         migrations.RunPython(insert_initial_cities, reverse_code=remove_initial_cities),
         migrations.RunPython(insert_initial_udns, reverse_code=remove_initial_udns),
-        migrations.RunPython(insert_initial_work_cells, reverse_code=remove_initial_work_cells),
         migrations.RunPython(insert_initial_business_groups, reverse_code=remove_initial_business_groups),
         migrations.RunPython(insert_initial_divisions, reverse_code=remove_initial_divisions),
         migrations.RunPython(insert_initial_subdivisions, reverse_code=remove_initial_subdivisions),
@@ -363,5 +340,4 @@ class Migration(migrations.Migration):
         migrations.RunPython(insert_initial_meeting_results, reverse_code=remove_initial_meeting_result),
         migrations.RunPython(insert_initial_lost_opportunity_type, reverse_code=remove_initial_lost_opportunity_type),
         migrations.RunPython(insert_initial_purchase_status_type, reverse_code=remove_initial_purchase_status_type),
-
     ]

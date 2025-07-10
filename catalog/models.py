@@ -55,15 +55,15 @@ class WorkCell(BaseModel):
     udn = models.ForeignKey(
         UDN,
         on_delete=models.DO_NOTHING,
-        blank=True,
-        null=True,
-        verbose_name="UDN"
+        verbose_name="UDN",
+        related_name='workcell'
     )
     users = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
         related_name='workcell',
         blank=True,
-        verbose_name="Usuarios asignados"
+        verbose_name="Usuarios asignados",
+        related_query_name='workcell'
     )
 
     class Meta:
@@ -133,7 +133,8 @@ class Subdivision(BaseModel):
     division = models.ForeignKey(
         Division,
         on_delete=models.DO_NOTHING,
-        verbose_name="División"
+        verbose_name="División",
+        related_name='subdivision'
     )
 
     class Meta:
