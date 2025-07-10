@@ -60,8 +60,7 @@ class Contact(BaseModel):
 
     clients = models.ManyToManyField(
         Client,
-        related_name='contact',
-        blank=True,
+        related_name='contacts',
         verbose_name="Clientes"
     )
 

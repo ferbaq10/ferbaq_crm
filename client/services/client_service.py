@@ -23,3 +23,11 @@ class ClientService(AbstractClientFactory):
             instance.projects.set(project_ids)
 
         return instance
+
+    def get_base_queryset(self, user):
+        return Client.objects.select_related(
+            'city',
+            'business_group'
+        ).prefetch_related(
+            'projects'
+        ).filter(projects__work_cell__users=user)

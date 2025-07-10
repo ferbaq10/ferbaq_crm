@@ -30,18 +30,11 @@ class ClientViewSet(CachedViewSet):
             return ClientSerializer
         return ClientWriteSerializer
 
-    def _get_base_queryset(self):
-        return Client.objects.select_related(
-            'city',
-            'business_group'
-        ).prefetch_related(
-            'projects'
-        )
-
     def get_queryset(self):
         """Queryset optimizado específico de Client"""
         user = self.request.user
-        return self._get_base_queryset().filter(
+        client_service = injector.get(ClientService)
+        return client_service.get_base_queryset(user).filter(
             projects__work_cell__users=user
         ).distinct()
 
@@ -50,9 +43,6 @@ class ClientViewSet(CachedViewSet):
         user_id = self.request.user.id
         return f"{self.cache_prefix}_{self.__class__.__name__}_{user_id}_list"
 
-    def get_optimized_instance(self, instance_id):
-        """Instancia individual optimizada"""
-        return self._get_base_queryset().get(pk=instance_id)
 
     def get_related_cache_keys(self, action, instance):
         """
@@ -90,26 +80,3 @@ class ClientViewSet(CachedViewSet):
 
         response_serializer = ClientSerializer(client)
         return Response(response_serializer.data, status=status.HTTP_200_OK)
-
-    def retrieve(self, request, *args, **kwargs):
-        """Retrieve con cache individual (específico de Client)"""
-        client_id = kwargs.get('pk')
-        cache_key = f"{self.cache_prefix}_detail_{client_id}"
-
-        cached_data = self._safe_cache_get(cache_key)
-        if cached_data is not None:
-            logger.info(f"[Cache HIT] Client detail: {client_id}")
-            return Response(cached_data)
-
-        logger.info(f"[Cache MISS] Client detail: {client_id}")
-
-        try:
-            instance = self.get_optimized_instance(client_id)
-        except Client.DoesNotExist:
-            return Response(status=status.HTTP_404_NOT_FOUND)
-
-        serializer = self.get_serializer(instance)
-
-        self._safe_cache_set(cache_key, serializer.data, timeout=60 * 15)
-
-        return Response(serializer.data)

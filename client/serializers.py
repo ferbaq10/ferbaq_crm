@@ -7,7 +7,7 @@ import logging
 from catalog.serializers import CitySerializer, BusinessGroupSerializer
 from project.serializers import ProjectSerializer
 from .models import Client, City, BusinessGroup
-from project.models import Project
+from core.serializers.cache_mixin import CacheInvalidationMixin
 
 
 logger = logging.getLogger(__name__)
@@ -33,11 +33,15 @@ class ClientSerializer(serializers.ModelSerializer):
         read_only_fields = ['created', 'modified']
 
 
-class ClientWriteSerializer(serializers.ModelSerializer):
+class ClientWriteSerializer(CacheInvalidationMixin, serializers.ModelSerializer):
     """
     Serializer híbrido que detecta automáticamente si Redis está disponible
     y optimiza en consecuencia - MÁXIMO 2 consultas siempre
     """
+    cache_keys = [
+        "cities_ids_cache_v1",
+        "business_groups_ids_cache_v1"
+    ]
 
     projects = serializers.ListField(
         child=serializers.IntegerField(),
@@ -201,49 +205,3 @@ class ClientWriteSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(errors)
 
         return attrs
-
-    @classmethod
-    def invalidate_caches(cls):
-        """
-        Invalida caches solo si Redis está disponible
-        """
-        if not cls.is_redis_available():
-            logger.debug("Redis no disponible, no hay caches que invalidar")
-            return
-
-        cache_keys = [
-            "cities_ids_cache_v1",
-            "business_groups_ids_cache_v1"
-        ]
-
-        try:
-            cache.delete_many(cache_keys)
-            logger.info(f"Invalidados {len(cache_keys)} caches")
-        except Exception as e:
-            logger.warning(f"Error invalidando caches: {e}")
-
-    @classmethod
-    def get_cache_info(cls):
-        """
-        Información sobre el estado del cache y Redis
-        """
-        redis_available = cls.is_redis_available()
-
-        info = {
-            'redis_available': redis_available,
-            'cache_backend': getattr(settings, 'CACHES', {}).get('default', {}).get('BACKEND', 'Unknown')
-        }
-
-        if redis_available:
-            try:
-                cities_cache = cache.get("cities_ids_cache_v1")
-                groups_cache = cache.get("business_groups_ids_cache_v1")
-
-                info['cities_cached'] = cities_cache is not None
-                info['cities_count'] = str(len(cities_cache)) if cities_cache else "0"
-                info['groups_cached'] = groups_cache is not None
-                info['groups_count'] = str(len(groups_cache)) if groups_cache else "0"
-            except Exception as e:
-                info['cache_error'] = str(e)
-
-        return info

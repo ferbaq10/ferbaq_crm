@@ -20,6 +20,7 @@ class ContactViewSet(CachedViewSet):
 
     def get_optimized_queryset(self):
         # Optimizada consulta de contactos
+        user = self.request.user
         return Contact.objects.select_related(
             # Status y tipos básicos
             'city',
@@ -27,4 +28,4 @@ class ContactViewSet(CachedViewSet):
            ).prefetch_related(
             Prefetch('clients',
                      queryset=Client.objects.select_related('city', 'business_group'))
-        )
+        ).filter(clients__projects__work_cell__users=user)
