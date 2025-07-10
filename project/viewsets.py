@@ -20,9 +20,6 @@ class ProjectViewSet(CachedViewSet):
         user = self.request.user
 
         return Project.objects.select_related(
-            'client',
-            'client__city',
-            'client__business_group',
             'specialty',
             'subdivision',
             'subdivision__division',  # Agregado: división de subdivisión

@@ -1,5 +1,6 @@
 from django.db import models
 from catalog.models import City, BusinessGroup, BaseModel
+from project.models import Project
 
 
 class Client(BaseModel):
@@ -29,6 +30,13 @@ class Client(BaseModel):
         blank=True,
         on_delete=models.DO_NOTHING,
         verbose_name="Grupo empresarial"
+    )
+
+    projects = models.ManyToManyField(
+        Project,
+        related_name='clients',
+        verbose_name="Proyectos",
+        blank=True
     )
 
     class Meta:

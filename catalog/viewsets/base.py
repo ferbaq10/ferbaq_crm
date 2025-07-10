@@ -1,14 +1,21 @@
 import logging
 
-from django.core.cache import cache
 from redis.exceptions import ConnectionError as RedisConnectionError  # Import directo de redis-py
 from rest_framework.decorators import action
-from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated, DjangoModelPermissions
-from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 logger = logging.getLogger(__name__)
+
+import logging
+from django.core.cache import cache
+from django.db import transaction
+from rest_framework import status
+from rest_framework.response import Response
+from rest_framework.exceptions import PermissionDenied
+
+logger = logging.getLogger(__name__)
+
 
 class ListCacheMixin:
     cache_timeout = 60 * 60  # 1 hora
@@ -37,6 +44,121 @@ class ListCacheMixin:
         self._safe_cache_set(cache_key, response.data)
         return response
 
+    @transaction.atomic
+    def create(self, request, *args, **kwargs):
+        """Create genérico con invalidaciones automáticas"""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        # Crear instancia
+        instance = serializer.save()
+
+        # Obtener instancia optimizada (si el ViewSet define este método)
+        if hasattr(self, 'get_optimized_instance'):
+            instance = self.get_optimized_instance(instance.pk)
+
+        # Invalidaciones automáticas
+        self._perform_cache_invalidations('create', instance)
+
+        # Serializar respuesta
+        read_serializer_class = getattr(self, 'read_serializer_class', self.get_serializer_class())
+        read_serializer = read_serializer_class(instance)
+
+        return Response(read_serializer.data, status=status.HTTP_201_CREATED)
+
+    @transaction.atomic
+    def update(self, request, *args, **kwargs):
+        """Update genérico con invalidaciones automáticas"""
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+
+        # Actualizar instancia
+        updated_instance = serializer.save()
+
+        # Obtener instancia optimizada (si el ViewSet define este método)
+        if hasattr(self, 'get_optimized_instance'):
+            updated_instance = self.get_optimized_instance(updated_instance.pk)
+
+        # Invalidaciones automáticas
+        self._perform_cache_invalidations('update', updated_instance)
+
+        # Serializar respuesta
+        read_serializer_class = getattr(self, 'read_serializer_class', self.get_serializer_class())
+        read_serializer = read_serializer_class(updated_instance)
+
+        return Response(read_serializer.data)
+
+    @transaction.atomic
+    def destroy(self, request, *args, **kwargs):
+        """Destroy genérico con invalidaciones automáticas"""
+        instance = self.get_object()
+        instance_id = instance.pk
+
+        # Eliminar instancia
+        instance.delete()
+
+        # Invalidaciones automáticas
+        self._perform_cache_invalidations('destroy', None, instance_id=instance_id)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def _perform_cache_invalidations(self, action, instance=None, instance_id=None):
+        """
+        Invalidaciones automáticas basadas en configuración del ViewSet
+        """
+        # 1. Invalidar cache principal del listado
+        self.invalidate_cache()
+
+        # 2. Invalidar cache de detalle si aplica
+        if instance_id or (instance and hasattr(instance, 'pk')):
+            detail_id = instance_id or instance.pk
+            self._invalidate_detail_cache(detail_id)
+
+        # 3. Invalidar caches del serializer (si tiene el método)
+        write_serializer_class = getattr(self, 'write_serializer_class', None)
+        if write_serializer_class and hasattr(write_serializer_class, 'invalidate_caches'):
+            write_serializer_class.invalidate_caches()
+
+        # 4. Invalidar caches relacionados específicos (si el ViewSet los define)
+        if hasattr(self, 'get_related_cache_keys'):
+            related_keys = self.get_related_cache_keys(action, instance)
+            self._invalidate_related_caches(related_keys)
+
+        # 5. Hook para invalidaciones personalizadas
+        if hasattr(self, 'perform_additional_cache_invalidations'):
+            self.perform_additional_cache_invalidations(action, instance, instance_id)
+
+    def _invalidate_detail_cache(self, detail_id):
+        """Invalidar cache de detalle específico"""
+        cache_key = f"{self.cache_prefix}_detail_{detail_id}"
+        try:
+            cache.delete(cache_key)
+            logger.info(f"Cache invalidado: {cache_key}")
+        except Exception as e:
+            logger.warning(f"Error invalidando cache de detalle: {e}")
+
+    def _invalidate_related_caches(self, cache_keys):
+        """Invalidar lista de caches relacionados"""
+        if not cache_keys:
+            return
+
+        try:
+            deleted_count = 0
+            for key in cache_keys:
+                try:
+                    if cache.delete(key):
+                        deleted_count += 1
+                except Exception as key_error:
+                    logger.warning(f"Error invalidando cache específico {key}: {key_error}")
+
+            logger.info(f"Invalidados {deleted_count}/{len(cache_keys)} caches relacionados")
+
+        except Exception as e:
+            logger.warning(f"Error invalidando caches relacionados: {e}")
+
     def _safe_cache_get(self, key):
         try:
             return cache.get(key)
@@ -44,10 +166,13 @@ class ListCacheMixin:
             logger.warning(f"Redis no disponible (get): clave '{key}'")
             return None
 
-    def _safe_cache_set(self, key, data):
+    def _safe_cache_set(self, key, data, timeout=None):
+        if timeout is None:
+            timeout = self.cache_timeout
+
         try:
-            cache.set(key, data, self.cache_timeout)
-            logger.info(f"Cache SET: {key}")  # Para debugging
+            cache.set(key, data, timeout)
+            logger.info(f"Cache SET: {key}")
         except RedisConnectionError:
             logger.warning(f"Redis no disponible (set): clave '{key}'")
 
@@ -60,9 +185,19 @@ class ListCacheMixin:
     def get_cache_key(self):
         return f"{self.cache_prefix}_{self.__class__.__name__}_list"
 
-    def perform_create(self, serializer):
-        super().perform_create(serializer)
-        self.invalidate_cache()
+    # Métodos que los ViewSets pueden sobrescribir para personalizar comportamiento:
+
+    def get_related_cache_keys(self, action, instance):
+        """
+        Override en ViewSets específicos para definir qué caches relacionados invalidar
+        """
+        return []
+
+    def perform_additional_cache_invalidations(self, action, instance, instance_id=None):
+        """
+        Hook para invalidaciones personalizadas en ViewSets específicos
+        """
+        pass
 
 
 class AuthenticatedModelViewSet(ModelViewSet):
