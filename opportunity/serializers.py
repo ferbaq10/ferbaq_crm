@@ -128,21 +128,28 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
         date_status = data.get("date_status")
         date_reception = data.get("date_reception")
 
-        # Validar que sean datetime válidos
-        if date_reception and not isinstance(date_reception, datetime):
+        # Validar tipos datetime solo si los campos están presentes
+        if date_reception is not None and not isinstance(date_reception, datetime):
+            raise serializers.ValidationError({
+                "date_reception": "La fecha de recepción debe ser un valor datetime válido."
+            })
+
+        if date_status is not None and not isinstance(date_status, datetime):
+            raise serializers.ValidationError({
+                "date_status": "La fecha del estado debe ser un valor datetime válido."
+            })
+
+        if sent_date is not None and not isinstance(sent_date, datetime):
+            raise serializers.ValidationError({
+                "sent_date": "La fecha de envío debe ser un valor datetime válido."
+            })
+
+        # Validar que sent_date no sea anterior a date_reception solo si ambos existen
+        if sent_date and date_reception and sent_date < date_reception:
             raise serializers.ValidationError(
-                {"date_reception": "La fecha de recepción debe ser un valor datetime válido."})
+                "La fecha de envío no puede ser anterior a la de recepción."
+            )
 
-        # Validar que sean datetime válidos
-        if date_status and not isinstance(date_status, datetime):
-            raise serializers.ValidationError(
-                {"date_status": "La fecha del estado debe ser un valor datetime válido."})
-
-        if sent_date and not isinstance(sent_date, datetime):
-            raise serializers.ValidationError({"sent_date": "La fecha de envío debe ser un valor datetime válido."})
-
-        if date_reception and sent_date and sent_date < date_reception:
-            raise serializers.ValidationError("La fecha de envío no puede ser anterior a la de recepción.")
         return data
 
     # NUEVO: Método update personalizado
