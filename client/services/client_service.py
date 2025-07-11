@@ -1,3 +1,5 @@
+from django.db.models import QuerySet
+
 from client.models import Client
 from client.services.interfaces import AbstractClientFactory
 
@@ -24,7 +26,7 @@ class ClientService(AbstractClientFactory):
 
         return instance
 
-    def get_base_queryset(self, user):
+    def get_base_queryset(self, user)->QuerySet:
         return Client.objects.select_related(
             'city',
             'business_group'

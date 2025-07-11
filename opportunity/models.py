@@ -10,7 +10,7 @@ class Opportunity(BaseModel):
     name = models.CharField(unique=True, max_length=100)
     description = models.TextField(blank=True, null=True)
     closing_percentage = models.DecimalField(max_digits=4, blank=True, null=True,
-                                             decimal_places=2, verbose_name="Porcentage de cierre")
+                                             decimal_places=2, verbose_name="Porcentaje de cierre")
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     number_fvt = models.CharField(unique=True, max_length=100, verbose_name="Formato de venta")
     date_reception = models.DateTimeField(blank=True, verbose_name="Fecha de recepción")

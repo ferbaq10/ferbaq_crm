@@ -1,64 +1,34 @@
 from django.db.models import Prefetch
+from django.utils.functional import cached_property
 
 from activity_log.models import ActivityLog
 from activity_log.serializers import ActivityLogSerializer, ActivityLogWriteSerializer
+from activity_log.services.activity_log_service import ActivityLogService
 from catalog.viewsets.base import AuthenticatedModelViewSet
 from client.models import Client
+from core.di import injector
 
 
 class ActivityLogViewSet(AuthenticatedModelViewSet):
     model = ActivityLog
     serializer_class = ActivityLogSerializer
 
+    # Configuración específica de ActivityLog
+    cache_prefix = "activity_log"  # Override del "catalog" por defecto
+
+    # Configuración para invalidaciones automáticas
+    write_serializer_class = ActivityLogWriteSerializer  # Para invalidaciones automáticas
+    read_serializer_class = ActivityLogSerializer  # Para respuestas optimizadas
+
+    @cached_property
+    def activity_log_service(self) -> ActivityLogService:
+        return injector.get(ActivityLogService)
+
     def get_queryset(self):
-        return self.get_optimized_queryset()
+        user = self.request.user
+        return self.activity_log_service.get_base_queryset(user)
 
     def get_serializer_class(self):
         if self.action in ['list', 'retrieve']:  # Para GET (lista o detalle)
             return ActivityLogSerializer
         return ActivityLogWriteSerializer  # Para POST, PUT, PATCH, DELETE
-
-
-    def get_optimized_queryset(self):
-        # Optimizar consultas de oportunidad
-        optimized_clients = Prefetch(
-            'contact__clients',
-            queryset=Client.objects.select_related('city', 'business_group')
-        )
-
-        # Optimizada consulta de contactos
-        return ActivityLog.objects.select_related(
-            # Status y tipos básicos
-            'activity_type',
-            'meeting_type',
-            'meeting_result',
-            'project',
-            'project__client',
-            'project__client__city',
-            'project__client__business_group',
-            'project__specialty',
-            'project__subdivision',
-            'project__subdivision__division',  # Agregado: división de subdivisión
-            'project__project_status',
-            'project__work_cell',
-            'project__work_cell__udn',
-            'contact',
-            'contact__job',
-            'contact__city',
-            'opportunity',
-            'opportunity__status_opportunity',
-            'opportunity__currency',
-            'opportunity__opportunityType',
-            'opportunity__project',
-            'opportunity__project__client',
-            'opportunity__project__client__city',
-            'opportunity__project__client__business_group',
-            'opportunity__project__specialty',
-            'opportunity__project__subdivision',
-            'opportunity__project__subdivision__division',  # Agregado: división de subdivisión
-            'opportunity__project__project_status',
-            'opportunity__project__work_cell',
-            'opportunity__project__work_cell__udn'
-        ).prefetch_related(
-            optimized_clients
-        )

@@ -17,10 +17,10 @@ class ContactSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'job',
-            'name',
             'city',
-            'phone',
+            'name',
             'email',
+            'phone',
             'address',
             'clients',
             'is_removed'
