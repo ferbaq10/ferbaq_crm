@@ -23,6 +23,9 @@ class WorkCellViewSet(CachedViewSet):
     model = WorkCell
     serializer_class = WorkCellSerializer
 
+    def get_actives_queryset(self, request):
+        return WorkCell.all_objects.filter(users=request.user).filter(is_removed=False).distinct()
+
 class BusinessGroupViewSet(CachedViewSet):
     model = BusinessGroup
     serializer_class = BusinessGroupSerializer
