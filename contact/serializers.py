@@ -17,10 +17,10 @@ class ContactSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'job',
-            'name',
             'city',
-            'phone',
+            'name',
             'email',
+            'phone',
             'address',
             'clients',
             'is_removed'
@@ -64,18 +64,26 @@ class ContactWriteSerializer(serializers.ModelSerializer):
     )
     city = serializers.PrimaryKeyRelatedField(
         queryset=City.objects.all(),
-        required=False
+        required=False,
+        allow_null=True
     )
 
     clients = serializers.PrimaryKeyRelatedField(
         queryset=Client.objects.all(),
         many=True,
-        required=False
+        required=True,
+        allow_empty=False,
+        error_messages={
+            'required': 'Debe seleccionar al menos un cliente.',
+            'empty': 'Debe asociar al menos un cliente.',
+            'invalid': 'El formato del listado de clientes es incorrecto.'
+        }
     )
 
     job = serializers.PrimaryKeyRelatedField(
         queryset=Job.objects.all(),
-        required=False
+        required=False,
+        allow_null=True
     )
 
     class Meta:

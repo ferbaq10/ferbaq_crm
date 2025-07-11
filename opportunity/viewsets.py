@@ -2,6 +2,7 @@ import logging
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction, IntegrityError
+from django.utils.functional import cached_property
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError, APIException
@@ -22,10 +23,21 @@ class OpportunityViewSet(CachedViewSet):
     model = Opportunity
     serializer_class = OpportunitySerializer
 
+    # Configuración específica de Opportunity
+    cache_prefix = "opportunity"  # Override del "catalog" por defecto
+
+    # Configuración para invalidaciones automáticas
+    write_serializer_class = OpportunityWriteSerializer  # Para invalidaciones automáticas
+    read_serializer_class = OpportunitySerializer  # Para respuestas optimizadas
+
+    @cached_property
+    def opportunity_service(self) -> OpportunityService:
+        return injector.get(OpportunityService)
+
 
     def get_queryset(self):
-        opportunity_service = injector.get(OpportunityService)
-        return opportunity_service.get_filtered_queryset()
+        user = self.request.user
+        return self.opportunity_service.get_filtered_queryset(user)
 
 
     def get_serializer_class(self):
@@ -35,9 +47,14 @@ class OpportunityViewSet(CachedViewSet):
             else OpportunityWriteSerializer
         )
 
+    def get_actives_queryset(self, request):
+        user = request.user
+        return self.opportunity_service.get_base_queryset(user).filter(is_removed=False).distinct()
+
     @transaction.atomic
     def create(self, request, *args, **kwargs):
         try:
+            user = request.user
             serializer = self.get_serializer(data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
 
@@ -47,10 +64,9 @@ class OpportunityViewSet(CachedViewSet):
             
             files = files_documents or files_files or files_document
 
-            opportunity_service = injector.get(OpportunityService)
-            opportunity = opportunity_service.process_create(serializer, request, files)
+            opportunity = self.opportunity_service.process_create(serializer, request, files)
 
-            opportunity = opportunity_service.get_base_optimized_queryset().get(pk=opportunity.pk)
+            opportunity = self.opportunity_service.get_base_queryset(user).get(pk=opportunity.pk)
 
             return Response(OpportunitySerializer(opportunity).data, status=status.HTTP_200_OK)
 
@@ -68,6 +84,7 @@ class OpportunityViewSet(CachedViewSet):
     @transaction.atomic
     def update(self, request, *args, **kwargs):
         try:
+            user = self.request.user
             instance = self.get_object()
             partial = kwargs.pop('partial', request.method == 'PATCH')
             serializer = self.get_serializer(instance, data=request.data, partial=partial)
@@ -75,10 +92,9 @@ class OpportunityViewSet(CachedViewSet):
 
             files = request.FILES.getlist('documents')
 
-            opportunity_service = injector.get(OpportunityService)
-            opportunity = opportunity_service.process_update(serializer, request.data, files)
+            opportunity = self.opportunity_service.process_update(serializer, request.data, files)
 
-            opportunity = opportunity_service.get_base_queryset().get(pk=opportunity.pk)
+            opportunity = self.opportunity_service.get_base_queryset(user).get(pk=opportunity.pk)
 
             return Response(OpportunitySerializer(opportunity).data, status=status.HTTP_200_OK)
 
@@ -101,8 +117,7 @@ class OpportunityViewSet(CachedViewSet):
         """
         try:
             opportunity = self.get_object()
-            opportunity_service = injector.get(OpportunityService)
-            result = opportunity_service.delete_document(opportunity, document_id)
+            result = self.opportunity_service.delete_document(opportunity, document_id)
             return Response(result, status=status.HTTP_200_OK)
 
         except ObjectDoesNotExist:

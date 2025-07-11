@@ -22,10 +22,10 @@ class PurchaseService:
     def __init__(self, purchase_factory: AbstractPurchaseOpportunityFactory):
         self.purchase_factory = purchase_factory
 
-    def get_filtered_queryset(self) -> QuerySet:
+    def get_filtered_queryset(self, user) -> QuerySet:
         current_year = datetime.now().year
 
-        base_queryset = self.get_base_optimized_queryset()
+        base_queryset = self.get_base_optimized_queryset(user)
 
         filters = Q(created__year=current_year)
         filters &= Q(closing_percentage__gte=OpportunityFilters.CLOSING_PERCENTAGE)
@@ -40,7 +40,7 @@ class PurchaseService:
 
         return base_queryset.filter(filters).distinct().order_by('-created')
 
-    def get_base_optimized_queryset(self):
+    def get_base_optimized_queryset(self, user):
         optimized_clients = Prefetch(
             'contact__clients',
             queryset=Client.objects.select_related('city', 'business_group')
@@ -59,9 +59,6 @@ class PurchaseService:
             'contact__job',
             'contact__city',
             'project',
-            'project__client',
-            'project__client__city',
-            'project__client__business_group',
             'project__specialty',
             'project__subdivision',
             'project__subdivision__division',
@@ -73,7 +70,7 @@ class PurchaseService:
         ).prefetch_related(
             optimized_clients,
             optimized_finance
-        )
+        ).filter(agent=user)
 
     def process_update(self, instance: Opportunity, request_data: dict) -> Opportunity:
         purchase_status_type_id = request_data.get("purchase_status_type")
@@ -87,7 +84,7 @@ class PurchaseService:
             instance.refresh_from_db()
 
             return instance
-        except PurchaseStatusType.DoesNotExist:
+        except PurchaseStatusType.DoesNotExist as e:
             logger.error(f"Error al actualizar el estado de compra de la oportunidad{e}")
             raise ValidationError({"purchase_status_type": "El tipo de estatus de compra no existe."})
 

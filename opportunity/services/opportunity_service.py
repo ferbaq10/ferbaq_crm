@@ -28,7 +28,7 @@ class OpportunityService:
         self.finance_factory = finance_factory
         self.lost_opportunity_factory = lost_opportunity_factory
 
-    def get_base_queryset(self):
+    def get_base_queryset(self, user):
         optimized_clients = Prefetch(
             'contact__clients',
             queryset=Client.objects.select_related('city', 'business_group')
@@ -54,9 +54,6 @@ class OpportunityService:
             'contact__job',
             'contact__city',
             'project',
-            'project__client',
-            'project__client__city',
-            'project__client__business_group',
             'project__specialty',
             'project__subdivision',
             'project__subdivision__division',
@@ -67,10 +64,10 @@ class OpportunityService:
             optimized_finance,
             optimized_clients,
             optimized_documents
-        )
+        ).filter(agent=user)
 
-    def get_filtered_queryset(self):
-        return self.get_base_queryset().filter(
+    def get_filtered_queryset(self, user):
+        return self.get_base_queryset(user).filter(
             created__year=datetime.now().year
         ).distinct().order_by('-created')
 

@@ -1,5 +1,6 @@
 import logging
 
+from django.db.models import QuerySet
 from redis.exceptions import ConnectionError as RedisConnectionError  # Import directo de redis-py
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, DjangoModelPermissions
@@ -219,15 +220,22 @@ class AuthenticatedModelViewSet(ModelViewSet):
         manager = getattr(self.model, 'all_objects', self.model.objects)
         return manager.all().order_by('-id')
 
+
     @action(detail=False, methods=['get'], url_path='actives')
     def actives(self, request):
+        queryset = self.get_actives_queryset(request)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    def get_actives_queryset(self, request)-> QuerySet:
+        """
+        Método Devuevlve un queryset con los objetos activos para que se le peuda agregar nuevos filtros
+        """
         assert self.model is not None, (
             f"{self.__class__.__name__} debe definir un atributo 'model'."
         )
         manager = getattr(self.model, 'all_objects', self.model.objects)
-        queryset = manager.filter(is_removed=False)
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+        return manager.filter(is_removed=False)
 
 
 # ¡ORDEN CORRECTO! Mixin primero, luego la clase base
