@@ -42,6 +42,8 @@ class Contact(BaseModel):
         null=True,
         verbose_name="Teléfono"
     )
+    # history = HistoricalRecords()
+
     city = models.ForeignKey(
         City,
         on_delete=models.DO_NOTHING,

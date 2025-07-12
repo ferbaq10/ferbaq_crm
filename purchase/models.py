@@ -17,3 +17,5 @@ class PurchaseStatus(BaseModel):
         on_delete=models.DO_NOTHING,
         related_name='purchase_data'
     )
+
+    # history = HistoricalRecords()
