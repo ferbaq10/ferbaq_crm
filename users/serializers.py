@@ -55,7 +55,6 @@ class UserWithRolesSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'email', 'groups', 'user_permissions']
 
 
-
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
