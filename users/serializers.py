@@ -59,3 +59,27 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'username', 'email', 'is_active', 'is_superuser']
+
+
+class UserWithWorkcellSerializer(serializers.ModelSerializer):
+    workcells = serializers.SerializerMethodField()
+    workcell_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'first_name', 'last_name',
+                  'is_active', 'workcells', 'workcell_count']
+
+    def get_workcells(self, obj):
+        """Devuelve las WorkCells asignadas al usuario"""
+        return [
+            {
+                'id': wc.id,
+                'name': wc.name,
+            }
+            for wc in obj.workcell.all()
+        ]
+
+    def get_workcell_count(self, obj):
+        """Cuenta las WorkCells asignadas"""
+        return obj.workcell.count()

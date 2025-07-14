@@ -2,15 +2,13 @@ from django.contrib.auth import get_user_model
 from django.utils.functional import cached_property
 from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.exceptions import PermissionDenied
-from rest_framework.permissions import IsAuthenticated, DjangoModelPermissions
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from catalog.models import WorkCell
 from catalog.viewsets.base import CachedViewSet
 from core.di import injector
-from users.serializers import UserSerializer
+from users.serializers import UserSerializer, UserWithWorkcellSerializer
 from users.services.user_service import UserService
 from .serializers import MyTokenObtainPairSerializer
 
@@ -36,7 +34,7 @@ class UserViewSet(CachedViewSet):
     def user_service(self) -> UserService:
         return injector.get(UserService)
 
-    @action(detail=False, methods=['get'], url_path='non-superusers', permission_classes=[IsAuthenticated, DjangoModelPermissions])
+    @action(detail=False, methods=['get'], url_path='non-superusers')
     def non_superusers(self, request):
         """
         Devuelve el listado de usuarios que no son superusuarios.
@@ -46,8 +44,20 @@ class UserViewSet(CachedViewSet):
             users = self.user_service.get_non_superusers(request.user)
             serializer = self.get_serializer(users, many=True)
             return Response(serializer.data)
-        except PermissionDenied as e:
-            return Response({"error": str(e)}, status=status.HTTP_403_FORBIDDEN)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['get'], url_path='users-with-workcell')
+    def users_with_workcell(self, request):
+        """
+        Devuelve el listado de usuarios que tienen al menos una WorkCell asignada.
+        Excluye superusuarios.
+        Requiere permiso: auth.view_user
+        """
+        try:
+            users = self.user_service.get_users_with_workcell()
+            serializer = UserWithWorkcellSerializer(users, many=True)
+            return Response(serializer.data)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 

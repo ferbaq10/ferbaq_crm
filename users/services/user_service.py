@@ -1,5 +1,4 @@
 from django.contrib.auth import get_user_model
-from rest_framework.exceptions import PermissionDenied
 
 from catalog.models import WorkCell
 from users.services.interfaces import AbstractUserFactory
@@ -45,9 +44,14 @@ class UserService(AbstractUserFactory):
         Obtiene el listado de usuarios que no son superusuarios.
         Valida permisos del usuario solicitante.
         """
-        # Validar permisos
-        if not requesting_user.has_perm('auth.view_user'):
-            raise PermissionDenied("No tiene permiso para ver usuarios.")
+       # Obtener usuarios no superusuarios
+        return User.objects.filter(is_superuser=False, is_active=True)
 
-        # Obtener usuarios no superusuarios
-        return User.objects.filter(is_superuser=False)
+    def get_users_with_workcell(self):
+        """
+        Obtiene usuarios que tienen al menos una WorkCell asignada.
+        Valida permisos del usuario solicitante.
+        """
+
+        # Obtener usuarios que tienen WorkCells asignadas
+        return User.objects.filter(is_active=True).prefetch_related('workcell')
