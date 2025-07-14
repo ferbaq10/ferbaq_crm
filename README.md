@@ -44,7 +44,7 @@ ferbaq_crm/
 │   ├── models.py              
 │   ├── serializers.py         
 │   ├── services/              # Lógica de negocio para clientes
-│   │   ├── client_service.py
+│   │   ├── user_service.py
 │   │   ├── factories.py
 │   │   ├── __init__.py
 │   │   └── interfaces.py

@@ -15,6 +15,9 @@ from project.services.project_service import ProjectService
 from purchase.services.factories import DefaultPurchaseStatusFactory
 from purchase.services.interfaces import AbstractPurchaseOpportunityFactory
 from purchase.services.purchase_service import PurchaseService
+from users.services.factories import UserServiceFactory
+from users.services.interfaces import AbstractUserFactory
+from users.services.user_service import UserService
 
 
 class AppModule(Module):
@@ -35,9 +38,13 @@ class AppModule(Module):
         # Nueva línea para Project
         binder.bind(AbstractProjectFactory, to=ProjectServiceFactory, scope=singleton)
 
+        # Nueva línea para User
+        binder.bind(AbstractUserFactory, to=UserServiceFactory, scope=singleton)
+
         # Servicios
         binder.bind(OpportunityService, to=OpportunityService, scope=singleton)
         binder.bind(PurchaseService, to=PurchaseService, scope=singleton)
         binder.bind(ClientService, to=ClientService, scope=singleton)
         binder.bind(ContactService, to=ContactService, scope=singleton)
         binder.bind(ProjectService, to=ProjectService, scope=singleton)
+        binder.bind(UserService, to=UserService, scope=singleton)
