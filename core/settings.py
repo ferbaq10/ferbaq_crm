@@ -58,12 +58,13 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'middleware.sql_debug.SQLDebugMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
-    'django.middleware.security.SecurityMiddleware',
+    'middleware.sql_debug.SQLDebugMiddleware', # Middleware para depuración de SQL
+    'simple_history.middleware.HistoryRequestMiddleware', # Middleware para historial de cambios
+    'corsheaders.middleware.CorsMiddleware', # Middleware de CORS
+    'django.middleware.security.SecurityMiddleware', # Seguridad de Django
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware', # Middleware CSRF
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',

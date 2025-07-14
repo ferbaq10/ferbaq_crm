@@ -18,6 +18,8 @@ class Client(BaseModel):
         unique=True,
         verbose_name="Id de cliente"
     )
+    # history = HistoricalRecords()
+
     city = models.ForeignKey(
         City,
         on_delete=models.DO_NOTHING,

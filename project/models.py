@@ -31,6 +31,8 @@ class Project(BaseModel):
         null=True,
         verbose_name="Longitud"
     )
+    # history = HistoricalRecords()
+
     project_status = models.ForeignKey(
         ProjectStatus,
         on_delete=models.DO_NOTHING,
