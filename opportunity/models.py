@@ -1,4 +1,6 @@
 from django.db import models
+from simple_history.models import HistoricalRecords
+
 from catalog.models import StatusOpportunity, City, Currency, BaseModel, OpportunityType, LostOpportunityType
 from contact.models import Contact
 from project.models import Project
@@ -16,7 +18,7 @@ class Opportunity(BaseModel):
     date_reception = models.DateTimeField(blank=True, null=True, verbose_name="Fecha de recepción")
     sent_date = models.DateTimeField(blank=True, null=True, verbose_name="Fecha de enviado")
     date_status = models.DateTimeField(auto_now_add=True, verbose_name="Fecha del estado")
-    # history = HistoricalRecords()
+    history = HistoricalRecords()
 
     status_opportunity = models.ForeignKey(
         StatusOpportunity,

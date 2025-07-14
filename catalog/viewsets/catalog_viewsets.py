@@ -1,4 +1,6 @@
-from rest_framework.exceptions import PermissionDenied
+from rest_framework import status
+from rest_framework.decorators import action
+from rest_framework.response import Response
 
 from catalog.models import (
     UDN, WorkCell, BusinessGroup, Division, Subdivision, Specialty,
@@ -11,7 +13,7 @@ from catalog.serializers import (
     PeriodSerializer, StatusOpportunitySerializer, CurrencySerializer, JobSerializer, OpportunityTypeSerializer,
     MeetingTypeSerializer, MeetingResultSerializer, LostOpportunityTypeSerializer, PurchaseStatusTypeSerializer
 )
-from catalog.viewsets.base import CachedViewSet, AuthenticatedModelViewSet
+from catalog.viewsets.base import CachedViewSet
 
 
 class UDNViewSet(CachedViewSet):
@@ -25,6 +27,18 @@ class WorkCellViewSet(CachedViewSet):
 
     def get_actives_queryset(self, request):
         return WorkCell.all_objects.filter(users=request.user).filter(is_removed=False).distinct()
+
+    @action(detail=False, methods=['get'], url_path='workcell-active-all')
+    def workcell_active_all(self, request):
+        """
+            Devolver la lista de workcell activas del sistema.
+        """
+        try:
+            result = WorkCell.all_objects.filter(is_removed=False).distinct()
+            serializer = WorkCellSerializer(result, many=True)
+            return Response(serializer.data)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class BusinessGroupViewSet(CachedViewSet):
     model = BusinessGroup

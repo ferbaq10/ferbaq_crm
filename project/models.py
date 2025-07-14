@@ -1,4 +1,6 @@
 from django.db import models
+from simple_history.models import HistoricalRecords
+
 from catalog.models import ProjectStatus, Specialty, Subdivision, BusinessGroup, WorkCell, BaseModel
 from model_utils.models import SoftDeletableModel, TimeStampedModel
 
@@ -31,7 +33,7 @@ class Project(BaseModel):
         null=True,
         verbose_name="Longitud"
     )
-    # history = HistoricalRecords()
+    history = HistoricalRecords()
 
     project_status = models.ForeignKey(
         ProjectStatus,
