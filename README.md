@@ -341,3 +341,10 @@ Se necesita tener ubuntu y el comando instalado para su ejecución.
 ```
 
 Luego debe copiar la estructura generada en el archivo `estructura_actual.txt` y pegarla en el archivo `README.md` en la sección de estructura del proyecto.
+
+### Actualizar lista de librerias
+Para actualizar la lista de librerías ejecutar el siguiente comando:
+
+```bash
+  poetry export -f requirements.txt --output requirements.txt --without-hashes
+```
