@@ -2,72 +2,165 @@
 
 Este proyecto forma parte del sistema CRM de FERBAQ. Proporciona una API REST para gestionar catálogos como UDN, células de trabajo, grupos empresariales, divisiones, ciudades y más.
 
----
-
 ## 📁 Estructura del Proyecto
 ```bash
 ferbaq_crm/
-├── catalog/               # Módulo para catálogos de datos maestros (ciudades, UDN, divisiones, etc.)
-│   ├── models.py          # Definición de modelos de base de datos relacionados con catálogos
-│   ├── serializers.py     # Serializadores DRF para exponer modelos como JSON
-│   ├── forms.py           # Formularios Django para uso en admin u otros
-│   ├── catalog_viewsets.py        # Lógica de vistas con ViewSets (API REST)
-│   ├── urls.py            # Rutas del módulo catalog
-│   ├── tests.py           # Pruebas unitarias del módulo
-│   └── admin.py           # Registro de modelos en el panel de administración
-├── client/                # Gestión de clientes
-│   ├── models.py          # Modelos relacionados con clientes
-│   ├── serializers.py     # Serializadores DRF para clientes
-│   ├── forms.py           # Formularios de clientes
-│   ├── catalog_viewsets.py        # API REST para clientes
-│   ├── urls.py            # Rutas del módulo
-│   ├── tests.py           # Pruebas unitarias
-│   └── admin.py           # Configuración del admin para clientes
-├── contact/               # Gestión de contactos asociados a clientes u oportunidades
-│   ├── models.py
-│   ├── serializers.py
-│   ├── forms.py
-│   ├── catalog_viewsets.py
-│   ├── urls.py
-│   ├── tests.py
-│   └── admin.py
-├── core/                  # Configuración central del proyecto
-│   ├── settings.py        # Configuración principal de Django
-│   ├── urls.py            # Enrutamiento principal del proyecto
-│   └── ...                # Otros archivos como wsgi.py, asgi.py, etc.
-├── objetive/              # Módulo para definir objetivos comerciales
-│   ├── models.py
-│   ├── serializers.py
-│   ├── forms.py
-│   ├── catalog_viewsets.py
-│   ├── urls.py
-│   ├── tests.py
-│   └── admin.py
-├── opportunity/           # Gestión de oportunidades comerciales
-│   ├── models.py
-│   ├── serializers.py
-│   ├── forms.py
-│   ├── catalog_viewsets.py
-│   ├── urls.py
-│   ├── tests.py
-│   └── admin.py
-├── project/               # Módulo para la gestión de proyectos derivados de oportunidades
-│   ├── models.py
-│   ├── serializers.py
-│   ├── forms.py
-│   ├── catalog_viewsets.py
-│   ├── urls.py
-│   ├── tests.py
-│   └── admin.py
-├── manage.py              # Script principal para comandos Django (runserver, migrate, etc.)
-├── activar.ps1.py         # Script auxiliar para activar entorno virtual en PowerShell
-├── pyproject.toml         # Archivo de configuración de dependencias (Poetry)
-├── envExample             # Archivo de ejemplo para variables de entorno
-└── README.md              # Documentación general del proyecto
-
+├── activar.ps1                 # Script para activar entorno virtual en PowerShell
+├── activity_log/               # Módulo para el registro de actividades
+│   ├── admin.py               # Configuración del admin para activity_log
+│   ├── apps.py                # Configuración del módulo
+│   ├── forms.py               # Formularios para activity_log
+│   ├── __init__.py            
+│   ├── models.py              # Modelos de base de datos
+│   ├── serializers.py         # Serializadores DRF
+│   ├── services/              # Lógica de negocio y servicios relacionados
+│   │   ├── activity_log_service.py
+│   │   ├── factories.py
+│   │   ├── __init__.py
+│   │   └── interfaces.py
+│   ├── tests.py               # Pruebas unitarias
+│   ├── urls.py                # Rutas API
+│   └── viewsets.py            # Vistas basadas en ViewSets
+├── catalog/                   # Catálogos de datos maestros (ciudades, UDN, divisiones, etc.)
+│   ├── admin.py               
+│   ├── apps.py                
+│   ├── constants.py           # Constantes usadas en catalog
+│   ├── forms.py               
+│   ├── __init__.py            
+│   ├── models.py              
+│   ├── serializers.py         
+│   ├── signals.py             # Señales Django
+│   ├── tests.py               
+│   ├── urls.py                
+│   └── viewsets/              # Vistas para APIs relacionadas con catalog
+│       ├── base.py
+│       ├── catalog_viewsets.py
+│       └── __init__.py
+├── client/                    # Gestión de clientes
+│   ├── admin.py               
+│   ├── apps.py                
+│   ├── forms.py               
+│   ├── __init__.py            
+│   ├── models.py              
+│   ├── serializers.py         
+│   ├── services/              # Lógica de negocio para clientes
+│   │   ├── client_service.py
+│   │   ├── factories.py
+│   │   ├── __init__.py
+│   │   └── interfaces.py
+│   ├── signals.py             
+│   ├── tests.py               
+│   ├── urls.py                
+│   └── viewsets.py            
+├── contact/                   # Gestión de contactos (clientes, oportunidades)
+│   ├── admin.py               
+│   ├── apps.py                
+│   ├── forms.py               
+│   ├── __init__.py            
+│   ├── models.py              
+│   ├── serializers.py         
+│   ├── services/              # Servicios relacionados con contactos
+│   │   ├── contact_service.py
+│   │   ├── factories.py
+│   │   ├── __init__.py
+│   │   └── interfaces.py
+│   ├── signals.py             
+│   ├── tests.py               
+│   ├── urls.py                
+│   └── viewsets.py            
+├── core/                      # Configuración central del proyecto
+│   ├── apps.py                
+│   ├── asgi.py               
+│   ├── di.py                 # Configuración de inyección de dependencias
+│   ├── __init__.py            
+│   ├── modules.py            
+│   ├── serializers/          # Serializadores comunes
+│   │   ├── cache_mixin.py    
+│   │   └── __init__.py       
+│   ├── settings.py           # Configuración Django
+│   ├── urls.py               # Enrutamiento principal
+│   ├── utils/                # Utilidades varias
+│   │   ├── __init__.py       
+│   │   └── signals.py        
+│   └── wsgi.py               
+├── docker-compose.yml         # Configuración Docker Compose
+├── envExample                 # Ejemplo de archivo .env
+├── manage.py                  # Script principal Django (runserver, migrate, etc.)
+├── middleware/                # Middleware personalizado
+│   ├── __init__.py           
+│   └── sql_debug.py           
+├── objetive/                  # Objetivos comerciales
+│   ├── admin.py               
+│   ├── apps.py                
+│   ├── forms.py               
+│   ├── __init__.py            
+│   ├── models.py              
+│   ├── serializers.py         
+│   ├── signals.py             
+│   ├── tests.py               
+│   ├── urls.py                
+│   └── viewsets.py            
+├── opportunity/              # Oportunidades comerciales
+│   ├── admin.py               
+│   ├── apps.py                
+│   ├── forms.py               
+│   ├── __init__.py            
+│   ├── models.py              
+│   ├── serializers.py         
+│   ├── services/              # Servicios relacionados
+│   │   ├── factories.py
+│   │   ├── interfaces.py
+│   │   └── opportunity_service.py
+│   ├── sharepoint.py          # Integración con SharePoint
+│   ├── signals.py             
+│   ├── tasks.py               # Tareas asíncronas
+│   ├── tests.py               
+│   ├── urls.py                
+│   └── viewsets.py            
+├── poetry.lock               # Archivo de bloqueo de dependencias Poetry
+├── project/                  # Gestión de proyectos derivados
+│   ├── admin.py               
+│   ├── apps.py                
+│   ├── forms.py               
+│   ├── __init__.py            
+│   ├── models.py              
+│   ├── serializers.py         
+│   ├── services/              # Servicios de proyecto
+│   │   ├── factories.py
+│   │   ├── __init__.py
+│   │   ├── interfaces.py
+│   │   └── project_service.py
+│   ├── signals.py             
+│   ├── tests.py               
+│   ├── urls.py                
+│   └── viewsets.py            
+├── purchase/                 # Compras y adquisiciones
+│   ├── admin.py               
+│   ├── apps.py                
+│   ├── __init__.py            
+│   ├── models.py              
+│   ├── serializers.py         
+│   ├── services/              # Servicios de compras
+│   │   ├── factories.py
+│   │   ├── interfaces.py
+│   │   └── purchase_service.py
+│   ├── signals.py             
+│   ├── tests.py               
+│   ├── urls.py                
+│   └── viewsets.py            
+├── pyproject.toml             # Configuración de dependencias (Poetry)
+├── README.md                  # Documentación general del proyecto
+├── run_simple_worker.py       # Script para ejecución de worker simple
+└── users/                    # Gestión de usuarios y autenticación
+    ├── admin.py              
+    ├── apps.py               
+    ├── __init__.py           
+    ├── models.py             
+    ├── serializers.py        
+    ├── tests.py              
+    ├── urls.py               
+    └── viewsets.py          
 ```
-
----
 
 ## 🧱 Patrones utilizados
 
@@ -79,6 +172,31 @@ ferbaq_crm/
 
 - **Convención sobre Configuración**  
   Cada `ViewSet` solo define su `model` y `serializer_class`, apoyándose en la lógica heredada.
+- **Inyección de Dependencias**  
+  Utiliza un contenedor de inyección de dependencias para desacoplar la lógica de negocio de la implementación concreta, facilitando pruebas y mantenimiento.
+- **Separación de Preocupaciones**  
+  Cada módulo tiene una responsabilidad clara: `catalog` para datos maestros, `client` para clientes, `contact` para contactos, etc. Esto mejora la mantenibilidad y escalabilidad del proyecto.
+- **Servicios y Factories**  
+- **Patrón Observer**
+    Es un patrón de diseño de comportamiento que permite que un objeto (el sujeto) notifique a otros objetos (observadores) cuando ocurre un cambio en su estado.
+    Los observadores se registran para recibir actualizaciones o eventos, y son notificados automáticamente.
+- **Middleware Personalizado**
+   Es un patrón arquitectónico/interceptor que permite interceptar y procesar peticiones y respuestas de forma centralizada.
+
+- **Tareas Asíncronas con Redis**
+    Aplica el patrón Producer-Consumer (Productor-Consumidor), donde el productor pone tareas en una cola y el consumidor (worker) las procesa.
+
+- **Configuración de Entorno (.env)**
+    Es una práctica relacionada con el patrón External Configuration, que consiste en separar la configuración del código para mayor flexibilidad.
+
+- **Pruebas Unitarias**
+   No es un patrón, pero es una buena práctica fundamental para el desarrollo.
+
+- **Docker y Docker Compose**
+   Es una herramienta de contenedorización y orquestación, no un patrón, aunque soporta patrones de despliegue (como microservicios).
+
+- **Configuración de Seguridad**
+   Incluye varios patrones de seguridad (por ejemplo, autenticación, autorización), pero en sí es una categoría de buenas prácticas.
 
 ---
 
@@ -212,3 +330,14 @@ Para correr en linux
   python manage.py rqworker default
 ```
 
+### Actualizar àrbol de la estructura del proyecto
+
+ejecutar el siguiente comando en la raíz del proyecto:
+Este es un comando que genera un archivo `estructura_actual.txt` con la estructura del proyecto, excluyendo ciertos archivos y directorios como `__pycache__`, archivos `.pyc`, bases de datos SQLite, archivos de entorno, logs, egg-info, node_modules y migraciones.
+Se necesita tener ubuntu y el comando instalado para su ejecución.
+
+```bash
+  tree -I '__pycache__|*.pyc|*.sqlite3|*.env|*.log|*.egg-info|node_modules|migrations' -L 3 > estructura_actual.txt
+```
+
+Luego debe copiar la estructura generada en el archivo `estructura_actual.txt` y pegarla en el archivo `README.md` en la sección de estructura del proyecto.

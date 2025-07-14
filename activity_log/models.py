@@ -31,6 +31,8 @@ class ActivityLog(BaseModel):
     null=True,
     verbose_name="Fecha de la actividad")
 
+    # history = HistoricalRecords()
+
     activity_type = models.ForeignKey(
         CommercialActivity,
         null=True,

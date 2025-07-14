@@ -16,6 +16,8 @@ class Opportunity(BaseModel):
     date_reception = models.DateTimeField(blank=True, null=True, verbose_name="Fecha de recepción")
     sent_date = models.DateTimeField(blank=True, null=True, verbose_name="Fecha de enviado")
     date_status = models.DateTimeField(auto_now_add=True, verbose_name="Fecha del estado")
+    # history = HistoricalRecords()
+
     status_opportunity = models.ForeignKey(
         StatusOpportunity,
         on_delete=models.DO_NOTHING
