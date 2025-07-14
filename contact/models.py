@@ -1,5 +1,7 @@
 from django.db import models
 from django.core.validators import RegexValidator, EmailValidator
+from simple_history.models import HistoricalRecords
+
 from catalog.models import City, Job, BaseModel
 from model_utils.models import SoftDeletableModel, TimeStampedModel
 
@@ -42,7 +44,7 @@ class Contact(BaseModel):
         null=True,
         verbose_name="Teléfono"
     )
-    # history = HistoricalRecords()
+    history = HistoricalRecords()
 
     city = models.ForeignKey(
         City,

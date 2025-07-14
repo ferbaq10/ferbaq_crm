@@ -1,4 +1,6 @@
 from django.db import models
+from simple_history.models import HistoricalRecords
+
 from catalog.models import City, BusinessGroup, BaseModel
 from project.models import Project
 
@@ -18,7 +20,7 @@ class Client(BaseModel):
         unique=True,
         verbose_name="Id de cliente"
     )
-    # history = HistoricalRecords()
+    history = HistoricalRecords()
 
     city = models.ForeignKey(
         City,

@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from simple_history.models import HistoricalRecords
 
 from catalog.models import BaseModel, MeetingType, MeetingResult
 from contact.models import Contact
@@ -31,7 +32,7 @@ class ActivityLog(BaseModel):
     null=True,
     verbose_name="Fecha de la actividad")
 
-    # history = HistoricalRecords()
+    history = HistoricalRecords()
 
     activity_type = models.ForeignKey(
         CommercialActivity,

@@ -1,4 +1,5 @@
 from django.db import models
+from simple_history.models import HistoricalRecords
 
 from catalog.models import BaseModel, PurchaseStatusType
 from opportunity.models import Opportunity
@@ -13,9 +14,9 @@ class PurchaseStatus(BaseModel):
     )
 
     opportunity = models.OneToOneField(
-        Opportunity,
+        'opportunity.Opportunity',
         on_delete=models.DO_NOTHING,
         related_name='purchase_data'
     )
 
-    # history = HistoricalRecords()
+    history = HistoricalRecords()
