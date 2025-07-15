@@ -41,7 +41,7 @@ class PurchaseOpportunitySerializer(serializers.ModelSerializer):
     class Meta:
         model = Opportunity
         fields = [
-            'id', 'name', 'description', 'amount', 'number_fvt',
+            'id', 'name', 'description', 'amount', 'requisition_number',
             'date_reception', 'sent_date', 'date_status',
             'status_opportunity', 'currency', 'opportunityType',
             'contact', 'project', 'finance_opportunity',
