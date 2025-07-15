@@ -70,7 +70,7 @@ class OpportunitySerializer(serializers.ModelSerializer):
     class Meta:
         model = Opportunity
         fields = [
-            'id', 'name', 'description', 'amount', 'number_fvt',
+            'id', 'name', 'description', 'amount', 'requisition_number',
             'date_reception', 'sent_date', 'date_status',
             'status_opportunity', 'contact', 'currency',
             'project', 'opportunityType', 'closing_percentage',
@@ -101,14 +101,17 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Opportunity
         fields = [
-            'id', 'name', 'description', 'amount', 'number_fvt',
+            'id', 'name', 'description', 'amount', 'requisition_number',
             'date_reception', 'sent_date', 'date_status',
             'status_opportunity', 'contact', 'currency',
             'project', 'opportunityType', 'closing_percentage',
             'finance_opportunity', 'is_removed',
         ]
         extra_kwargs = {
-            'number_fvt': {'error_messages': {'unique': 'Este formato de venta ya está registrado.'}},
+            'requisition_number': {
+            'error_messages': {
+                'max_length': 'El número de requisición no puede tener más de 100 caracteres.'},
+                'max_length': 100},
             'amount': {'error_messages': {'required': 'El monto es obligatorio.'}},
             'status_opportunity': {'error_messages': {'required': 'El estado es obligatorio.'}},
             'contact': {'error_messages': {'required': 'El contacto es obligatorio.'}},

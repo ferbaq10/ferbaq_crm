@@ -52,9 +52,9 @@ INSTALLED_APPS = [
     'client',
     'objetive',
     'opportunity',
+    'purchase',
     'activity_log',
     'users',
-    'purchase'
 ]
 
 MIDDLEWARE = [
