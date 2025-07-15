@@ -6,7 +6,7 @@ class OpportunityForm(forms.ModelForm):
     class Meta:
         model = Opportunity
         fields = [
-            'name', 'description', 'amount', 'number_fvt',
+            'name', 'description', 'amount', 'requisition_number',
             'date_reception', 'sent_date',
             'status_opportunity', 'contact', 'currency',
             'agent', 'project', 'opportunityType'
@@ -20,9 +20,8 @@ class OpportunityForm(forms.ModelForm):
                 'required': 'El monto es obligatorio.',
                 'invalid': 'Debe ser un número válido.',
             },
-            'number_fvt': {
-                'unique': 'Este formato de venta ya está registrado.',
-                'required': 'El formato de venta es obligatorio.',
+            'requisition_number': {
+                'max_length': 'El número de requisición no puede tener más de 100 caracteres.',
             },
             'date_reception': {'required': 'La fecha de recepción es obligatoria.'},
             'status_opportunity': {'required': 'El estado es obligatorio.'},
