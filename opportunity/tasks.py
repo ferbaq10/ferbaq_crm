@@ -15,7 +15,13 @@ SHAREPOINT_SITE_URL = config("SHAREPOINT_SITE_URL")
 def upload_to_sharepoint_db(udn: str, opportunity_id: int, file_data: bytes, file_name: str):
     try:
         opportunity = Opportunity.objects.get(pk=opportunity_id)
-        sharepoint_path = f"/{udn}/opportunities/{opportunity.name}"
+        project_name = opportunity.project.name
+        company_name = "Sin cliente asignado"
+        first_client = opportunity.project.clients.first()
+        if first_client:
+            company_name = first_client.company
+
+        sharepoint_path = f"/{udn}/{company_name}/{project_name}/cotizaciones/{opportunity.name}"
         full_path = f"{sharepoint_path}/{file_name}"
 
         relative_url = upload_file(full_path, file_data)

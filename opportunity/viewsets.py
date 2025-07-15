@@ -59,12 +59,8 @@ class OpportunityViewSet(CachedViewSet):
             serializer.is_valid(raise_exception=True)
 
             files_documents = request.FILES.getlist('documents')
-            files_files = request.FILES.getlist('files') 
-            files_document = request.FILES.getlist('document')
-            
-            files = files_documents or files_files or files_document
 
-            opportunity = self.opportunity_service.process_create(serializer, request, files)
+            opportunity = self.opportunity_service.process_create(serializer, request, files_documents)
 
             opportunity = self.opportunity_service.get_base_queryset(user).get(pk=opportunity.pk)
 
