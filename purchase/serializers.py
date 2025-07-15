@@ -6,7 +6,7 @@ from catalog.serializers import PurchaseStatusTypeSerializer, StatusOpportunityS
     OpportunityTypeSerializer
 from contact.serializers import ContactSerializer
 from opportunity.models import Opportunity
-from opportunity.serializers import FinanceOpportunitySerializer
+from opportunity.serializers import FinanceOpportunitySerializer, OpportunityDocumentSerializer
 from project.serializers import ProjectSerializer
 from .models import PurchaseStatus
 
@@ -27,6 +27,7 @@ class PurchaseOpportunitySerializer(serializers.ModelSerializer):
     opportunityType = OpportunityTypeSerializer(read_only=True)
     contact = ContactSerializer(read_only=True)
     project = ProjectSerializer(read_only=True)
+    documents = OpportunityDocumentSerializer(many=True, read_only=True)
 
     finance_opportunity = FinanceOpportunitySerializer(
         source='finance_data',
@@ -45,7 +46,8 @@ class PurchaseOpportunitySerializer(serializers.ModelSerializer):
             'date_reception', 'sent_date', 'date_status',
             'status_opportunity', 'currency', 'opportunityType',
             'contact', 'project', 'finance_opportunity',
-            'status_purchase', 'is_removed', 'closing_percentage'
+            'status_purchase', 'is_removed', 'closing_percentage',
+            'documents'
         ]
         read_only_fields = ['id']
 
