@@ -1,17 +1,32 @@
 FROM python:3.11-slim
 
+# Establecer directorio de trabajo
 WORKDIR /app
 
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+# Instalar dependencias del sistema
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN apt-get update && \
-    apt-get install -y build-essential libpq-dev curl && \
-    pip install --upgrade pip
+# Copiar requirements y instalar dependencias Python
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-COPY requirements.txt ./
-RUN pip install -r requirements.txt
+# Instalar gunicorn explícitamente
+RUN pip install gunicorn
 
+# Copiar código de la aplicación
 COPY . .
 
-CMD ["gunicorn", "core.wsgi:application", "--bind", "0.0.0.0:8000"]
+# Crear directorios para archivos estáticos y media
+RUN mkdir -p /app/static /app/media
+
+# Ejecutar collectstatic (opcional, para Django)
+RUN python manage.py collectstatic --noinput || echo "No static files to collect"
+
+# Exponer puerto
+EXPOSE 8000
+
+# Comando para ejecutar la aplicación (CORREGIDO: core.wsgi en lugar de ferbaq_crm.wsgi)
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "3", "core.wsgi:application"]
