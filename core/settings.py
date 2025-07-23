@@ -161,11 +161,27 @@ DATABASES = {
     }
 }
 
-REDIS_URL = f"redis://{config('REDIS_HOST', default='127.0.0.1')}:{config('REDIS_PORT', default='6379')}/{config('REDIS_DB', default='1')}"
+REDIS_URL = os.environ.get('REDIS_URL')
+
+if not REDIS_URL:
+    REDIS_URL = f"redis://{config('REDIS_HOST', default='127.0.0.1')}:{config('REDIS_PORT', default='6379')}/{config('REDIS_DB', default='1')}"
 
 try:
     import redis
-    r = redis.Redis(host='localhost', port=6379, db=1)
+
+    # Parsear la URL de Redis para obtener host, port, db
+    if REDIS_URL.startswith('redis://'):
+        parsed = urlparse(REDIS_URL)
+        redis_host = parsed.hostname or 'localhost'
+        redis_port = parsed.port or 6379
+        redis_db = parsed.path.lstrip('/') or '0'
+    else:
+        redis_host = 'localhost'
+        redis_port = 6379
+        redis_db = '1'
+
+    # Conectar usando los valores parseados
+    r = redis.Redis(host=redis_host, port=redis_port, db=int(redis_db))
     r.ping()
 
     # Si Redis está disponible, usarlo como caché
