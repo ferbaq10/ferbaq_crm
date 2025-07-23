@@ -348,3 +348,14 @@ Para actualizar la lista de librerías ejecutar el siguiente comando:
 ```bash
   poetry export -f requirements.txt --output requirements.txt --without-hashes
 ```
+
+Para comprobar que ya no esta en .env
+
+```bash
+kubectl exec -it deployment/backend-dev -n dev -- find /app -name ".env"
+```
+
+Para comproabr si sigue en la imagen el .env
+```bash
+ docker run --rm -it ferbaq-crm-backend sh -c "find /app -name .env"
+ ```

@@ -18,6 +18,7 @@ RUN pip install gunicorn
 
 # Copiar código de la aplicación
 COPY . .
+RUN rm -f /app/.env
 
 # Crear directorios para archivos estáticos y media
 RUN mkdir -p /app/static /app/media
