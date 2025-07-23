@@ -9,10 +9,11 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-
+import os
 from pathlib import Path
 from decouple import config
 from datetime import timedelta
+from urllib.parse import urlparse
 from redis.exceptions import ConnectionError as RedisConnectionError
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -163,8 +164,8 @@ DATABASES = {
         'PORT': config('DB_PORT', cast=int),
     }
 }
-
-REDIS_URL = config('REDIS_URL')
+# Leer REDIS_URL del entorno (K8s secret)
+REDIS_URL = os.environ.get('REDIS_URL')
 
 if not REDIS_URL:
     REDIS_URL = f"redis://{config('REDIS_HOST', default='127.0.0.1')}:{config('REDIS_PORT', default='6379')}/{config('REDIS_DB', default='1')}"
@@ -173,18 +174,7 @@ try:
     import redis
 
     # Parsear la URL de Redis para obtener host, port, db
-    if REDIS_URL.startswith('redis://'):
-        parsed = urlparse(REDIS_URL)
-        redis_host = parsed.hostname or 'localhost'
-        redis_port = parsed.port or 6379
-        redis_db = parsed.path.lstrip('/') or '0'
-    else:
-        redis_host = 'localhost'
-        redis_port = 6379
-        redis_db = '1'
-
-    # Conectar usando los valores parseados
-    r = redis.Redis(host=redis_host, port=redis_port, db=int(redis_db))
+    r = redis.from_url(REDIS_URL)
     r.ping()
 
     # Si Redis está disponible, usarlo como caché
