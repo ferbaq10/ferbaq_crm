@@ -28,8 +28,11 @@ SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = [config('ALLOWED_HOSTS')]
-
+allowed_hosts_str = config('ALLOWED_HOSTS', default='*')
+if allowed_hosts_str == '*':
+    ALLOWED_HOSTS = ['*']
+else:
+    ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_str.split(',')]
 
 # Application definition
 
@@ -161,7 +164,7 @@ DATABASES = {
     }
 }
 
-REDIS_URL = os.environ.get('REDIS_URL')
+REDIS_URL = config('REDIS_URL')
 
 if not REDIS_URL:
     REDIS_URL = f"redis://{config('REDIS_HOST', default='127.0.0.1')}:{config('REDIS_PORT', default='6379')}/{config('REDIS_DB', default='1')}"
