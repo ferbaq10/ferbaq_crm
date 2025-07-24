@@ -149,7 +149,7 @@ ferbaq_crm/
 │   ├── urls.py                
 │   └── viewsets.py            
 ├── pyproject.toml             # Configuración de dependencias (Poetry)
-├── README.md                  # Documentación general del proyecto
+├── README para k8s.md                  # Documentación general del proyecto
 ├── run_simple_worker.py       # Script para ejecución de worker simple
 └── users/                    # Gestión de usuarios y autenticación
     ├── admin.py              
