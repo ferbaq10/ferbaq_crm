@@ -73,7 +73,6 @@ class Migration(migrations.Migration):
         (app_label, '0001_initial'),
         ('auth', '0012_alter_user_first_name_max_length'),
         ('catalog', '0001_initial'),
-        ('client', '0001_initial'),
     ]
 
     operations = [
