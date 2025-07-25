@@ -412,6 +412,7 @@ o las configuraciones propias
   python manage.py createsuperuser
   python manage.py collectstatic
 ```
+El user del superuser es admin y la contraseña puede ser la de la laptop.
 
 ### PASO 7: Configurar Gunicorn
  Instalar gunicorn
