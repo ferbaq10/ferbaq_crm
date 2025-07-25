@@ -1,6 +1,7 @@
 import os
 from decouple import config
 import dj_database_url
+from datetime import timedelta
 
 # --- SECRET KEY ---
 SECRET_KEY = os.environ.get("SECRET_KEY") or config("SECRET_KEY", default="insecure-default")
