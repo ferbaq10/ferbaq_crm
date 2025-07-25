@@ -202,7 +202,7 @@ ferbaq_crm/
 
 ## ⚙️ Instalación del Proyecto
 
-Requisitos previos:
+ Requisitos previos:
 - Python 3.10 o superior
 - PostgreSQL o base de datos compatible
 - pipenv o virtualenv (opcional pero recomendado)
@@ -213,23 +213,23 @@ Requisitos previos:
 ### Instalar Poetry
 
 1. Abre PowerShell (como administrador recomendado)
-Puedes buscar "PowerShell", hacer clic derecho y elegir “Ejecutar como administrador”.
+ Puedes buscar "PowerShell", hacer clic derecho y elegir “Ejecutar como administrador”.
 
 2. Ejecuta el siguiente comando
 ```bash
 (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | python -
 ```
 3. Agrega Poetry al PATH (si no lo hace automáticamente)
-Después de la instalación, añade esta línea a tu archivo de perfil ($PROFILE) o ejecuta directamente:
+ Después de la instalación, añade esta línea a tu archivo de perfil ($PROFILE) o ejecuta directamente:
 ```bash
-[Environment]::SetEnvironmentVariable("Path", $env:Path + ";$env:USERPROFILE\AppData\Roaming\Python\Scripts", "User")
+ [Environment]::SetEnvironmentVariable("Path", $env:Path + ";$env:USERPROFILE\AppData\Roaming\Python\Scripts", "User")
 ```
 4. Verifica la instalación
 ```bash
 poetry --version
 ```
 ### 1. Clonar el repositorio
-Abrir carpeta donde se va a descargar el repositorio y abrir terminal par que se situe dentro de esa carpeta
+ Abrir carpeta donde se va a descargar el repositorio y abrir terminal par que se situe dentro de esa carpeta
 
 ```bash
     git clone git@github.com:ferbaq10/ferbaq_crm.git
@@ -241,12 +241,12 @@ Abrir carpeta donde se va a descargar el repositorio y abrir terminal par que se
 poetry install
 ```
 
-y ejecutar si se utiliza Windows
+ Ejecutar si se utiliza Windows
 ```bash
   .\activar.ps
 ```
 
-Si no se quiere utilizar poetry:
+ Si no se quiere utilizar poetry:
 
 ```bash
     python -m venv .venv
@@ -255,14 +255,14 @@ Si no se quiere utilizar poetry:
 ```
 
 ### 3. Instalar dependencias
-Esta parte es igual si no se va a utilizar poetry
+ Esta parte es igual si no se va a utilizar poetry
 ```bash
     pip install -r requirements.txt
 ```
 ## Configuración y ejecución
 
 ### 1. Configurar variables de entorno
-Crea un archivo .env en la raíz del proyecto:
+ Crea un archivo .env en la raíz del proyecto:
 
 ```bash
 # Para desarrollo
@@ -288,11 +288,11 @@ CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8080,http://127.0.0.
 
 ###  3. Crear superusuario
 
-Si la base de datos es local, ya que si se utiliza la base de datos de desarrollo, ya no es necesario realizar migración
+ Si la base de datos es local, ya que si se utiliza la base de datos de desarrollo, ya no es necesario realizar migración
 ```bash
     python manage.py migrate
 ```
-Si se usa la base de datos de desarrollo, el usuario es admin:admin
+ Si se usa la base de datos de desarrollo, el usuario es admin:admin
 
 ### 4. Ejecutar servidor de desarrollo
 ```bash
@@ -300,19 +300,19 @@ Si se usa la base de datos de desarrollo, el usuario es admin:admin
 ```
 
 ### 5. Ejecutar Redis de manera local
-Agregar la siguiente configuración en el archivo .env
+ Agregar la siguiente configuración en el archivo .env
 ```bash
   REDIS_HOST=127.0.0.1
   REDIS_PORT=6379
   REDIS_DB=1
 ```
 
-Abrir un terminal y situarse en la raíz del proyecto y ejecutar:
+ Abrir un terminal y situarse en la raíz del proyecto y ejecutar:
 ```bash
   docker-compose up -d
 ```
 
-Deberías ver un contenedor llamado local-redis expuesto en el puerto 6379 con el siguiente comando:
+ Deberías ver un contenedor llamado local-redis expuesto en el puerto 6379 con el siguiente comando:
 
 ```bash
   docker ps
@@ -320,42 +320,42 @@ Deberías ver un contenedor llamado local-redis expuesto en el puerto 6379 con e
 
 ### Ejecutar el worker
 
-Ejecutar el worker para que ejecute tareas asíncronas para proyecto local en Windows:
+ Ejecutar el worker para que ejecute tareas asíncronas para proyecto local en Windows:
 ```bash
   python run_simple_worker.py
 ```
 
-Para correr en linux
+ Para correr en linux
 ```bash
   python manage.py rqworker default
 ```
 
 ### Actualizar àrbol de la estructura del proyecto
 
-ejecutar el siguiente comando en la raíz del proyecto:
-Este es un comando que genera un archivo `estructura_actual.txt` con la estructura del proyecto, excluyendo ciertos archivos y directorios como `__pycache__`, archivos `.pyc`, bases de datos SQLite, archivos de entorno, logs, egg-info, node_modules y migraciones.
+ Ejecutar el siguiente comando en la raíz del proyecto:
+ Este es un comando que genera un archivo `estructura_actual.txt` con la estructura del proyecto, excluyendo ciertos archivos y directorios como `__pycache__`, archivos `.pyc`, bases de datos SQLite, archivos de entorno, logs, egg-info, node_modules y migraciones.
 Se necesita tener ubuntu y el comando instalado para su ejecución.
 
 ```bash
   tree -I '__pycache__|*.pyc|*.sqlite3|*.env|*.log|*.egg-info|node_modules|migrations' -L 3 > estructura_actual.txt
 ```
 
-Luego debe copiar la estructura generada en el archivo `estructura_actual.txt` y pegarla en el archivo `README.md` en la sección de estructura del proyecto.
+ Luego debe copiar la estructura generada en el archivo `estructura_actual.txt` y pegarla en el archivo `README.md` en la sección de estructura del proyecto.
 
 ### Actualizar lista de librerias
-Para actualizar la lista de librerías ejecutar el siguiente comando:
+ Para actualizar la lista de librerías ejecutar el siguiente comando:
 
 ```bash
   poetry export -f requirements.txt --output requirements.txt --without-hashes
 ```
 
-Para comprobar que ya no esta en .env
+ Para comprobar que ya no esta en .env
 
 ```bash
 kubectl exec -it deployment/backend-dev -n dev -- find /app -name ".env"
 ```
 
-Para comproabr si sigue en la imagen el .env
+ Para comproabr si sigue en la imagen el .env
 ```bash
  docker run --rm -it ferbaq-crm-backend sh -c "find /app -name .env"
  ```
@@ -366,12 +366,12 @@ Para comproabr si sigue en la imagen el .env
 
 ### PASO 1: Conectarte por SSH
 ```bash
-  ssh -i "TU-CLAVE.pem" ubuntu@IP_PUBLICA
+  ssh -i "ubuntu.pem" ubuntu@ec2-18-118-103-12.us-east-2.compute.amazonaws.com
 ```
-Puede que no se conecte por ssh si la instancia creada no tiene el rol con el permiso AmazonSSMManagedInstanceCore
+ Puede que no se conecte por ssh si la instancia creada no tiene el rol con el permiso AmazonSSMManagedInstanceCore
 Se debe crear un rol y asignarle este rol si no lo tiene
 
-Además para tener acceso en el grupo de seguridad debe tener una regla de entrada con el ip registrado.
+ Además para tener acceso en el grupo de seguridad debe tener una regla de entrada con el ip registrado.
 
 ### PASO 2: 🧱 Instalar dependencias del sistema
 
@@ -399,7 +399,7 @@ Además para tener acceso en el grupo de seguridad debe tener una regla de entra
 ```
 
 ### PASO 5: Configurar variables de entorno (Django + DB)
-Para crear el archivo de configuración, guiarse por las variables que se encuentran en envExample
+ Para crear el archivo de configuración, guiarse por las variables que se encuentran en envExample
 o las configuraciones propias
 ```bash
   nano .env
@@ -412,3 +412,132 @@ o las configuraciones propias
   python manage.py createsuperuser
   python manage.py collectstatic
 ```
+
+### PASO 7: Configurar Gunicorn
+ Instalar gunicorn
+```bash
+  pip install gunicorn
+```
+
+ Probar localmente
+```bash
+      gunicorn core.wsgi:application
+```
+
+### PASO 8: Configurar django_rq y el worker
+```bash
+   sudo nano /etc/systemd/system/rqworker.service
+```
+ Agregar este contenido al archivo 
+```bash
+[Unit]
+Description=RQ Worker
+After=network.target
+
+[Service]
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/var/www/ferbaq_crm_backend
+Environment="PATH=/var/www/ferbaq_crm_backend/venv/bin"
+ExecStart=/var/www/ferbaq_crm_backend/venv/bin/rq worker default
+
+[Install]
+WantedBy=multi-user.target
+```
+
+ Recarga systemd y activa:
+```bash
+  sudo systemctl daemon-reexec
+  sudo systemctl daemon-reload
+  sudo systemctl enable rqworker
+  sudo systemctl start rqworker
+```
+
+### PASO 9: Configurar Gunicorn como servicio
+
+```bash
+  sudo nano /etc/systemd/system/gunicorn.service
+```
+ Agregar este contenido al archivo
+```bash
+[Unit]
+Description=gunicorn daemon
+After=network.target
+
+[Service]
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/var/www/ferbaq_crm_backend
+ExecStart=/var/www/ferbaq_crm_backend/venv/bin/gunicorn --workers 3 --bind unix:/var/www/ferbaq_crm_backend/gunicorn.sock core.wsgi:application
+
+[Install]
+WantedBy=multi-user.target
+```
+Activa y arranca:
+```bash
+  sudo systemctl daemon-reload
+  sudo systemctl enable gunicorn
+  sudo systemctl start gunicorn
+```
+
+### PASO 10: Configurar NGINX
+```bash
+  sudo nano /etc/nginx/sites-available/ferbaq_crm
+```
+ Agregar el siguiente contenido para que sirva tanto para front y backend. Solo se hace una sola vez
+
+```bash
+server {
+    listen 80;
+    server_name crm.portal-ferbaq.net;
+
+    # Frontend (Next.js)
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # Backend (Django) bajo /api/
+    location /api/static/ {
+        alias /var/www/ferbaq_crm_backend/static/;
+    }
+
+    location /api/ {
+        include proxy_params;
+        proxy_pass http://unix:/var/www/ferbaq_crm_backend/gunicorn.sock;
+    }
+}
+```
+ Crear el nuevo enlace simbólico para el archivo combinado
+
+```bash
+  sudo ln -s /etc/nginx/sites-available/ferbaq-crm /etc/nginx/sites-enabled/
+```
+
+ Activar el sitio:
+```bash
+    sudo nginx -t
+    ls -la /etc/nginx/sites-enabled/ # Verificar que solo está tu configuración
+    sudo systemctl restart nginx
+    sudo systemctl status nginx
+```
+
+ Si no tienes respuesta en los endpoints:
+
+```bash
+  sudo systemctl status gunicorn
+  sudo systemctl status nginx
+```
+ Revisa los logs:
+```bash
+  journalctl -u gunicorn -n 50 --no-pager
+  journalctl -u nginx -n 50 --no-pager
+```
+
