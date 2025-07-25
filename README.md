@@ -359,3 +359,56 @@ Para comproabr si sigue en la imagen el .env
 ```bash
  docker run --rm -it ferbaq-crm-backend sh -c "find /app -name .env"
  ```
+
+
+
+## 🚀 PASOS MANUALES PARA DESPLEGAR DJANGO + REDIS + POSTGRES EN EC2:
+
+### PASO 1: Conectarte por SSH
+```bash
+  ssh -i "TU-CLAVE.pem" ubuntu@IP_PUBLICA
+```
+Puede que no se conecte por ssh si la instancia creada no tiene el rol con el permiso AmazonSSMManagedInstanceCore
+Se debe crear un rol y asignarle este rol si no lo tiene
+
+Además para tener acceso en el grupo de seguridad debe tener una regla de entrada con el ip registrado.
+
+### PASO 2: 🧱 Instalar dependencias del sistema
+
+```bash
+  sudo apt update && sudo apt upgrade -y
+  sudo apt install -y git python3 python3-pip python3-venv build-essential \
+    libpq-dev redis-server nginx
+```
+
+### PASO 3: Clonar el proyecto desde GitHub
+
+```bash
+  cd /var/www/
+  sudo git clone git@github.com:ferbaq10/ferbaq_crm.git ferbaq_crm_backend
+  sudo chown -R $USER:$USER ferbaq_crm_backend
+  cd ferbaq_crm_backend
+```
+
+### PASO 4: Configurar entorno virtual
+```bash
+    python3 -m venv venv
+    source venv/bin/activate
+    pip install --upgrade pip
+    pip install -r requirements.txt
+```
+
+### PASO 5: Configurar variables de entorno (Django + DB)
+Para crear el archivo de configuración, guiarse por las variables que se encuentran en envExample
+o las configuraciones propias
+```bash
+  nano .env
+```
+
+### PASO 6: Migraciones, superusuario y archivos estáticos
+```bash
+  source venv/bin/activate
+  python manage.py migrate
+  python manage.py createsuperuser
+  python manage.py collectstatic
+```

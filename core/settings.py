@@ -16,7 +16,7 @@ if DATABASE_URL:
         'default': dj_database_url.parse(DATABASE_URL)
     }
 else:
-    # Fallback para .env si no hay DATABASE_URL
+    print(f"🔍 DATABASE: {config('DB_NAME', default='ferbaq_local')}")
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
