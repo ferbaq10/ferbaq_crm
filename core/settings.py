@@ -1,5 +1,5 @@
 import os
-from decouple import config
+from decouple import config, Csv
 import dj_database_url
 from datetime import timedelta
 
@@ -8,6 +8,8 @@ SECRET_KEY = os.environ.get("SECRET_KEY") or config("SECRET_KEY", default="insec
 
 # --- DEBUG ---
 DEBUG = config("DEBUG", default=True, cast=bool)
+
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=Csv())
 
 INSTALLED_APPS = [
     'django.contrib.admin',
