@@ -63,3 +63,5 @@ RQ_QUEUES = {
         'DEFAULT_TIMEOUT': 360,
     }
 }
+
+ROOT_URLCONF = 'core.urls'
