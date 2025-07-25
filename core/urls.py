@@ -20,10 +20,10 @@ from django.urls import path, include
 from users.viewsets import CustomTokenObtainPairView, UserViewSet
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('api/admin/', admin.site.urls),
     path('api/catalog/', include('catalog.urls')),
 
-    path('auth/login/', CustomTokenObtainPairView.as_view(), name='custom_token_obtain_pair'),
+    path('api/auth/login/', CustomTokenObtainPairView.as_view(), name='custom_token_obtain_pair'),
 
     path('api/', include('users.urls')),
 
