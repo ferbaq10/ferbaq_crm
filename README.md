@@ -541,4 +541,26 @@ server {
   journalctl -u nginx -n 50 --no-pager
 ```
 
-Utilizar glances o htop- Para monitoreo general del sistema dentro del EC2.
+### Utilizar glances o htop- Para monitoreo general del sistema dentro del EC2.
+
+- Parar Gunicorn
+```bash
+    sudo systemctl stop gunicorn
+```
+
+- Ir al proyecto
+```bash
+    cd /var/www/ferbaq_crm_backend/
+    source venv/bin/activate
+```
+
+- Probar Django directamente para ver el error real
+```bash
+  sudo systemctl stop gunicorn
+  python manage.py check # Probar Django directamente para ver el error real
+  python manage.py runserver 0.0.0.0:8000 # Probar Django development server
+  python -c "from core.wsgi import application; print('WSGI OK')" # Probar importar el módulo WSGI
+  cat /etc/systemd/system/gunicorn.service # Ver configuración actual # Ejecutar Gunicorn manualmente con debug
+  gunicorn --workers 1 --bind unix:/var/www/ferbaq_crm_backend/gunicorn.sock core.wsgi:application --log-level debug --capture-output
+  sudo systemctl start gunicorn
+```
