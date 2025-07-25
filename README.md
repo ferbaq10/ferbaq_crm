@@ -541,4 +541,4 @@ server {
   journalctl -u nginx -n 50 --no-pager
 ```
 
-Utilizar glances - Para monitoreo general del sistema dentro del EC2.
+Utilizar glances o htop- Para monitoreo general del sistema dentro del EC2.
