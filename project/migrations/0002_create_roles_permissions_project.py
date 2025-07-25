@@ -75,9 +75,6 @@ class Migration(migrations.Migration):
         ('catalog', '0001_initial'),
         ('client', '0001_initial'),
         ('contact', '0001_initial'),
-        ('opportunity', '0001_initial'),
-        ('purchase', '0001_initial'),
-        ('activity_log', '0001_initial'),
         ('objetive', '0001_initial'),
     ]
 
