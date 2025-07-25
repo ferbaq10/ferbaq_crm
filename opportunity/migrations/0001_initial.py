@@ -14,6 +14,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('catalog', '0003_create_roles_permissions_catalog'),
+        ('contact', '0001_initial'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
