@@ -56,10 +56,8 @@ currencies = [
 ]
 
 project_statuses = [
-    (1, "Iniciado"),
-    (2, "En curso"),
-    (3, "Por terminar"),
-    (4, "Finalizado"),
+    (1, "Prospecto"),
+    (2, "Activo"),
 ]
 
 status_opportunities = [
@@ -248,6 +246,9 @@ def insert_initial_purchase_status_type(apps, schema_editor):
 
 
 # --- Eliminaciones ---
+def bulk_delete(model, ids):
+    model.objects.filter(id__in=ids).delete()
+
 def remove_initial_periods(apps, schema_editor):
     Period = apps.get_model('catalog', 'Period')
     Period.objects.filter(name__in=periods).delete()
@@ -258,7 +259,21 @@ def remove_initial_cities(apps, schema_editor):
 
 def remove_initial_udns(apps, schema_editor):
     UDN = apps.get_model('catalog', 'UDN')
-    UDN.objects.filter(name__in=[name for _, name in udns]).delete()
+    WorkCell = apps.get_model('catalog', 'WorkCell')
+
+    # Obtener IDs de las UDNs que quieres eliminar
+    udn_ids = list(
+        UDN.objects.filter(name__in=[name for _, name in udns])
+        .values_list('id', flat=True)
+    )
+
+    # Eliminar primero las WorkCell que dependen de esas UDNs
+    bulk_delete(WorkCell, ids=[
+        wc_id for wc_id in WorkCell.objects.filter(udn_id__in=udn_ids).values_list('id', flat=True)
+    ])
+
+    # Luego eliminar las UDNs
+    bulk_delete(UDN, ids=udn_ids)
 
 def remove_initial_business_groups(apps, schema_editor):
     BusinessGroup = apps.get_model('catalog', 'BusinessGroup')
@@ -269,8 +284,22 @@ def remove_initial_divisions(apps, schema_editor):
     Division.objects.filter(name__in=[name for _, name in divisions]).delete()
 
 def remove_initial_subdivisions(apps, schema_editor):
+    Division = apps.get_model('catalog', 'Division')
     Subdivision = apps.get_model('catalog', 'Subdivision')
-    Subdivision.objects.filter(name__in=[name for _, name, _ in subdivisions]).delete()
+
+    # Obtén los IDs de las divisiones a eliminar (por nombre)
+    division_ids = list(
+        Division.objects.filter(name__in=[name for _, name in divisions])
+        .values_list('id', flat=True)
+    )
+
+    # Primero elimina las subdivisions asociadas
+    bulk_delete(Subdivision, ids=[
+        s_id for s_id in Subdivision.objects.filter(division_id__in=division_ids).values_list('id', flat=True)
+    ])
+
+    # Luego elimina las divisiones
+    bulk_delete(Division, ids=division_ids)
 
 def remove_initial_specialties(apps, schema_editor):
     Specialty = apps.get_model('catalog', 'Specialty')
@@ -294,25 +323,25 @@ def remove_initial_job(apps, schema_editor):
 
 def remove_initial_opportunity_type(apps, schema_editor):
     OpportunityType = apps.get_model('catalog', 'OpportunityType')
-    OpportunityType.objects.filter(name__in=[name for _, name in jobs]).delete()
+    OpportunityType.objects.filter(name__in=[name for _, name in opportunity_types]).delete()
 
 def remove_initial_meeting_type(apps, schema_editor):
     MeetingType = apps.get_model('catalog', 'MeetingType')
-    MeetingType.objects.filter(name__in=[name for _, name in jobs]).delete()
+    MeetingType.objects.filter(name__in=[name for _, name in meeting_types]).delete()
 
 def remove_initial_meeting_result(apps, schema_editor):
     MeetingResult = apps.get_model('catalog', 'MeetingResult')
-    MeetingResult.objects.filter(name__in=[name for _, name in jobs]).delete()
+    MeetingResult.objects.filter(name__in=[name for _, name in meeting_results]).delete()
 
 
 def remove_initial_lost_opportunity_type(apps, schema_editor):
     LostOpportunityType = apps.get_model('catalog', 'LostOpportunityType')
-    LostOpportunityType.objects.filter(name__in=[name for _, name in jobs]).delete()
+    LostOpportunityType.objects.filter(name__in=[name for _, name in lost_opportunity_types]).delete()
 
 
 def remove_initial_purchase_status_type(apps, schema_editor):
     PurchaseStatusType = apps.get_model('catalog', 'PurchaseStatusType')
-    PurchaseStatusType.objects.filter(name__in=[name for _, name in jobs]).delete()
+    PurchaseStatusType.objects.filter(name__in=[name for _, name in purchase_status_type]).delete()
 
 
 

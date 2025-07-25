@@ -374,3 +374,23 @@ class PurchaseStatusType(BaseModel):
 
     def __str__(self):
         return self.name
+
+
+class PurchaseStatusType(BaseModel):
+    name = models.CharField(
+        unique=True,
+        max_length=100,
+        verbose_name="Nombre",
+        error_messages={
+            'unique': "Este estado de compra ya existe.",
+            'max_length': "El nombre no puede exceder 100 caracteres."
+        }
+    )
+
+    class Meta:
+        db_table = 'catalog_purchase_status'
+        verbose_name = "Estado de la compra"
+        verbose_name_plural = "Estados de la compra"
+
+    def __str__(self):
+        return self.name
