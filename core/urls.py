@@ -20,26 +20,26 @@ from django.urls import path, include
 from users.viewsets import CustomTokenObtainPairView, UserViewSet
 
 urlpatterns = [
-    path('api/admin/', admin.site.urls),
-    path('api/catalog/', include('catalog.urls')),
+    path('endpoint/admin/', admin.site.urls),
+    path('endpoint/catalog/', include('catalog.urls')),
 
-    path('api/auth/login/', CustomTokenObtainPairView.as_view(), name='custom_token_obtain_pair'),
+    path('endpoint/auth/login/', CustomTokenObtainPairView.as_view(), name='custom_token_obtain_pair'),
 
-    path('api/', include('users.urls')),
+    path('endpoint/', include('users.urls')),
 
     path('auth/', include('djoser.urls')),
     path('auth/', include('djoser.urls.jwt')),
-    path('api/', include('client.urls')),
-    path('api/', include('contact.urls')),
-    path('api/', include('objetive.urls')),
+    path('endpoint/', include('client.urls')),
+    path('endpoint/', include('contact.urls')),
+    path('endpoint/', include('objetive.urls')),
 
-    path('api/', include('opportunity.urls')),
+    path('endpoint/', include('opportunity.urls')),
 
-    path('api/', include('project.urls')),
+    path('endpoint/', include('project.urls')),
 
-    path('api/', include('activity_log.urls')),
+    path('endpoint/', include('activity_log.urls')),
 
-    path('api/', include('purchase.urls')),
+    path('endpoint/', include('purchase.urls')),
 
 
 ]
