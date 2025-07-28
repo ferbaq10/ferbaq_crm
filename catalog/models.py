@@ -63,7 +63,8 @@ class WorkCell(BaseModel):
         related_name='workcell',
         blank=True,
         verbose_name="Usuarios asignados",
-        related_query_name='workcell'
+        related_query_name='workcell',
+        through='WorkCellUser',
     )
 
     class Meta:
@@ -74,6 +75,15 @@ class WorkCell(BaseModel):
 
     def __str__(self):
         return self.name
+
+class WorkCellUser(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    work_cell = models.ForeignKey(WorkCell, on_delete=models.CASCADE)
+
+    class Meta:
+        db_table = 'catalog_work_cells_users'
+        verbose_name = "Asignación de célula de trabajo a usuario"
+        verbose_name_plural = "Asignación de células de trabajo a usuarios"
 
 class BusinessGroup(BaseModel):
     name = models.CharField(
@@ -355,26 +365,6 @@ class LostOpportunityType(BaseModel):
 
     def __str__(self):
         return self.name
-
-class PurchaseStatusType(BaseModel):
-    name = models.CharField(
-        unique=True,
-        max_length=100,
-        verbose_name="Nombre",
-        error_messages={
-            'unique': "Este estado de compra ya existe.",
-            'max_length': "El nombre no puede exceder 100 caracteres."
-        }
-    )
-
-    class Meta:
-        db_table = 'catalog_purchase_status'
-        verbose_name = "Estado de la compra"
-        verbose_name_plural = "Estados de la compra"
-
-    def __str__(self):
-        return self.name
-
 
 class PurchaseStatusType(BaseModel):
     name = models.CharField(

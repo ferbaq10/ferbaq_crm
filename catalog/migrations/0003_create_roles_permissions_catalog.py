@@ -5,7 +5,8 @@ from django.db import migrations
 model_names = [
     'UDN', 'WorkCell', 'BusinessGroup', 'Division', 'Subdivision', 'Specialty',
     'ProjectStatus', 'City', 'Period', 'StatusOpportunity', 'Currency', 'Job',
-    'OpportunityType', 'MeetingType', 'MeetingResult', 'LostOpportunityType', 'PurchaseStatusType'
+    'OpportunityType', 'MeetingType', 'MeetingResult', 'LostOpportunityType', 'PurchaseStatusType',
+    'WorkCellUser'
 ]
 
 app_label='catalog'
@@ -56,8 +57,8 @@ def create_roles_and_permissions(apps, schema_editor):
             roles['Director Comercial'].permissions.add(perm)
 
             # Gerente Comercial: ver, agregar y cambiar
-            if perm.codename.startswith(('view_', 'add_', 'change_')):
-                roles['Gerente Comercial'].permissions.add(perm)
+            # if perm.codename.startswith(('view_', 'add_', 'change_')):
+            roles['Gerente Comercial'].permissions.add(perm)
 
             # Vendedor: sin permisos en estos modelos
 

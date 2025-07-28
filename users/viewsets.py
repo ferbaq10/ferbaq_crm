@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from django.utils.functional import cached_property
 from rest_framework import status
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
 
@@ -10,13 +11,13 @@ from catalog.viewsets.base import CachedViewSet
 from core.di import injector
 from users.serializers import UserSerializer, UserWithWorkcellSerializer
 from users.services.user_service import UserService
+from .permissions import CanAssignWorkcell, CanUnassignWorkcell
 from .serializers import MyTokenObtainPairSerializer
 
 User = get_user_model()
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
-
 
 
 class UserViewSet(CachedViewSet):
@@ -61,7 +62,10 @@ class UserViewSet(CachedViewSet):
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    @action(detail=True, methods=['post'], url_path='assign-workcell/(?P<workcell_id>[^/.]+)')
+    @action(detail=True,
+            methods=['post'],
+            url_path='assign-workcell/(?P<workcell_id>[^/.]+)',
+            permission_classes=[IsAuthenticated, CanAssignWorkcell])
     def assign_workcell(self, request, pk=None, workcell_id=None):
         """
         Asigna una WorkCell a un usuario (ManyToMany).
@@ -86,7 +90,9 @@ class UserViewSet(CachedViewSet):
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    @action(detail=True, methods=['delete'], url_path='unassign-workcell/(?P<workcell_id>[^/.]+)')
+    @action(detail=True, methods=['delete'],
+            url_path='unassign-workcell/(?P<workcell_id>[^/.]+)',
+            permission_classes=[IsAuthenticated, CanUnassignWorkcell])
     def unassign_workcell(self, request, pk=None, workcell_id=None):
         """
         Desasigna una WorkCell de un usuario (ManyToMany).

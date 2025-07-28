@@ -56,8 +56,10 @@ currencies = [
 ]
 
 project_statuses = [
-    (1, "Prospecto"),
-    (2, "Activo"),
+    (1, "Iniciado"),
+    (2, "En curso"),
+    (3, "Por terminar"),
+    (4, "Finalizado"),
 ]
 
 status_opportunities = [
