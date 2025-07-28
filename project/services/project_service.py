@@ -19,4 +19,6 @@ class ProjectService(AbstractProjectFactory):
             'project_status',
             'work_cell',
             'work_cell__udn'
+        ).prefetch_related(
+            'work_cell__users'
         ).filter(work_cell__users=user)

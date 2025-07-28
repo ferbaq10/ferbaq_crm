@@ -440,6 +440,7 @@ User=ubuntu
 Group=ubuntu
 WorkingDirectory=/var/www/ferbaq_crm_backend
 Environment="PATH=/var/www/ferbaq_crm_backend/venv/bin"
+Environment="DJANGO_SETTINGS_MODULE=core.settings"
 ExecStart=/var/www/ferbaq_crm_backend/venv/bin/rq worker default
 
 [Install]
