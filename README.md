@@ -510,7 +510,7 @@ server {
         alias /var/www/ferbaq_crm_backend/static/;
     }
 
-    location /api/ {
+    location /endpoint/ {
         include proxy_params;
         proxy_pass http://unix:/var/www/ferbaq_crm_backend/gunicorn.sock;
     }
