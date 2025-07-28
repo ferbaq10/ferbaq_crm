@@ -12,7 +12,7 @@ class ProjectService(AbstractProjectFactory):
         pass
 
     def get_base_queryset(self, user)->QuerySet:
-        return (Project.objects.select_related(
+        return Project.objects.select_related(
             'specialty',
             'subdivision',
             'subdivision__division',
@@ -21,6 +21,4 @@ class ProjectService(AbstractProjectFactory):
             'work_cell__udn'
         ).prefetch_related(
             'work_cell__users'
-        )
-        #.filter(work_cell__users=user)
-        )
+        ).filter(work_cell__users=user)
