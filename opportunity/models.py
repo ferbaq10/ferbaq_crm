@@ -90,7 +90,8 @@ class CommercialActivity(BaseModel):
         return self.name
 
 class FinanceOpportunity(BaseModel):
-    cost_subtotal = models.DecimalField(max_digits=12, decimal_places=2)
+    earned_amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Monto ganado")
+    cost_subtotal = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Costo subtotal")
     order_closing_date = models.DateTimeField(blank=True, verbose_name="Fecha de cierre de orden")
     opportunity = models.OneToOneField(
         Opportunity,

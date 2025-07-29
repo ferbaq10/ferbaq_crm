@@ -128,7 +128,6 @@ class OpportunityService:
                 self.finance_factory.create_or_update(
                     opportunity=instance,
                     cost_subtotal=finance_data.get("cost_subtotal", 0),
-                    offer_subtotal=finance_data.get("offer_subtotal", 0),
                     earned_amount=finance_data.get("earned_amount", 0),
                     order_closing_date=finance_data.get("order_closing_date")
                 )

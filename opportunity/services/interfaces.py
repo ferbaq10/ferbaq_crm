@@ -10,7 +10,6 @@ class AbstractFinanceOpportunityFactory(ABC):
         self,
         opportunity: Opportunity,
         cost_subtotal: float,
-        offer_subtotal: float,
         earned_amount: float,
         order_closing_date: datetime,
     ) -> tuple[FinanceOpportunity, bool]:
