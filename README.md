@@ -6,6 +6,9 @@ Este proyecto forma parte del sistema CRM de FERBAQ. Proporciona una API REST pa
 ```bash
 ferbaq_crm/
 ├── activar.ps1                 # Script para activar entorno virtual en PowerShell
+├── .github/
+│   └── workflows/
+│       └── deploy-dev.yml
 ├── activity_log/               # Módulo para el registro de actividades
 │   ├── admin.py               # Configuración del admin para activity_log
 │   ├── apps.py                # Configuración del módulo
