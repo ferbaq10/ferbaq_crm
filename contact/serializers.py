@@ -8,7 +8,6 @@ from .models import Contact
 from client.models import Client
 
 class ContactSerializer(serializers.ModelSerializer):
-    city = CitySerializer(read_only=True)
     job = JobSerializer(read_only=True)
     clients = ClientSerializer(many=True, read_only=True)
 
@@ -17,7 +16,6 @@ class ContactSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'job',
-            'city',
             'name',
             'email',
             'phone',
@@ -62,11 +60,6 @@ class ContactWriteSerializer(serializers.ModelSerializer):
             message="El número debe tener al menos 10 dígitos"
         )]
     )
-    city = serializers.PrimaryKeyRelatedField(
-        queryset=City.objects.all(),
-        required=False,
-        allow_null=True
-    )
 
     clients = serializers.PrimaryKeyRelatedField(
         queryset=Client.objects.all(),
@@ -92,7 +85,6 @@ class ContactWriteSerializer(serializers.ModelSerializer):
             'id',
             'job',
             'name',
-            'city',
             'phone',
             'email',
             'clients',
@@ -108,8 +100,6 @@ class ContactWriteSerializer(serializers.ModelSerializer):
         """
 
         ret = super().to_representation(instance)
-
-        ret['city'] = CitySerializer(instance.city).data if instance.city else None
 
         ret['clients'] = ClientSerializer(instance.clients.all(), many=True).data if instance.clients else None
 

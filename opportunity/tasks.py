@@ -21,7 +21,7 @@ def upload_to_sharepoint_db(udn: str, opportunity_id: int, file_data: bytes, fil
         if first_client:
             company_name = first_client.company
 
-        sharepoint_path = f"/{udn}/{company_name}/{project_name}/cotizaciones/{opportunity.name}"
+        sharepoint_path = f"COMERCIAL/WORKSPACE/{udn}/{project_name}/{opportunity.name}"
         full_path = f"{sharepoint_path}/{file_name}"
 
         relative_url = upload_file(full_path, file_data)

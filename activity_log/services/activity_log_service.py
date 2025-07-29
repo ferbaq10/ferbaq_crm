@@ -32,7 +32,6 @@ class ActivityLogService(AbstractActivityLogFactory):
             'project__work_cell__udn',
             'contact',
             'contact__job',
-            'contact__city',
             'opportunity',
             'opportunity__status_opportunity',
             'opportunity__currency',

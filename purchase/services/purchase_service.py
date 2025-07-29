@@ -57,7 +57,6 @@ class PurchaseService:
             'opportunityType',
             'contact',
             'contact__job',
-            'contact__city',
             'project',
             'project__specialty',
             'project__subdivision',

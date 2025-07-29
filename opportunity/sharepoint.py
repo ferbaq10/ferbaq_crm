@@ -10,7 +10,7 @@ from office365.sharepoint.folders.folder import Folder
 
 # Cargar tus credenciales (idealmente desde variables de entorno)
 SHAREPOINT_SITE_URL = config("SHAREPOINT_SITE_URL")
-SHAREPOINT_DOC_LIB = config("SHAREPOINT_DOC_LIB", "Documentos compartidos")
+SHAREPOINT_DOC_LIB = config("SHAREPOINT_DOC_LIB", "Biblioteca de Documentos")
 SHAREPOINT_USERNAME = config("SHAREPOINT_USERNAME")
 SHAREPOINT_PASSWORD = config("SHAREPOINT_PASSWORD")
 
@@ -53,7 +53,7 @@ def upload_file(path: str, file_data: bytes):
         uploaded_file = target_folder.upload_file(file_name, file_stream).execute_query()
 
         # 6. Confirmación
-        logger.info(f"✅ Archivo subido correctamente a SharePoint: {uploaded_file.serverRelativeUrl}")
+        logger.info(f" Archivo subido correctamente a SharePoint: {uploaded_file.serverRelativeUrl}")
         return uploaded_file.serverRelativeUrl
 
     except Exception as e:
@@ -72,7 +72,7 @@ def ensure_folder(ctx, parent_folder, folder_parts):
             current_folder = current_folder.folders.add(part)
             ctx.execute_query()
 
-    # ✅ Asegúrate de que las propiedades estén cargadas
+    # Asegúrate de que las propiedades estén cargadas
     current_folder.get().execute_query()
     return current_folder
 

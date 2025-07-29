@@ -1,4 +1,6 @@
 from django.db import migrations
+from django.db import connection
+
 
 periods = [
     "Primer Trimestre",
@@ -56,10 +58,8 @@ currencies = [
 ]
 
 project_statuses = [
-    (1, "Iniciado"),
-    (2, "En curso"),
-    (3, "Por terminar"),
-    (4, "Finalizado"),
+    (1, "Prospecto"),
+    (2, "Activo"),
 ]
 
 status_opportunities = [
@@ -288,28 +288,61 @@ def remove_initial_divisions(apps, schema_editor):
 def remove_initial_subdivisions(apps, schema_editor):
     Division = apps.get_model('catalog', 'Division')
     Subdivision = apps.get_model('catalog', 'Subdivision')
+    Project = apps.get_model('project', 'Project')
 
-    # Obtén los IDs de las divisiones a eliminar (por nombre)
-    division_ids = list(
-        Division.objects.filter(name__in=[name for _, name in divisions])
-        .values_list('id', flat=True)
-    )
+    # Buscar o crear una Division segura
+    default_division = Division.objects.filter(name="Desconocida").first()
+    if not default_division:
+        default_division = Division.objects.create(name="Desconocida")
 
-    # Primero elimina las subdivisions asociadas
-    bulk_delete(Subdivision, ids=[
-        s_id for s_id in Subdivision.objects.filter(division_id__in=division_ids).values_list('id', flat=True)
-    ])
+    # Buscar o crear una Subdivision segura con esa Division
+    default_subdivision = Subdivision.objects.filter(name="Desconocida").first()
+    if not default_subdivision:
+        default_subdivision = Subdivision.objects.create(
+            name="Desconocida",
+            division=default_division
+        )
 
-    # Luego elimina las divisiones
-    bulk_delete(Division, ids=division_ids)
+    # Reasignar proyectos que apunten a subdivisiones a eliminar
+    initial_subdivision_names = [name for name in subdivisions]
+    Project.objects.filter(
+        subdivision__name__in=initial_subdivision_names
+    ).update(subdivision=default_subdivision)
+
+    # Eliminar las subdivisiones iniciales (excepto la de fallback)
+    Subdivision.objects.filter(
+        name__in=initial_subdivision_names
+    ).exclude(id=default_subdivision.id).delete()
 
 def remove_initial_specialties(apps, schema_editor):
     Specialty = apps.get_model('catalog', 'Specialty')
-    Specialty.objects.filter(name__in=[name for _, name in specialties]).delete()
+    Project = apps.get_model('project', 'Project')
+
+    # Buscar o crear una especialidad "Desconocida"
+    default_speciality = Specialty.objects.filter(name="Desconocida").first()
+    if not default_speciality:
+        default_speciality = Specialty.objects.create(name="Desconocida")
+
+    # Reasignar todos los proyectos que usaban las especialidades a borrar
+    Project.objects.filter(
+        specialty_id__in=[1]  # IDs que quieras eliminar
+    ).update(specialty=default_speciality)
+
+    # Ahora sí puedes eliminar
+    Specialty.objects.filter(id__in=[1]).exclude(id=default_speciality.id).delete()
+
+    # Sincronizar la secuencia
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            SELECT setval(
+                pg_get_serial_sequence('catalog_specialities', 'id'),
+                COALESCE((SELECT MAX(id) FROM catalog_specialities), 1)
+            );
+        """)
 
 def remove_initial_project_statuses(apps, schema_editor):
-    ProjectStatus = apps.get_model('catalog', 'ProjectStatus')
-    ProjectStatus.objects.filter(name__in=[name for _, name in project_statuses]).delete()
+    StatusOpportunity = apps.get_model('catalog', 'StatusOpportunity')
+    StatusOpportunity.objects.filter(name__in=[name for _, name in status_opportunities]).delete()
 
 def remove_initial_status_opportunities(apps, schema_editor):
     StatusOpportunity = apps.get_model('catalog', 'StatusOpportunity')
@@ -335,11 +368,9 @@ def remove_initial_meeting_result(apps, schema_editor):
     MeetingResult = apps.get_model('catalog', 'MeetingResult')
     MeetingResult.objects.filter(name__in=[name for _, name in meeting_results]).delete()
 
-
 def remove_initial_lost_opportunity_type(apps, schema_editor):
     LostOpportunityType = apps.get_model('catalog', 'LostOpportunityType')
     LostOpportunityType.objects.filter(name__in=[name for _, name in lost_opportunity_types]).delete()
-
 
 def remove_initial_purchase_status_type(apps, schema_editor):
     PurchaseStatusType = apps.get_model('catalog', 'PurchaseStatusType')
