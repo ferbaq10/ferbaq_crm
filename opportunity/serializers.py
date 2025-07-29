@@ -26,7 +26,6 @@ class FinanceOpportunitySerializer(serializers.ModelSerializer):
             'is_removed',
             'earned_amount',
             'cost_subtotal',
-            'offer_subtotal',
             'order_closing_date',
         ]
         read_only_fields = ['created', 'modified']

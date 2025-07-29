@@ -20,7 +20,6 @@ class DefaultFinanceOpportunityFactory(AbstractFinanceOpportunityFactory):
             opportunity=opportunity,
             defaults={
                 'cost_subtotal': cost_subtotal,
-                'offer_subtotal': offer_subtotal,
                 'earned_amount': earned_amount,
                 'order_closing_date': order_closing_date or timezone.now(),  # ✅ CORREGIDO: Usar el parámetro recibido
             }
