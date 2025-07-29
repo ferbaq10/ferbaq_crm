@@ -14,14 +14,15 @@ class ContactService(AbstractContactFactory):
         pass
 
     def get_base_queryset(self, user)->QuerySet:
-        return Contact.objects.select_related(
+        return (Contact.objects.select_related(
         'job',
-        'city',
     ).prefetch_related(
         Prefetch(
             'clients',
             queryset=Client.objects.prefetch_related('projects')
         )
-    ).filter(clients__projects__work_cell__users=user)
+    )
+                #.filter(clients__projects__work_cell__users=user)
+        )
 
 

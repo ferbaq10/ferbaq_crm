@@ -239,6 +239,6 @@ class AuthenticatedModelViewSet(ModelViewSet):
 
 
 # ¡ORDEN CORRECTO! Mixin primero, luego la clase base
-class CachedViewSet(ListCacheMixin, AuthenticatedModelViewSet):
+class CachedViewSet(AuthenticatedModelViewSet):
     """ViewSet base para catálogos con caché habilitado."""
     cache_timeout = 60 * 60 * 2  # 2 horas para catálogos

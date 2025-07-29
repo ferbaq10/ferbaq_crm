@@ -46,14 +46,6 @@ class Contact(BaseModel):
     )
     history = HistoricalRecords()
 
-    city = models.ForeignKey(
-        City,
-        on_delete=models.DO_NOTHING,
-        blank=True,
-        null=True,
-        verbose_name="Ciudad"
-    )
-
     job = models.ForeignKey(
         Job,
         on_delete=models.DO_NOTHING,
