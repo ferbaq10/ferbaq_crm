@@ -17,7 +17,6 @@ class ContactForm(forms.ModelForm):
                 'max_length': "La dirección no puede tener más de 255 caracteres.",
             },
             'email': {
-                'required': "El campo correo electrónico es obligatorio.",
                 'invalid': "Debe ingresar un correo electrónico válido.",
                 'max_length': "El correo no puede tener más de 100 caracteres.",
                 'unique': "Este correo ya ha sido registrado.",

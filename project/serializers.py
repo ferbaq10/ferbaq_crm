@@ -1,10 +1,15 @@
 from rest_framework import serializers
-
+from decimal import Decimal, ROUND_HALF_UP
 from catalog.models import Specialty, ProjectStatus, Subdivision, WorkCell
 from catalog.serializers import SpecialtySerializer, SubdivisionSerializer, \
     ProjectStatusSerializer, WorkCellSerializer
 from .models import Project
 
+
+def round_coordinate(value):
+    if value is None:
+        return None
+    return Decimal(value).quantize(Decimal("0.000001"), rounding=ROUND_HALF_UP)
 
 class ProjectSerializer(serializers.ModelSerializer):
     specialty = SpecialtySerializer()
@@ -83,15 +88,18 @@ class ProjectWriteSerializer(serializers.ModelSerializer):
         }
         read_only_fields = ['created']
 
-
     def validate_latitude(self, value):
-        if value is not None and (value < -90 or value > 90):
-            raise serializers.ValidationError("La latitud debe estar entre -90 y 90 grados.")
+        if value is not None:
+            value = round_coordinate(value)
+            if value < -90 or value > 90:
+                raise serializers.ValidationError("La latitud debe estar entre -90 y 90 grados.")
         return value
 
     def validate_longitude(self, value):
-        if value is not None and (value < -180 or value > 180):
-            raise serializers.ValidationError("La longitud debe estar entre -180 y 180 grados.")
+        if value is not None:
+            value = round_coordinate(value)
+            if value < -180 or value > 180:
+                raise serializers.ValidationError("La longitud debe estar entre -180 y 180 grados.")
         return value
 
     def validate_description(self, value):

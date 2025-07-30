@@ -45,7 +45,6 @@ class ContactWriteSerializer(serializers.ModelSerializer):
         required=True,
         validators=[EmailValidator(message="Debe ser un correo electrónico válido.")],
         error_messages={
-            'required': 'El campo correo electrónico es obligatorio.',
             'max_length': 'El correo electrónico no puede tener más de 100 caracteres.',
             'invalid': 'Debe ingresar un correo electrónico válido.'
         }

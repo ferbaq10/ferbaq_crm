@@ -34,6 +34,8 @@ class Contact(BaseModel):
     email = models.CharField(
         max_length=100,
         unique=True,
+        null=True,
+        blank=True,
         validators=[EmailValidator(message="Debe ser un correo electrónico válido")],
         verbose_name="Correo electrónico"
     )
