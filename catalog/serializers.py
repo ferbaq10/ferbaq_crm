@@ -68,17 +68,12 @@ class DivisionSerializer(serializers.ModelSerializer):
             'required': 'El campo nombre es obligatorio.',
             'max_length': 'El nombre no puede tener más de 100 caracteres.'
         })
-    business_group = serializers.PrimaryKeyRelatedField(queryset=BusinessGroup.objects.all(), required=True,
-                                                        error_messages={
-            'required': 'El campo nombre es obligatorio.',
-        })
 
     class Meta:
         model = Division
         fields = [
             'id',
             'name',
-            'business_group',
             'is_removed',
         ]
         read_only_fields = ['created', 'modified']

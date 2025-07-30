@@ -114,13 +114,6 @@ class Division(BaseModel):
             'max_length': "El nombre no puede exceder 100 caracteres."
         }
     )
-    business_group = models.ForeignKey(
-        BusinessGroup,
-        on_delete=models.DO_NOTHING,
-        verbose_name="Grupo empresarial",
-        blank=True,
-        null=True
-    )
 
     class Meta:
         db_table = 'catalog_divisions'
