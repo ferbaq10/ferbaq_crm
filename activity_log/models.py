@@ -9,20 +9,8 @@ from project.models import Project
 
 
 class ActivityLog(BaseModel):
-    latitude = models.DecimalField(
-        max_digits=9,
-        decimal_places=6,
-        blank=True,
-        null=True,
-        verbose_name="Latitud"
-    )
-    longitude = models.DecimalField(
-        max_digits=9,
-        decimal_places=6,
-        blank=True,
-        null=True,
-        verbose_name="Longitud"
-    )
+    latitude = models.FloatField(blank=True, null=True)
+    longitude = models.FloatField(blank=True, null=True)
     observation = models.TextField(
         blank=True,
         null=True,)

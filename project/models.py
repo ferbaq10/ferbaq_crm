@@ -1,8 +1,8 @@
 from django.db import models
 from simple_history.models import HistoricalRecords
-
 from catalog.models import ProjectStatus, Specialty, Subdivision, BusinessGroup, WorkCell, BaseModel
 from model_utils.models import SoftDeletableModel, TimeStampedModel
+
 
 class Project(BaseModel):
     name = models.CharField(
@@ -19,20 +19,8 @@ class Project(BaseModel):
         null=True,
         verbose_name="Descripción"
     )
-    latitude = models.DecimalField(
-        max_digits=9,
-        decimal_places=6,
-        blank=True,
-        null=True,
-        verbose_name="Latitud"
-    )
-    longitude = models.DecimalField(
-        max_digits=9,
-        decimal_places=6,
-        blank=True,
-        null=True,
-        verbose_name="Longitud"
-    )
+    latitude = models.FloatField(blank=True, null=True)
+    longitude = models.FloatField(blank=True, null=True)
     history = HistoricalRecords()
 
     project_status = models.ForeignKey(
