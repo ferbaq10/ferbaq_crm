@@ -569,3 +569,13 @@ server {
   gunicorn --workers 1 --bind unix:/var/www/ferbaq_crm_backend/gunicorn.sock core.wsgi:application --log-level debug --capture-output
   sudo systemctl start gunicorn
 ```
+
+Cambiar la contraseña de un usuario desde Django Shell
+```bash
+ from django.contrib.auth.models import User
+ from django.contrib.auth import get_user_model
+ User = get_user_model()
+ user = User.objects.get(username='admin')      
+ user.set_password('admin')                    
+ user.save()
+```

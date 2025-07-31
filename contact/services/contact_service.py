@@ -21,8 +21,6 @@ class ContactService(AbstractContactFactory):
             'clients',
             queryset=Client.objects.prefetch_related('projects')
         )
-    )
-                #.filter(clients__projects__work_cell__users=user)
-        )
+    ).filter(clients__projects__work_cell__users=user))
 
 

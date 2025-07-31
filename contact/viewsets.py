@@ -11,7 +11,6 @@ class ContactViewSet(CachedViewSet):
     model = Contact
     serializer_class = ContactSerializer
 
-
     # Configuración específica de Contact
     cache_prefix = "contact"  # Override del "catalog" por defecto
 
@@ -22,8 +21,6 @@ class ContactViewSet(CachedViewSet):
     @cached_property
     def contact_service(self) -> ContactService:
         return injector.get(ContactService)
-
-
 
     def get_queryset(self):
         user = self.request.user
