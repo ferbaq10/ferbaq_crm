@@ -45,20 +45,6 @@ class ClientViewSet(CachedViewSet):
         user = request.user
         return self.client_service.get_base_queryset(user).filter(is_removed=False).distinct()
 
-    def get_cache_key(self):
-        """Override para incluir el usuario en la clave de cache"""
-        user_id = self.request.user.id
-        return f"{self.cache_prefix}_{self.__class__.__name__}_{user_id}_list"
-
-
-    def get_related_cache_keys(self, action, instance):
-        """
-        Define qué caches relacionados invalidar automáticamente
-        """
-        return [
-            "catalog_CityViewSet_list",
-            "catalog_BusinessGroupViewSet_list",
-        ]
 
     @transaction.atomic
     def create(self, request, *args, **kwargs):
