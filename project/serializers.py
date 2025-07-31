@@ -1,42 +1,119 @@
 from rest_framework import serializers
+from decimal import Decimal, ROUND_HALF_UP
+from catalog.models import Specialty, ProjectStatus, Subdivision, WorkCell
+from catalog.serializers import SpecialtySerializer, SubdivisionSerializer, \
+    ProjectStatusSerializer, WorkCellSerializer
 from .models import Project
 
+
+def round_coordinate(value):
+    if value is None:
+        return None
+    return Decimal(value).quantize(Decimal("0.000001"), rounding=ROUND_HALF_UP)
+
 class ProjectSerializer(serializers.ModelSerializer):
+    specialty = SpecialtySerializer()
+    subdivision = SubdivisionSerializer()
+    project_status = ProjectStatusSerializer()
+    work_cell = WorkCellSerializer()
+
+    # Campo de soft delete heredado de SoftDeletableModel
+    is_removed = serializers.BooleanField(required=False)
+   
     class Meta:
         model = Project
-        fields = '__all__'
+        fields = [
+            'id',
+            'name',
+            'latitude',
+            'work_cell',
+            'longitude',
+            'specialty',
+            'is_removed',
+            'subdivision',
+            'description',
+            'project_status',
+        ]
+
+        read_only_fields = ['created', 'modified']
+
+
+class ProjectWriteSerializer(serializers.ModelSerializer):
+    specialty = serializers.PrimaryKeyRelatedField(queryset=Specialty.objects.all(), required=False, allow_null=True)
+    subdivision = serializers.PrimaryKeyRelatedField(queryset=Subdivision.objects.all())
+    project_status = serializers.PrimaryKeyRelatedField(queryset=ProjectStatus.objects.all())
+    work_cell = serializers.PrimaryKeyRelatedField(queryset=WorkCell.objects.all())
+
+    class Meta:
+        model = Project
+        fields = [
+            'id',
+            'name',
+            'latitude',
+            'work_cell',
+            'longitude',
+            'specialty',
+            'is_removed',
+            'description',
+            'subdivision',
+            'project_status',
+        ]
         extra_kwargs = {
+            'name': {
+                'required': True,
+                'error_messages': {
+                    'required': 'El nombre es obligatorio.',
+                    'blank': 'El nombre no puede estar vacío.'
+                }
+            },
             'latitude': {
                 'required': False,
                 'error_messages': {
-                    'invalid': 'Ingrese una latitud válida.',
+                    'invalid': 'Ingrese una latitud válida.'
                 }
             },
             'longitude': {
                 'required': False,
                 'error_messages': {
-                    'invalid': 'Ingrese una longitud válida.',
+                    'invalid': 'Ingrese una longitud válida.'
                 }
             },
             'description': {
                 'required': False,
+                'allow_blank': True,
                 'error_messages': {
-                    'blank': 'La descripción no puede estar vacía.',
+                    'blank': 'La descripción no puede estar vacía.'
                 }
             }
         }
+        read_only_fields = ['created']
 
     def validate_latitude(self, value):
-        if value is not None and (value < -90 or value > 90):
-            raise serializers.ValidationError("La latitud debe estar entre -90 y 90 grados.")
+        if value is not None:
+            value = round_coordinate(value)
+            if value < -90 or value > 90:
+                raise serializers.ValidationError("La latitud debe estar entre -90 y 90 grados.")
         return value
 
     def validate_longitude(self, value):
-        if value is not None and (value < -180 or value > 180):
-            raise serializers.ValidationError("La longitud debe estar entre -180 y 180 grados.")
+        if value is not None:
+            value = round_coordinate(value)
+            if value < -180 or value > 180:
+                raise serializers.ValidationError("La longitud debe estar entre -180 y 180 grados.")
         return value
 
     def validate_description(self, value):
         if value and len(value.strip()) < 10:
             raise serializers.ValidationError("La descripción debe tener al menos 10 caracteres.")
         return value
+
+    def to_representation(self, instance):
+        """Devuelve la representación con objetos anidados aunque sea un serializer de escritura"""
+        ret = super().to_representation(instance)
+        ret['specialty'] = SpecialtySerializer(instance.specialty).data if instance.specialty else None
+        ret['subdivision'] = SubdivisionSerializer(instance.subdivision).data if instance.subdivision else None
+        ret['project_status'] = ProjectStatusSerializer(instance.project_status).data if instance.project_status else None
+        ret['work_cell'] = WorkCellSerializer(instance.work_cell).data if instance.work_cell else None
+
+        return ret
+

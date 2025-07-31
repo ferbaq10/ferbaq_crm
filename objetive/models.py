@@ -1,9 +1,9 @@
 from django.db import models
-from catalog.models import Period
+from catalog.models import Period, Currency, BaseModel
 from django.conf import settings
+from model_utils.models import SoftDeletableModel, TimeStampedModel
 
-
-class Objetive(models.Model):
+class Objetive(BaseModel):
     name = models.CharField(
         unique=True,
         max_length=100,
@@ -18,6 +18,13 @@ class Objetive(models.Model):
         decimal_places=2,
         verbose_name="Monto"
     )
+    currency = models.ForeignKey(
+        Currency,
+        on_delete=models.DO_NOTHING,
+        blank=True,
+        null=True
+    )
+
     period = models.ForeignKey(
         Period,
         on_delete=models.DO_NOTHING,

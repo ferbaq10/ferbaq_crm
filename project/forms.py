@@ -10,12 +10,28 @@ class ProjectForm(forms.ModelForm):
             'latitude': 'Latitud',
             'longitude': 'Longitud',
             'project_status': 'Estatus del proyecto',
-            'speciality': 'Especialidad',
+            'specialty': 'Especialidad',
             'subdivision': 'Subdivisión',
             'business_groups': 'Grupo empresarial',
             'work_cell': 'Célula de trabajo',
         }
         error_messages = {
+            'name': {
+                'required': 'Este campo es obligatorio.',
+                'unique': 'Ya existe un proyecto con este nombre.'
+            },
+            'project_status': {
+                'required': 'Este campo es obligatorio.',
+            },
+             'specialty': {
+                'required': 'Este campo es obligatorio.',
+            },
+             'subdivision': {
+                'required': 'Este campo es obligatorio.',
+            },
+             'business_groups': {
+                'required': 'Este campo es obligatorio.',
+            },
             'latitude': {
                 'invalid': 'Ingrese una latitud válida.',
             },

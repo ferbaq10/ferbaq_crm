@@ -1,8 +1,11 @@
 from django.db import models
-from catalog.models import City, BusinessGroup
-from contact.models import Contact
+from simple_history.models import HistoricalRecords
 
-class Client(models.Model):
+from catalog.models import City, BusinessGroup, BaseModel
+from project.models import Project
+
+
+class Client(BaseModel):
     rfc = models.CharField(
         unique=True,
         max_length=20,
@@ -13,6 +16,12 @@ class Client(models.Model):
         max_length=100,
         verbose_name="Razón social"
     )
+    id_client = models.IntegerField(
+        unique=True,
+        verbose_name="Id de cliente"
+    )
+    history = HistoricalRecords()
+
     city = models.ForeignKey(
         City,
         on_delete=models.DO_NOTHING,
@@ -20,17 +29,18 @@ class Client(models.Model):
         null=True,
         verbose_name="Ciudad"
     )
-    business_group = models.ManyToManyField(
+    business_group = models.ForeignKey(
         BusinessGroup,
-        related_name='clients',
         blank=True,
+        on_delete=models.DO_NOTHING,
         verbose_name="Grupo empresarial"
     )
-    contact = models.ManyToManyField(
-        Contact,
+
+    projects = models.ManyToManyField(
+        Project,
         related_name='clients',
-        blank=True,
-        verbose_name="Contactos"
+        verbose_name="Proyectos",
+        blank=True
     )
 
     class Meta:

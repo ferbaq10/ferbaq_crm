@@ -1,8 +1,11 @@
 from django import forms
+
 from catalog.models import (
     UDN, WorkCell, BusinessGroup, Division, Subdivision,
-    Speciality, ProjectStatus, City, Period, StatusOpportunity
+    Specialty, ProjectStatus, City, Period, StatusOpportunity,
+    Currency, Job, OpportunityType, MeetingType, MeetingResult, LostOpportunityType, PurchaseStatusType
 )
+
 
 class UDNForm(forms.ModelForm):
     class Meta:
@@ -64,9 +67,9 @@ class SubdivisionForm(forms.ModelForm):
             }
         }
 
-class SpecialityForm(forms.ModelForm):
+class SpecialtyForm(forms.ModelForm):
     class Meta:
-        model = Speciality
+        model = Specialty
         fields = '__all__'
         error_messages = {
             'name': {
@@ -121,5 +124,91 @@ class StatusOpportunityForm(forms.ModelForm):
                 'required': "El nombre del estatus de oportunidad es obligatorio.",
                 'max_length': "El nombre no puede exceder 100 caracteres.",
                 'unique': "Este estatus de oportunidad ya existe.",
+            }
+        }
+
+class CurrencyForm(forms.ModelForm):
+    class Meta:
+        model = Currency
+        fields = '__all__'
+        error_messages = {
+            'name': {
+                'required': "El nombre de la divisa es obligatorio.",
+                'max_length': "El nombre no puede exceder 100 caracteres.",
+                'unique': "Esta divisa ya existe.",
+            }
+        }
+
+class JobForm(forms.ModelForm):
+    class Meta:
+        model = Job
+        fields = '__all__'
+        error_messages = {
+            'name': {
+                'required': "El nombre del cargo es obligatorio.",
+                'max_length': "El nombre no puede exceder 100 caracteres.",
+                'unique': "Este cargo ya existe.",
+            }
+        }
+
+
+class OpportunityTypeForm(forms.ModelForm):
+    class Meta:
+        model = OpportunityType
+        fields = '__all__'
+        error_messages = {
+            'name': {
+                'required': "El nombre del tipo de oportunidad es obligatorio.",
+                'max_length': "El nombre no puede exceder 100 caracteres.",
+                'unique': "Este tipo de oportunidad ya existe.",
+            }
+        }
+
+
+class MeetingTypeForm(forms.ModelForm):
+    class Meta:
+        model = MeetingType
+        fields = '__all__'
+        error_messages = {
+            'name': {
+                'required': "El nombre del tipo de reunión es obligatorio.",
+                'max_length': "El nombre no puede exceder 100 caracteres.",
+                'unique': "Este tipo de reunión ya existe.",
+            }
+        }
+
+class MeetingResultForm(forms.ModelForm):
+    class Meta:
+        model = MeetingResult
+        fields = '__all__'
+        error_messages = {
+            'name': {
+                'required': "El nombre del resultado de la reunión es obligatorio.",
+                'max_length': "El nombre no puede exceder 100 caracteres.",
+                'unique': "Este resultado de reunión ya existe.",
+            }
+        }
+
+class LostOpportunityTypeForm(forms.ModelForm):
+    class Meta:
+        model = LostOpportunityType
+        fields = '__all__'
+        error_messages = {
+            'name': {
+                'required': "El nombre del tipo de oportunidad perdida es obligatorio.",
+                'max_length': "El nombre no puede exceder 100 caracteres.",
+                'unique': "Este tipo de oportunidad perdida ya existe.",
+            }
+        }
+
+class PurchaseStatusTypeForm(forms.ModelForm):
+    class Meta:
+        model = PurchaseStatusType
+        fields = '__all__'
+        error_messages = {
+            'name': {
+                'required': "El nombre del tipo de estatus de compra es obligatorio.",
+                'max_length': "El nombre no puede exceder 100 caracteres.",
+                'unique': "Este tipo de estatus de compra ya existe.",
             }
         }

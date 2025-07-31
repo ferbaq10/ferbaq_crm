@@ -1,7 +1,8 @@
 from rest_framework import serializers
 from catalog.models import (
-    UDN, WorkCell, BusinessGroup, Division, Subdivision, Speciality,
-    ProjectStatus, City, Period, StatusOpportunity
+    UDN, WorkCell, BusinessGroup, Division, Subdivision, Specialty,
+    ProjectStatus, City, Period, StatusOpportunity, Currency, Job, OpportunityType,
+    MeetingType, MeetingResult, LostOpportunityType, PurchaseStatusType
 )
 
 class UDNSerializer(serializers.ModelSerializer):
@@ -13,7 +14,12 @@ class UDNSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UDN
-        fields = '__all__'
+        fields = [
+            'id',
+            'name',
+            'is_removed',
+        ]
+        read_only_fields = ['created', 'modified']
 
 
 class WorkCellSerializer(serializers.ModelSerializer):
@@ -24,9 +30,19 @@ class WorkCellSerializer(serializers.ModelSerializer):
         })
     udn = serializers.PrimaryKeyRelatedField(queryset=UDN.objects.all(), required=True)
 
+    # Para lectura (GET)
+    udn_data = UDNSerializer(source='udn', read_only=True)
+
     class Meta:
         model = WorkCell
-        fields = '__all__'
+        fields = [
+            'id',
+            'name',
+            'udn',
+            'udn_data',
+            'is_removed'
+        ]
+        read_only_fields = ['created', 'modified']
 
 
 class BusinessGroupSerializer(serializers.ModelSerializer):
@@ -38,7 +54,12 @@ class BusinessGroupSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = BusinessGroup
-        fields = '__all__'
+        fields = [
+            'id',
+            'name',
+            'is_removed',
+        ]
+        read_only_fields = ['created', 'modified']
 
 
 class DivisionSerializer(serializers.ModelSerializer):
@@ -47,14 +68,15 @@ class DivisionSerializer(serializers.ModelSerializer):
             'required': 'El campo nombre es obligatorio.',
             'max_length': 'El nombre no puede tener más de 100 caracteres.'
         })
-    business_group = serializers.PrimaryKeyRelatedField(queryset=BusinessGroup.objects.all(), required=True,
-                                                        error_messages={
-            'required': 'El campo nombre es obligatorio.',
-        })
 
     class Meta:
         model = Division
-        fields = '__all__'
+        fields = [
+            'id',
+            'name',
+            'is_removed',
+        ]
+        read_only_fields = ['created', 'modified']
 
 
 class SubdivisionSerializer(serializers.ModelSerializer):
@@ -70,10 +92,16 @@ class SubdivisionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Subdivision
-        fields = '__all__'
+        fields = [
+            'id',
+            'name',
+            'division',
+            'is_removed',
+        ]
+        read_only_fields = ['created', 'modified']
 
 
-class SpecialitySerializer(serializers.ModelSerializer):
+class SpecialtySerializer(serializers.ModelSerializer):
     name = serializers.CharField(max_length=100, required=True,
                                  error_messages={
             'required': 'El campo nombre es obligatorio.',
@@ -81,8 +109,13 @@ class SpecialitySerializer(serializers.ModelSerializer):
         })
 
     class Meta:
-        model = Speciality
-        fields = '__all__'
+        model = Specialty
+        fields = [
+            'id',
+            'name',
+            'is_removed',
+        ]
+        read_only_fields = ['created', 'modified']
 
 
 class ProjectStatusSerializer(serializers.ModelSerializer):
@@ -94,7 +127,12 @@ class ProjectStatusSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProjectStatus
-        fields = '__all__'
+        fields = [
+            'id',
+            'name',
+            'is_removed',
+        ]
+        read_only_fields = ['created', 'modified']
 
 
 class CitySerializer(serializers.ModelSerializer):
@@ -106,7 +144,12 @@ class CitySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = City
-        fields = '__all__'
+        fields = [
+            'id',
+            'name',
+            'is_removed',
+        ]
+        read_only_fields = ['created', 'modified']
 
 
 class PeriodSerializer(serializers.ModelSerializer):
@@ -118,7 +161,12 @@ class PeriodSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Period
-        fields = '__all__'
+        fields = [
+            'id',
+            'name',
+            'is_removed',
+        ]
+        read_only_fields = ['created', 'modified']
 
 
 class StatusOpportunitySerializer(serializers.ModelSerializer):
@@ -130,4 +178,116 @@ class StatusOpportunitySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = StatusOpportunity
-        fields = '__all__'
+        fields = [
+            'id',
+            'name',
+            'is_removed',
+        ]
+        read_only_fields = ['created', 'modified']
+
+
+class CurrencySerializer(serializers.ModelSerializer):
+    name = serializers.CharField(max_length=100, required=True,
+                                 error_messages={
+            'required': 'El campo nombre es obligatorio.',
+            'max_length': 'El nombre no puede tener más de 100 caracteres.'
+        })
+
+    class Meta:
+        model = Currency
+        fields = [
+            'id',
+            'name',
+            'is_removed',
+        ]
+        read_only_fields = ['created', 'modified']
+
+
+class JobSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(max_length=100, required=True,
+                                 error_messages={
+                                     'required': 'El campo nombre es obligatorio.',
+                                     'max_length': 'El nombre no puede tener más de 100 caracteres.'
+                                 })
+
+    class Meta:
+        model = Job
+        fields = [
+            'id',
+            'name',
+            'is_removed',
+        ]
+        read_only_fields = ['created', 'modified']
+
+
+class OpportunityTypeSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(max_length=100, required=True,
+                                 error_messages={
+            'required': 'El campo nombre es obligatorio.',
+            'max_length': 'El nombre no puede tener más de 100 caracteres.'
+        })
+
+    class Meta:
+        model = OpportunityType
+        fields = [
+            'id',
+            'name',
+            'is_removed',
+        ]
+        read_only_fields = ['created', 'modified']
+
+
+class MeetingTypeSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(max_length=100, required=True,
+                                 error_messages={
+            'required': 'El campo nombre es obligatorio.',
+            'max_length': 'El nombre no puede tener más de 100 caracteres.'
+        })
+
+    class Meta:
+        model = MeetingType
+        fields = [
+            'id',
+            'name',
+            'is_removed',
+        ]
+        read_only_fields = ['created', 'modified']
+
+
+class MeetingResultSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(max_length=100, required=True,
+                                 error_messages={
+            'required': 'El campo nombre es obligatorio.',
+            'max_length': 'El nombre no puede tener más de 100 caracteres.'
+        })
+
+    class Meta:
+        model = MeetingResult
+        fields = [
+            'id',
+            'name',
+            'is_removed',
+        ]
+        read_only_fields = ['created', 'modified']
+
+
+class LostOpportunityTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LostOpportunityType
+        fields = [
+            'id',
+            'name',
+            'is_removed',
+        ]
+        read_only_fields = ['created', 'modified']
+
+
+class PurchaseStatusTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PurchaseStatusType
+        fields = [
+            'id',
+            'name',
+            'is_removed',
+        ]
+        read_only_fields = ['created', 'modified']

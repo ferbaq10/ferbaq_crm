@@ -1,46 +1,59 @@
 from django import forms
-from .models import Opportunity, ComercialActivity
-from django.core.validators import validate_email
+from opportunity.models import Opportunity, CommercialActivity
+
 
 class OpportunityForm(forms.ModelForm):
     class Meta:
         model = Opportunity
-        fields = '__all__'
-        labels = {
-            'name': 'Nombre',
-            'description': 'Descripción',
-            'email': 'Correo electrónico',
-            'phone': 'Teléfono',
-            'amount': 'Monto',
-            'status_opportunity': 'Estado de la oportunidad',
-            'contact': 'Contacto',
-            'city': 'Ciudad'
-        }
+        fields = [
+            'name', 'description', 'amount', 'requisition_number',
+            'date_reception', 'sent_date',
+            'status_opportunity', 'contact', 'currency',
+            'agent', 'project', 'opportunityType'
+        ]
         error_messages = {
             'name': {
-                'required': 'Este campo es obligatorio.',
-                'unique': 'Ya existe una oportunidad con este nombre.'
-            },
-            'email': {
-                'unique': 'Ya existe una oportunidad con este correo.',
-                'invalid': 'Ingrese un correo válido.'
+                'unique': 'Ya existe una oportunidad con este nombre.',
+                'required': 'El nombre es obligatorio.',
             },
             'amount': {
-                'invalid': 'El monto debe ser un número válido.'
+                'required': 'El monto es obligatorio.',
+                'invalid': 'Debe ser un número válido.',
             },
-            'phone': {
-                'invalid': 'El teléfono debe ser numérico.'
-            }
+            'requisition_number': {
+                'max_length': 'El número de requisición no puede tener más de 100 caracteres.',
+            },
+            'date_reception': {'required': 'La fecha de recepción es obligatoria.'},
+            'status_opportunity': {'required': 'El estado es obligatorio.'},
+            'contact': {'required': 'El contacto es obligatorio.'},
+            'currency': {'required': 'La moneda es obligatoria.'},
+            'agent': {'required': 'El usuario asignado es obligatorio.'},
+            'project': {'required': 'El proyecto es obligatorio.'},
+            'opportunityType': {'required': 'El tipo de oportunidad es obligatorio.'},
         }
 
+    def clean_amount(self):
+        amount = self.cleaned_data.get('amount')
+        if amount is not None and amount <= 0:
+            raise forms.ValidationError("El monto debe ser mayor a cero.")
+        return amount
 
-class ComercialActivityForm(forms.ModelForm):
+    def clean(self):
+        cleaned_data = super().clean()
+        date_reception = cleaned_data.get('date_reception')
+        sent_date = cleaned_data.get('sent_date')
+        if date_reception and sent_date and sent_date < date_reception:
+            raise forms.ValidationError("La fecha de envío no puede ser anterior a la de recepción.")
+
+
+class CommercialActivityForm(forms.ModelForm):
     class Meta:
-        model = ComercialActivity
+        model = CommercialActivity
         fields = '__all__'
         labels = {
             'name': 'Nombre',
-            'oportunity_id': 'Oportunidad'
+            'oportunity_id': 'Oportunidad',
+            'opportunities': 'Oportunidades'
         }
         error_messages = {
             'name': {

@@ -1,7 +1,22 @@
 from django.db import models
 from django.conf import settings
+from model_utils.models import SoftDeletableModel, TimeStampedModel
 
-class UDN(models.Model):
+
+class BaseModel(SoftDeletableModel, TimeStampedModel):
+    '''
+    Para utilizar el manager del modelo para especificar que devuelva todos los datos aunuqe estén marcados
+    como eliminados
+    '''
+    objects = models.Manager()
+
+    all_objects = models.Manager()  # este sí devuelve todo
+
+    class Meta:
+        abstract = True  # <- Esto evita que Django lo trate como una tabla real
+
+
+class UDN(BaseModel):
     name = models.CharField(
         unique=True,
         max_length=100,
@@ -22,12 +37,12 @@ class UDN(models.Model):
         db_table = 'catalog_udns'
         verbose_name = "UDN"
         verbose_name_plural = "UDN's"
+        ordering = ['-name']
 
     def __str__(self):
         return self.name
 
-
-class WorkCell(models.Model):
+class WorkCell(BaseModel):
     name = models.CharField(
         unique=True,
         max_length=100,
@@ -40,15 +55,16 @@ class WorkCell(models.Model):
     udn = models.ForeignKey(
         UDN,
         on_delete=models.DO_NOTHING,
-        blank=True,
-        null=True,
-        verbose_name="UDN"
+        verbose_name="UDN",
+        related_name='workcell'
     )
     users = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
         related_name='workcell',
         blank=True,
-        verbose_name="Usuarios asignados"
+        verbose_name="Usuarios asignados",
+        related_query_name='workcell',
+        through='WorkCellUser',
     )
 
     class Meta:
@@ -56,11 +72,20 @@ class WorkCell(models.Model):
         verbose_name = "Célula de trabajo"
         verbose_name_plural = "Células de trabajo"
 
+
     def __str__(self):
         return self.name
 
+class WorkCellUser(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    work_cell = models.ForeignKey(WorkCell, on_delete=models.CASCADE)
 
-class BusinessGroup(models.Model):
+    class Meta:
+        db_table = 'catalog_work_cells_users'
+        verbose_name = "Asignación de célula de trabajo a usuario"
+        verbose_name_plural = "Asignación de células de trabajo a usuarios"
+
+class BusinessGroup(BaseModel):
     name = models.CharField(
         unique=True,
         max_length=100,
@@ -79,8 +104,7 @@ class BusinessGroup(models.Model):
     def __str__(self):
         return self.name
 
-
-class Division(models.Model):
+class Division(BaseModel):
     name = models.CharField(
         unique=True,
         max_length=100,
@@ -89,11 +113,6 @@ class Division(models.Model):
             'unique': "Esta división ya existe.",
             'max_length': "El nombre no puede exceder 100 caracteres."
         }
-    )
-    business_group = models.ForeignKey(
-        BusinessGroup,
-        on_delete=models.DO_NOTHING,
-        verbose_name="Grupo empresarial"
     )
 
     class Meta:
@@ -104,8 +123,7 @@ class Division(models.Model):
     def __str__(self):
         return self.name
 
-
-class Subdivision(models.Model):
+class Subdivision(BaseModel):
     name = models.CharField(
         unique=True,
         max_length=100,
@@ -118,7 +136,8 @@ class Subdivision(models.Model):
     division = models.ForeignKey(
         Division,
         on_delete=models.DO_NOTHING,
-        verbose_name="División"
+        verbose_name="División",
+        related_name='subdivision'
     )
 
     class Meta:
@@ -129,8 +148,7 @@ class Subdivision(models.Model):
     def __str__(self):
         return self.name
 
-
-class Speciality(models.Model):
+class Specialty(BaseModel):
     name = models.CharField(
         unique=True,
         max_length=100,
@@ -149,8 +167,26 @@ class Speciality(models.Model):
     def __str__(self):
         return self.name
 
+class Currency(BaseModel):
+    name = models.CharField(
+        unique=True,
+        max_length=100,
+        verbose_name="Nombre",
+        error_messages={
+            'unique': "Esta divisa ya existe.",
+            'max_length': "El nombre no puede exceder 100 caracteres."
+        }
+    )
 
-class ProjectStatus(models.Model):
+    class Meta:
+        db_table = 'catalog_currencies'
+        verbose_name = "Divisa"
+        verbose_name_plural = "Divisas"
+
+    def __str__(self):
+        return self.name
+
+class ProjectStatus(BaseModel):
     name = models.CharField(
         unique=True,
         max_length=100,
@@ -169,8 +205,7 @@ class ProjectStatus(models.Model):
     def __str__(self):
         return self.name
 
-
-class City(models.Model):
+class City(BaseModel):
     name = models.CharField(
         unique=True,
         max_length=100,
@@ -182,15 +217,14 @@ class City(models.Model):
     )
 
     class Meta:
-        db_table = 'catalog_city'
+        db_table = 'catalog_cities'
         verbose_name = "Ciudad"
         verbose_name_plural = "Ciudades"
 
     def __str__(self):
         return self.name
 
-
-class Period(models.Model):
+class Period(BaseModel):
     name = models.CharField(
         unique=True,
         max_length=100,
@@ -209,8 +243,7 @@ class Period(models.Model):
     def __str__(self):
         return self.name
 
-
-class StatusOpportunity(models.Model):
+class StatusOpportunity(BaseModel):
     name = models.CharField(
         unique=True,
         max_length=100,
@@ -225,6 +258,122 @@ class StatusOpportunity(models.Model):
         db_table = 'catalog_status_opportunities'
         verbose_name = "Estado de la oportunidad"
         verbose_name_plural = "Estados de la oportunidad"
+
+    def __str__(self):
+        return self.name
+
+class Job(BaseModel):
+    name = models.CharField(
+        unique=True,
+        max_length=100,
+        verbose_name="Nombre",
+        error_messages={
+            'unique': "Este cargo ya existe.",
+            'max_length': "El nombre no puede exceder 100 caracteres."
+        }
+    )
+
+    class Meta:
+        db_table = 'catalog_jobs'
+        verbose_name = "Cargo"
+        verbose_name_plural = "Cargos"
+
+    def __str__(self):
+        return self.name
+
+class OpportunityType(BaseModel):
+    name = models.CharField(
+        unique=True,
+        max_length=100,
+        verbose_name="Nombre",
+        error_messages={
+            'unique': "Este tipo de oportunidad ya existe.",
+            'max_length': "El nombre no puede exceder 100 caracteres."
+        }
+    )
+
+    class Meta:
+        db_table = 'catalog_opportunity_types'
+        verbose_name = "Tipo de oportunidad"
+        verbose_name_plural = "Tipo de oportunidades"
+
+    def __str__(self):
+        return self.name
+
+class MeetingType(BaseModel):
+    name = models.CharField(
+        unique=True,
+        max_length=100,
+        verbose_name="Nombre",
+        error_messages={
+            'unique': "Este tipo de reunión ya existe.",
+            'max_length': "El nombre no puede exceder 100 caracteres."
+        }
+    )
+
+
+    class Meta:
+        db_table = 'catalog_meeting_types'
+        verbose_name = "Tipo de reunión"
+        verbose_name_plural = "Tipo de reuniones"
+
+    def __str__(self):
+        return self.name
+
+class MeetingResult(BaseModel):
+    name = models.CharField(
+        unique=True,
+        max_length=100,
+        verbose_name="Nombre",
+        error_messages={
+            'unique': "Este resultado de reunión ya existe.",
+            'max_length': "El nombre no puede exceder 100 caracteres."
+        }
+    )
+
+
+    class Meta:
+        db_table = 'catalog_meeting_results'
+        verbose_name = "Resultado de reunión"
+        verbose_name_plural = "Resultado de reuniones"
+
+    def __str__(self):
+        return self.name
+
+class LostOpportunityType(BaseModel):
+    name = models.CharField(
+        unique=True,
+        max_length=100,
+        verbose_name="Nombre",
+        error_messages={
+            'unique': "Este tipo de pérdida ya existe.",
+            'max_length': "El nombre no puede exceder 100 caracteres."
+        }
+    )
+
+    class Meta:
+        db_table = 'catalog_lost_opportunity_type'
+        verbose_name = "Tipo de pérdida de la oportunidad"
+        verbose_name_plural = "Tipos de pérdidas de las oportunidades"
+
+    def __str__(self):
+        return self.name
+
+class PurchaseStatusType(BaseModel):
+    name = models.CharField(
+        unique=True,
+        max_length=100,
+        verbose_name="Nombre",
+        error_messages={
+            'unique': "Este estado de compra ya existe.",
+            'max_length': "El nombre no puede exceder 100 caracteres."
+        }
+    )
+
+    class Meta:
+        db_table = 'catalog_purchase_status'
+        verbose_name = "Estado de la compra"
+        verbose_name_plural = "Estados de la compra"
 
     def __str__(self):
         return self.name

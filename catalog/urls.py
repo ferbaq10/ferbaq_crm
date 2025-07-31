@@ -1,20 +1,39 @@
 from rest_framework.routers import DefaultRouter
-from catalog.viewsets import (
+from catalog.viewsets.catalog_viewsets import (
     UDNViewSet, WorkCellViewSet, BusinessGroupViewSet, DivisionViewSet,
-    SubdivisionViewSet, SpecialityViewSet, ProjectStatusViewSet, CityViewSet,
-    PeriodViewSet, StatusOpportunityViewSet
+    SubdivisionViewSet, SpecialtyViewSet, ProjectStatusViewSet, CityViewSet,
+    PeriodViewSet, StatusOpportunityViewSet, CurrencyViewSet, JobViewSet, OpportunityTypeViewSet,
+    MeetingTypeViewSet, MeetingResultViewSet, LostOpportunityTypeViewSet, PurchaseStatusTypeViewSet
 )
 
 router = DefaultRouter()
-router.register(r'udns', UDNViewSet)
-router.register(r'workcells', WorkCellViewSet)
-router.register(r'businessgroups', BusinessGroupViewSet)
-router.register(r'divisions', DivisionViewSet)
-router.register(r'subdivisions', SubdivisionViewSet)
-router.register(r'specialities', SpecialityViewSet)
-router.register(r'projectstatuses', ProjectStatusViewSet)
-router.register(r'cities', CityViewSet)
-router.register(r'periods', PeriodViewSet)
-router.register(r'statusopportunities', StatusOpportunityViewSet)
+router.register(r'udns', UDNViewSet, basename='udn')
+router.register(r'workcells', WorkCellViewSet, basename='workcell')
+router.register(r'business-groups', BusinessGroupViewSet, basename='businessgroup')
+router.register(r'divisions', DivisionViewSet, basename='division')
+router.register(r'subdivisions', SubdivisionViewSet, basename='subdivision')
+router.register(r'specialties', SpecialtyViewSet, basename='specialty')
+router.register(r'project-statuses', ProjectStatusViewSet, basename='projectstatus')
+router.register(r'cities', CityViewSet, basename='city')
+router.register(r'periods', PeriodViewSet, basename='period')
+router.register(r'status-opportunities', StatusOpportunityViewSet, basename='statusopportunity')
+
+router.register(r'currencies', CurrencyViewSet, basename='currencies')
+
+router.register(r'jobs', JobViewSet, basename='jobs')
+
+router.register(r'opportunity-types', OpportunityTypeViewSet, basename='opportunity-types')
+
+router.register(r'meeting-types', MeetingTypeViewSet, basename='meeting-types')
+
+router.register(r'meeting-results', MeetingResultViewSet, basename='meeting-results')
+
+router.register(r'lost-opportunity-type', LostOpportunityTypeViewSet, basename='lost-opportunity-type')
+
+router.register(r'purchase-status-type', PurchaseStatusTypeViewSet, basename='purchase-status-type')
+
+
+
+
 
 urlpatterns = router.urls

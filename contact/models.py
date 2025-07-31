@@ -1,13 +1,18 @@
 from django.db import models
 from django.core.validators import RegexValidator, EmailValidator
-from catalog.models import City
+from simple_history.models import HistoricalRecords
+
+from catalog.models import City, Job, BaseModel
+from model_utils.models import SoftDeletableModel, TimeStampedModel
+
+from client.models import Client
 
 phone_regex = RegexValidator(
     regex=r'^\d{10,}$',
     message="El número debe contener al menos 10 dígitos numéricos."
 )
 
-class Contact(models.Model):
+class Contact(BaseModel):
     name = models.CharField(
         unique=True,
         max_length=100,
@@ -28,7 +33,8 @@ class Contact(models.Model):
     )
     email = models.CharField(
         max_length=100,
-        unique=True,
+        null=True,
+        blank=True,
         validators=[EmailValidator(message="Debe ser un correo electrónico válido")],
         verbose_name="Correo electrónico"
     )
@@ -39,12 +45,20 @@ class Contact(models.Model):
         null=True,
         verbose_name="Teléfono"
     )
-    city_id = models.ForeignKey(
-        City,
+    history = HistoricalRecords()
+
+    job = models.ForeignKey(
+        Job,
         on_delete=models.DO_NOTHING,
         blank=True,
         null=True,
-        verbose_name="Ciudad"
+        verbose_name="Cargo"
+    )
+
+    clients = models.ManyToManyField(
+        Client,
+        related_name='contacts',
+        verbose_name="Clientes"
     )
 
     class Meta:
