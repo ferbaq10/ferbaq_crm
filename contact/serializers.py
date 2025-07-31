@@ -1,6 +1,5 @@
 from django.core.validators import RegexValidator, EmailValidator
 from rest_framework import serializers
-from rest_framework.validators import UniqueValidator
 
 from catalog.models import Job
 from catalog.serializers import JobSerializer
@@ -31,7 +30,6 @@ class ContactWriteSerializer(serializers.ModelSerializer):
     name = serializers.CharField(
         max_length=100,
         required=True,
-        validators=[UniqueValidator(queryset=Contact.objects.all(), message="Ya existe un contacto con este nombre.")],
         error_messages={
             'required': 'El campo nombre es obligatorio.',
             'max_length': 'El nombre no puede tener más de 100 caracteres.'
