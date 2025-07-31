@@ -126,7 +126,7 @@ WSGI_APPLICATION = 'core.wsgi.application'
 
 # --- DATABASE ---
 DATABASE_URL = os.environ.get("DATABASE_URL") or config("DATABASE_URL", default=None)
-print(f"🔍 DATABASE_URL desde entorno: {DATABASE_URL}")
+print(f"🔍 DATABASE_URL desde entorno de despliegue: {DATABASE_URL}")
 if DATABASE_URL:
     DATABASES = {
         'default': dj_database_url.parse(DATABASE_URL)

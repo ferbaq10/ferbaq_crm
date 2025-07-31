@@ -1,11 +1,13 @@
 from django.core.validators import RegexValidator, EmailValidator
 from rest_framework import serializers
+from rest_framework.validators import UniqueValidator
 
-from catalog.models import City, Job
-from catalog.serializers import CitySerializer, JobSerializer
+from catalog.models import Job
+from catalog.serializers import JobSerializer
+from client.models import Client
 from client.serializers import ClientSerializer
 from .models import Contact
-from client.models import Client
+
 
 class ContactSerializer(serializers.ModelSerializer):
     job = JobSerializer(read_only=True)
@@ -29,6 +31,7 @@ class ContactWriteSerializer(serializers.ModelSerializer):
     name = serializers.CharField(
         max_length=100,
         required=True,
+        validators=[UniqueValidator(queryset=Contact.objects.all(), message="Ya existe un contacto con este nombre.")],
         error_messages={
             'required': 'El campo nombre es obligatorio.',
             'max_length': 'El nombre no puede tener más de 100 caracteres.'
@@ -42,7 +45,7 @@ class ContactWriteSerializer(serializers.ModelSerializer):
     )
     email = serializers.EmailField(
         max_length=100,
-        required=True,
+        required=False,
         validators=[EmailValidator(message="Debe ser un correo electrónico válido.")],
         error_messages={
             'max_length': 'El correo electrónico no puede tener más de 100 caracteres.',
