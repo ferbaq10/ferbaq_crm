@@ -6,7 +6,7 @@ from . import views
 urlpatterns = [
     path('endpoint/admin/', admin.site.urls),
 
-    path("test-error/", views.test_error),
+    path("endpoint/test-error/", views.test_error),
 
     path('endpoint/auth/login/', CustomTokenObtainPairView.as_view(), name='custom_token_obtain_pair'),
 
