@@ -124,7 +124,7 @@ class OpportunityService:
             instance.save()
 
             # Si es GANADA y hay datos financieros → crear/actualizar FinanceOpportunity
-            if new_status and new_status.id == StatusIDs.WON and finance_data:
+            if new_status and (new_status.id == StatusIDs.WON or new_status.id == StatusIDs.NEGOTIATING) and finance_data:
                 self.finance_factory.create_or_update(
                     opportunity=instance,
                     cost_subtotal=finance_data.get("cost_subtotal", 0),
