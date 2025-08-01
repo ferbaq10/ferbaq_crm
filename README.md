@@ -579,3 +579,54 @@ Cambiar la contraseña de un usuario desde Django Shell
  user.set_password('admin')                    
  user.save()
 ```
+
+## Configurar CloudWatch en EC2
+
+
+
+### Crear el archivo de configuración
+
+```bash
+    sudo mkdir -p /opt/aws/amazon-cloudwatch-agent/etc
+    
+    sudo nano /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+```
+
+y pegar este contenido
+```bash
+{
+  "logs": {
+    "logs_collected": {
+      "files": {
+        "collect_list": [
+          {
+            "file_path": "/var/log/django/error.log",
+            "log_group_name": "ferbaq-django-errors",
+            "log_stream_name": "{instance_id}",
+            "timestamp_format": "[%Y-%m-%d %H:%M:%S"
+          }
+        ]
+      }
+    }
+  }
+}
+```
+   Este JSON hace que el agente lea el log de Django y lo envíe al grupo ferbaq-django-errors en CloudWatch.
+{instance_id} se reemplaza automáticamente con el ID de la instancia EC2
+
+### Iniciar el agente con la nueva configuración
+```bash
+    sudo amazon-cloudwatch-agent-ctl -a stop
+    
+    sudo amazon-cloudwatch-agent-ctl \
+      -a fetch-config \
+      -m ec2 \
+      -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json \
+      -s
+```
+Deberías ver: Successfully fetched the config and started the amazon-cloudwatch-agent
+
+### Verifica el estado
+```bash
+  amazon-cloudwatch-agent-ctl -a status
+```
