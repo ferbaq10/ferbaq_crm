@@ -1,7 +1,10 @@
 import os
-from decouple import config, Csv
-import dj_database_url
 from datetime import timedelta
+from pathlib import Path
+import platform
+import dj_database_url
+from decouple import config, Csv
+
 
 # --- SECRET KEY ---
 SECRET_KEY = os.environ.get("SECRET_KEY") or config("SECRET_KEY", default="insecure-default")
@@ -216,4 +219,51 @@ STATIC_ROOT = '/var/www/ferbaq_crm_backend/static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Detectar sistema operativo
+IS_WINDOWS = platform.system() == "Windows"
+
+# Definir ruta de logs según sistema
+if IS_WINDOWS:
+    LOG_DIR = BASE_DIR / 'logs'
+    LOG_FILE = LOG_DIR / 'django_errors.log'
+else:
+    LOG_DIR = Path('/var/log/django')
+    LOG_FILE = LOG_DIR / 'error.log'
+
+# Crear carpeta de logs si no existe (solo local)
+if IS_WINDOWS and not LOG_DIR.exists():
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '[{asctime}] {levelname} {name} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'file': {
+            'level': 'ERROR',
+            'class': 'logging.FileHandler',
+            'filename': str(LOG_FILE),  # Se convierte a string por compatibilidad
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['file'],
+            'level': 'ERROR',
+            'propagate': True,
+        },
+    },
+}
+
+
+
 
