@@ -1,9 +1,13 @@
 from django.contrib import admin
 from django.urls import path, include
 from users.viewsets import CustomTokenObtainPairView
+from . import views
 
 urlpatterns = [
     path('endpoint/admin/', admin.site.urls),
+
+    path("endpoint/test-error/", views.test_error),
+
     path('endpoint/auth/login/', CustomTokenObtainPairView.as_view(), name='custom_token_obtain_pair'),
 
     path('auth/', include('djoser.urls')),
