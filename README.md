@@ -582,7 +582,30 @@ Cambiar la contraseña de un usuario desde Django Shell
 
 ## Configurar CloudWatch en EC2
 
+### Verificar permisos IAM
+Tu instancia EC2 necesita un Role con la política CloudWatchAgentServerPolicy
+1. Ve a AWS Console → EC2 → Instancias → tu instancia
 
+2. En Detalles, busca IAM role
+
+3. Si no tiene, debes asignarle un Role con esta política
+
+### Instalar CloudWatch Agent en Ubuntu
+
+Descargar el paquete deb oficial de AWS
+```bash
+wget https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
+```
+
+  Instalar el paquete
+```bash
+    sudo dpkg -i amazon-cloudwatch-agent.deb
+```
+
+Verificar instalación
+```bash
+amazon-cloudwatch-agent-ctl -a status
+```
 
 ### Crear el archivo de configuración
 
@@ -614,6 +637,13 @@ y pegar este contenido
    Este JSON hace que el agente lea el log de Django y lo envíe al grupo ferbaq-django-errors en CloudWatch.
 {instance_id} se reemplaza automáticamente con el ID de la instancia EC2
 
+### Iniciar el servicio
+```bash
+    sudo systemctl enable amazon-cloudwatch-agent
+    sudo systemctl start amazon-cloudwatch-agent
+    sudo systemctl status amazon-cloudwatch-agent
+```
+
 ### Iniciar el agente con la nueva configuración
 ```bash
     sudo amazon-cloudwatch-agent-ctl -a stop
@@ -630,3 +660,10 @@ Deberías ver: Successfully fetched the config and started the amazon-cloudwatch
 ```bash
   amazon-cloudwatch-agent-ctl -a status
 ```
+
+### Revisar en AWS 
+1. Ve a AWS Console → CloudWatch → Log groups
+
+2. Busca ferbaq-django-errors
+
+3. Abre el stream con el nombre de tu instancia y confirma que los errores se están enviando.
