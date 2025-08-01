@@ -29,7 +29,7 @@ class Migration(migrations.Migration):
                 ('is_removed', models.BooleanField(default=False)),
                 ('name', models.CharField(error_messages={'max_length': 'El nombre no puede exceder 100 caracteres.', 'unique': 'Este nombre de contacto ya existe.'}, max_length=100, unique=True, verbose_name='Nombre')),
                 ('address', models.CharField(blank=True, error_messages={'max_length': 'La dirección no puede exceder 255 caracteres.'}, max_length=255, null=True, verbose_name='Dirección')),
-                ('email', models.CharField(blank=True, max_length=100, null=True, unique=True, validators=[django.core.validators.EmailValidator(message='Debe ser un correo electrónico válido')], verbose_name='Correo electrónico')),
+                ('email', models.CharField(blank=True, max_length=100, null=True, verbose_name='Correo electrónico')),
                 ('phone', models.CharField(blank=True, max_length=15, null=True, validators=[django.core.validators.RegexValidator(message='El número debe contener al menos 10 dígitos numéricos.', regex='^\\d{10,}$')], verbose_name='Teléfono')),
                 ('clients', models.ManyToManyField(related_name='contacts', to='client.client', verbose_name='Clientes')),
                 ('job', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.DO_NOTHING, to='catalog.job', verbose_name='Cargo')),
