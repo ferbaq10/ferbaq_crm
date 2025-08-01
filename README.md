@@ -445,6 +445,9 @@ WorkingDirectory=/var/www/ferbaq_crm_backend
 Environment="PATH=/var/www/ferbaq_crm_backend/venv/bin"
 Environment="DJANGO_SETTINGS_MODULE=core.settings"
 ExecStart=/var/www/ferbaq_crm_backend/venv/bin/rq worker default
+StandardOutput=file:/var/log/rqworker/access.log
+StandardError=file:/var/log/rqworker/error.log
+Restart=always
 
 [Install]
 WantedBy=multi-user.target
@@ -452,6 +455,10 @@ WantedBy=multi-user.target
 
  Recarga systemd y activa:
 ```bash
+  sudo mkdir -p /var/log/rqworker
+  sudo touch /var/log/rqworker/error.log
+  sudo touch /var/log/rqworker/access.log
+  sudo chown -R ubuntu:ubuntu /var/log/rqworker
   sudo systemctl daemon-reexec
   sudo systemctl daemon-reload
   sudo systemctl enable rqworker
@@ -624,9 +631,33 @@ y pegar este contenido
         "collect_list": [
           {
             "file_path": "/var/log/django/error.log",
-            "log_group_name": "ferbaq-django-errors",
-            "log_stream_name": "{instance_id}",
-            "timestamp_format": "[%Y-%m-%d %H:%M:%S"
+            "log_group_name": "ferbaq-application-errors",
+            "log_stream_name": "{instance_id}"
+          },
+          {
+            "file_path": "/var/log/gunicorn/error.log",
+            "log_group_name": "ferbaq-application-errors",
+            "log_stream_name": "{instance_id}"
+          },
+          {
+            "file_path": "/var/log/rqworker/error.log",
+            "log_group_name": "ferbaq-application-errors",
+            "log_stream_name": "{instance_id}"
+          },
+          {
+            "file_path": "/var/log/nginx/error.log",
+            "log_group_name": "ferbaq-application-errors",
+            "log_stream_name": "{instance_id}"
+          },
+          {
+            "file_path": "/var/log/nginx/access.log",
+            "log_group_name": "ferbaq-application-access",
+            "log_stream_name": "{instance_id}"
+          },
+          {
+            "file_path": "/var/log/gunicorn/access.log",
+            "log_group_name": "ferbaq-application-access",
+            "log_stream_name": "{instance_id}"
           }
         ]
       }
@@ -647,19 +678,33 @@ y pegar este contenido
 ### Iniciar el agente con la nueva configuración
 ```bash
     sudo amazon-cloudwatch-agent-ctl -a stop
-    
+    sudo amazon-cloudwatch-agent-ctl -a start
+```
+
+y 
+
+```bash
+    sudo amazon-cloudwatch-agent-ctl -a stop
+
     sudo amazon-cloudwatch-agent-ctl \
       -a fetch-config \
       -m ec2 \
       -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json \
       -s
 ```
+
 Deberías ver: Successfully fetched the config and started the amazon-cloudwatch-agent
 
 ### Verifica el estado
 ```bash
   amazon-cloudwatch-agent-ctl -a status
 ```
+
+Revisar los logs
+```bash
+  sudo tail -f /opt/aws/amazon-cloudwatch-agent/logs/amazon-cloudwatch-agent.log
+```
+Deberías ver líneas como: piping log from /var/log/django/error.log to ferbaq-application-errors/{instance_id}
 
 ### Revisar en AWS 
 1. Ve a AWS Console → CloudWatch → Log groups
