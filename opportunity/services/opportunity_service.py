@@ -6,6 +6,7 @@ from django.db import IntegrityError
 from django.db import transaction
 from django.db.models import Prefetch
 from django.utils import timezone
+from django_rq import enqueue
 from injector import inject
 from rest_framework.exceptions import ValidationError
 
@@ -195,7 +196,7 @@ class OpportunityService:
                 try:
                     transaction.on_commit(
                         lambda f_data=file_data, f_name=file_name:
-                        upload_to_sharepoint_db.delay(udn_name, instance.pk, f_data, f_name)
+                        enqueue(upload_to_sharepoint_db, udn_name, instance, f_data, f_name)
                     )
                     logger.info(f"Subido archivo {file_name}")
                     
