@@ -12,8 +12,6 @@ SECRET_KEY = os.environ.get("SECRET_KEY") or config("SECRET_KEY", default="insec
 # --- DEBUG ---
 DEBUG = config("DEBUG", default=True, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=Csv())
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -75,14 +73,15 @@ DJOSER = {
     }
 }
 
-CORS_ALLOW_ALL_ORIGINS = config('CORS_ALLOW_ALL_ORIGINS', default=False, cast=bool)
-CORS_ALLOW_CREDENTIALS = config('CORS_ALLOW_CREDENTIALS', default=True, cast=bool)
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=Csv()) # aplica a peticiones HTTP directas al servidor.
+
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOW_CREDENTIALS = True
 
 # Configuración adicional de CORS
-CORS_ALLOWED_ORIGINS = []
+
 cors_origins = config('CORS_ALLOWED_ORIGINS', default='')
-if cors_origins:
-    CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins.split(',')]
+CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins.split(',')]
 
 # Headers permitidos
 CORS_ALLOW_HEADERS = [
