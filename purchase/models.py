@@ -20,3 +20,6 @@ class PurchaseStatus(BaseModel):
     )
 
     history = HistoricalRecords()
+
+    def __str__(self):
+        return self.opportunity.name
