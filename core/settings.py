@@ -221,48 +221,52 @@ STATIC_ROOT = '/var/www/ferbaq_crm_backend/static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
+import os
+from pathlib import Path
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Detectar sistema operativo
-IS_WINDOWS = platform.system() == "Windows"
+# Detectar si estamos en Windows o Linux
+IS_WINDOWS = os.name == "nt"
 
-# Definir ruta de logs según sistema
-if IS_WINDOWS:
-    LOG_DIR = BASE_DIR / 'logs'
-    LOG_FILE = LOG_DIR / 'django_errors.log'
-else:
-    LOG_DIR = Path('/var/log/django')
-    LOG_FILE = LOG_DIR / 'error.log'
+# Carpeta de logs según el entorno
+LOG_DIR = BASE_DIR / ("logs" if IS_WINDOWS else "/var/log/ferbaq")
 
-# Crear carpeta de logs si no existe (solo local)
 if IS_WINDOWS and not LOG_DIR.exists():
-    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    LOG_DIR.mkdir(exist_ok=True)
 
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+
     'formatters': {
-        'verbose': {
-            'format': '[{asctime}] {levelname} {name} {message}',
+        'detailed': {
+            'format': '[{asctime}] {levelname} {name} - {message}',
             'style': '{',
         },
     },
+
     'handlers': {
+        'console_detailed': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'detailed',
+        },
         'file': {
-            'level': 'ERROR',
             'class': 'logging.FileHandler',
-            'filename': str(LOG_FILE),  # Se convierte a string por compatibilidad
-            'formatter': 'verbose',
+            'filename': LOG_DIR / 'django_extensions.log',  # Ruta dinámica
+            'formatter': 'detailed',
         },
     },
+
     'loggers': {
-        'django': {
-            'handlers': ['file'],
-            'level': 'ERROR',
-            'propagate': True,
+        'django_extensions': {
+            'handlers': ['console_detailed', 'file'],
+            'level': 'DEBUG',
+            'propagate': False,
         },
     },
 }
+
 
 
 

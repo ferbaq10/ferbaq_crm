@@ -63,7 +63,7 @@ class OpportunityService:
             optimized_finance,
             optimized_clients,
             optimized_documents
-        ).filter(agent=user)
+        ).filter(project__work_cell__users=user)
 
     def get_filtered_queryset(self, user):
         return self.get_base_queryset(user).filter(
