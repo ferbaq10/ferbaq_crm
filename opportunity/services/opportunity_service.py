@@ -196,7 +196,7 @@ class OpportunityService:
                 try:
                     transaction.on_commit(
                         lambda f_data=file_data, f_name=file_name:
-                        enqueue(upload_to_sharepoint_db, udn_name, instance.pk, f_data, f_name)
+                        enqueue(upload_to_sharepoint_db, udn_name, instance, f_data, f_name)
                     )
                     logger.info(f"Subido archivo {file_name}")
                     
