@@ -6,6 +6,7 @@ from core.utils.signals import should_skip_signal_registration
 class PurchaseConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'purchase'
+    verbose_name = "Compras"
 
     def ready(self):
         if should_skip_signal_registration():
