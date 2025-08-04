@@ -21,6 +21,10 @@ from purchase.models import PurchaseStatus
 
 logger = logging.getLogger(__name__)
 
+ROLE_VENDEDOR = 'Vendedor'
+ROLE_DIRECTOR = 'Director Comercial'
+ROLE_GERENTE = 'Gerente Comercial'
+
 
 class OpportunityService:
     @inject
@@ -47,7 +51,7 @@ class OpportunityService:
             )
         )
 
-        return Opportunity.objects.select_related(
+        queryset = Opportunity.objects.select_related(
             'status_opportunity',
             'currency',
             'opportunityType',
@@ -64,7 +68,16 @@ class OpportunityService:
             optimized_finance,
             optimized_clients,
             optimized_documents
-        ).filter(project__work_cell__users=user)
+        )
+
+        user_role =getattr(user, 'role', None)
+        if user.groups.filter(name=ROLE_VENDEDOR).exists():
+            queryset = queryset.filter(agent=user)
+        elif user.groups.filter(name__in=[ROLE_DIRECTOR, ROLE_GERENTE]).exists():
+            queryset = queryset.filter(project__work_cell__users=user)
+        else:
+            queryset = queryset.none()
+        return queryset
 
     def get_filtered_queryset(self, user):
         return self.get_base_queryset(user).filter(
