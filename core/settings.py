@@ -256,7 +256,7 @@ LOGGING = {
             'formatter': 'detailed',
         },
         'file': {
-            'class': 'logging.FileHandler',
+            'class': 'logging.handlers.RotatingFileHandler',
             'filename': str(LOG_DIR / 'django_extensions.log'),  # Ruta dinámica
              'maxBytes': 5*1024*1024,  # 5 MB Para que no crezca los logs indefinidamente
              'backupCount': 5,
