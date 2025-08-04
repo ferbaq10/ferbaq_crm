@@ -257,7 +257,7 @@ LOGGING = {
         },
         'file': {
             'class': 'logging.FileHandler',
-            'filename': LOG_DIR / 'django_extensions.log',  # Ruta dinámica
+            'filename': str(LOG_DIR / 'django_extensions.log'),  # Ruta dinámica
             'formatter': 'detailed',
         },
     },
