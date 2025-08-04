@@ -220,20 +220,24 @@ STATIC_ROOT = '/var/www/ferbaq_crm_backend/static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-
-import os
-from pathlib import Path
-
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Detectar si estamos en Windows o Linux
 IS_WINDOWS = os.name == "nt"
 
-# Carpeta de logs según el entorno
-LOG_DIR = BASE_DIR / ("logs" if IS_WINDOWS else "/var/log/ferbaq")
+# Definir carpeta de logs
+# En Windows -> BASE_DIR/logs
+# En Linux -> /var/log/ferbaq (pero si no existe, cae en BASE_DIR/logs)
+default_log_dir = BASE_DIR / "logs"
+linux_log_dir = Path("/var/log/ferbaq")
 
-if IS_WINDOWS and not LOG_DIR.exists():
-    LOG_DIR.mkdir(exist_ok=True)
+if IS_WINDOWS:
+    LOG_DIR = default_log_dir
+else:
+    LOG_DIR = linux_log_dir if linux_log_dir.exists() else default_log_dir
+
+# Crear carpeta de logs si no existe
+LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 LOGGING = {
     'version': 1,
@@ -253,7 +257,7 @@ LOGGING = {
         },
         'file': {
             'class': 'logging.FileHandler',
-            'filename': LOG_DIR / 'django_extensions.log',  # Ruta dinámica
+            'filename': str(LOG_DIR / 'django_extensions.log'),  # Ruta dinámica
             'formatter': 'detailed',
         },
     },
