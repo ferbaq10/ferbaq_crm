@@ -18,6 +18,13 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
 
         # Añadir permisos como lista de codenames
         token['permissions'] = cls.get_permissions(user)
+        token['workCells'] = [
+            {
+                'id': wc.id,
+                'name': wc.name,
+            }
+            for wc in user.workcell.all()
+        ]
 
         return token
 
