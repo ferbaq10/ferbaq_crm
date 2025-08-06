@@ -9,6 +9,7 @@ from contact.models import Contact
 from contact.serializers import ContactSerializer
 from project.models import Project
 from project.serializers import ProjectSerializer
+from users.serializers import UserSerializer
 from .models import CommercialActivity, FinanceOpportunity, Opportunity, LostOpportunity, OpportunityDocument
 
 User = get_user_model()
@@ -55,6 +56,7 @@ class CommercialActivitySerializer(serializers.ModelSerializer):
 # --- Opportunity SOLO LECTURA ---
 class OpportunitySerializer(serializers.ModelSerializer):
     contact = ContactSerializer()
+    agent = UserSerializer()
     project = ProjectSerializer()
     currency = CurrencySerializer()
     opportunityType = OpportunityTypeSerializer()
@@ -73,7 +75,8 @@ class OpportunitySerializer(serializers.ModelSerializer):
             'date_reception', 'sent_date', 'date_status',
             'status_opportunity', 'contact', 'currency',
             'project', 'opportunityType', 'closing_percentage',
-            'finance_opportunity', 'is_removed', 'documents'
+            'finance_opportunity', 'is_removed', 'documents',
+            'agent'
         ]
         read_only_fields = ['created', 'modified']
 
