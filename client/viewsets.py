@@ -2,10 +2,12 @@ import logging
 
 from django.db import transaction
 from django.utils.functional import cached_property
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status
 from rest_framework.response import Response
 
 from catalog.viewsets.base import CachedViewSet
+from client.filters import ClientFilter
 from client.models import Client
 from client.serializers import ClientSerializer, ClientWriteSerializer
 from client.services.client_service import ClientService
@@ -18,12 +20,8 @@ class ClientViewSet(CachedViewSet):
     model = Client
     serializer_class = ClientSerializer
 
-    # Configuración específica de Client
-    cache_prefix = "client"  # Override del "catalog" por defecto
-
-    # Configuración para invalidaciones automáticas
-    write_serializer_class = ClientWriteSerializer  # Para invalidaciones automáticas
-    read_serializer_class = ClientSerializer  # Para respuestas optimizadas
+    filter_backends = [DjangoFilterBackend]  # Agregar filtros
+    filterset_class = ClientFilter
 
     @cached_property
     def client_service(self) -> ClientService:
@@ -43,7 +41,16 @@ class ClientViewSet(CachedViewSet):
 
     def get_actives_queryset(self, request):
         user = request.user
-        return self.client_service.get_base_queryset(user).filter(is_removed=False).distinct()
+        queryset = self.client_service.get_base_queryset(user).filter(is_removed=False).distinct()
+
+        filterset = ClientFilter(request.query_params, queryset=queryset)
+
+        if not filterset.is_valid():
+            return Response(filterset.errors, status=400)
+
+        queryset = filterset.qs
+
+        return queryset
 
 
     @transaction.atomic

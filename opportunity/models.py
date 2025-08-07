@@ -2,6 +2,7 @@ from django.db import models
 from simple_history.models import HistoricalRecords
 
 from catalog.models import StatusOpportunity, City, Currency, BaseModel, OpportunityType, LostOpportunityType
+from client.models import Client
 from contact.models import Contact
 from project.models import Project
 from model_utils.models import SoftDeletableModel, TimeStampedModel
@@ -49,6 +50,13 @@ class Opportunity(BaseModel):
 
     opportunityType = models.ForeignKey(
         OpportunityType,
+        on_delete=models.DO_NOTHING
+    )
+
+    client = models.ForeignKey(
+        Client,
+        blank=True,
+        null=True,
         on_delete=models.DO_NOTHING
     )
 
