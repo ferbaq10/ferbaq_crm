@@ -63,7 +63,10 @@ class OpportunityService:
             'project__subdivision__division',
             'project__project_status',
             'project__work_cell',
-            'project__work_cell__udn'
+            'project__work_cell__udn',
+            'client',
+            'client__city',
+            'client__business_group'
         ).prefetch_related(
             optimized_finance,
             optimized_clients,

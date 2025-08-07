@@ -5,6 +5,8 @@ from rest_framework import serializers
 
 from catalog.models import OpportunityType, StatusOpportunity, Currency
 from catalog.serializers import StatusOpportunitySerializer, CurrencySerializer, OpportunityTypeSerializer
+from client.models import Client
+from client.serializers import ClientSerializer
 from contact.models import Contact
 from contact.serializers import ContactSerializer
 from project.models import Project
@@ -61,6 +63,7 @@ class OpportunitySerializer(serializers.ModelSerializer):
     currency = CurrencySerializer()
     opportunityType = OpportunityTypeSerializer()
     status_opportunity = StatusOpportunitySerializer()
+    client = ClientSerializer()
 
     finance_opportunity = FinanceOpportunitySerializer(
         source='finance_data',
@@ -76,7 +79,7 @@ class OpportunitySerializer(serializers.ModelSerializer):
             'status_opportunity', 'contact', 'currency',
             'project', 'opportunityType', 'closing_percentage',
             'finance_opportunity', 'is_removed', 'documents',
-            'agent'
+            'agent', 'client'
         ]
         read_only_fields = ['created', 'modified']
 
@@ -95,6 +98,7 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
     project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all(), write_only=True)
     contact = serializers.PrimaryKeyRelatedField(queryset=Contact.objects.all(), write_only=True)
     currency = serializers.PrimaryKeyRelatedField(queryset=Currency.objects.all(), write_only=True)
+    client = serializers.PrimaryKeyRelatedField(queryset=Client.objects.all(), write_only=True)
     opportunityType = serializers.PrimaryKeyRelatedField(queryset=OpportunityType.objects.all(), write_only=True)
     status_opportunity = serializers.PrimaryKeyRelatedField(queryset=StatusOpportunity.objects.all(), write_only=True)
 
@@ -107,7 +111,7 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
             'date_reception', 'sent_date', 'date_status',
             'status_opportunity', 'contact', 'currency',
             'project', 'opportunityType', 'closing_percentage',
-            'finance_opportunity', 'is_removed',
+            'finance_opportunity', 'is_removed', 'client'
         ]
         extra_kwargs = {
             'requisition_number': {
@@ -119,6 +123,7 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
             'contact': {'error_messages': {'required': 'El contacto es obligatorio.'}},
             'currency': {'error_messages': {'required': 'La moneda es obligatoria.'}},
             'project': {'error_messages': {'required': 'El proyecto es obligatorio.'}},
+            'client': {'error_messages': {'required': 'El cliente es obligatorio.'}},
             'opportunityType': {'error_messages': {'required': 'El tipo de oportunidad es obligatorio.'}},
         }
         read_only_fields = ['created']
