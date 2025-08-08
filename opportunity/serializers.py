@@ -79,7 +79,7 @@ class OpportunitySerializer(serializers.ModelSerializer):
             'status_opportunity', 'contact', 'currency',
             'project', 'opportunityType', 'closing_percentage',
             'finance_opportunity', 'is_removed', 'documents',
-            'agent', 'client'
+            'agent', 'client', 'created'
         ]
         read_only_fields = ['created', 'modified']
 
