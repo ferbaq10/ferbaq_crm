@@ -14,7 +14,9 @@ class Opportunity(BaseModel):
     description = models.TextField(blank=True, null=True)
     closing_percentage = models.DecimalField(max_digits=4, blank=True, null=True,
                                              decimal_places=2, verbose_name="Porcentaje de cierre")
-    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    amount = models.DecimalField(max_digits=12,
+                                 decimal_places=2,
+                                 blank=True, null=True,)
     requisition_number = models.CharField(max_length=100, verbose_name="Número de requisición",
                                           blank=True, null=True)
     date_reception = models.DateTimeField(blank=True, null=True, verbose_name="Fecha de recepción")
@@ -34,6 +36,8 @@ class Opportunity(BaseModel):
 
     currency = models.ForeignKey(
         Currency,
+        blank=True,
+        null=True,
         on_delete=models.DO_NOTHING
     )
 
