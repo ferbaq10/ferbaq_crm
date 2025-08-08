@@ -134,7 +134,7 @@ class OpportunityDocument(models.Model):
         related_name="documents"
     )
     file_name = models.CharField(max_length=255)
-    sharepoint_url = models.URLField()
+    sharepoint_url = models.URLField(max_length=1000)
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

@@ -17,7 +17,7 @@ def upload_to_sharepoint_db(udn: str, opportunity_id: int, file_data: bytes, fil
         # Hay que volver a obtener el objeto opportunity porque no se puede pasar como parametro el objeto
         opportunity = Opportunity.objects.get(id=opportunity_id)
         project_name = opportunity.project.name
-        file_name = file_name[:200] # Solo hasta 200 caracteres
+        file_name = file_name[:255] # Solo hasta 200 caracteres
         sharepoint_path = f"COMERCIAL/WORKSPACE/{udn}/{project_name}/{opportunity.name}"
         full_path = f"{sharepoint_path}/{file_name}"
 
