@@ -11,7 +11,11 @@ from .models import Contact
 
 class ContactSerializer(serializers.ModelSerializer):
     job = JobSerializer(read_only=True)
-    clients = ClientSerializer(many=True, read_only=True)
+    clients = ClientSerializer(
+        many=True,
+        read_only=True,
+        source='contact_pref_clients', # atributo cargado por Prefetch
+    )
 
     class Meta:
         model = Contact

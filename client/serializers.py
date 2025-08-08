@@ -16,7 +16,9 @@ logger = logging.getLogger(__name__)
 class ClientSerializer(serializers.ModelSerializer):
     city = CitySerializer()
     business_group = BusinessGroupSerializer()
-    projects = ProjectSerializer(many=True, read_only=True)
+    projects = ProjectSerializer(many=True,
+                                 read_only=True,
+                                 source='client_pref_projects') # atributo cargado por Prefetch
 
     class Meta:
         model = Client
@@ -38,10 +40,6 @@ class ClientWriteSerializer(CacheInvalidationMixin, serializers.ModelSerializer)
     Serializer híbrido que detecta automáticamente si Redis está disponible
     y optimiza en consecuencia - MÁXIMO 2 consultas siempre
     """
-    cache_keys = [
-        "cities_ids_cache_v1",
-        "business_groups_ids_cache_v1"
-    ]
 
     projects = serializers.ListField(
         child=serializers.IntegerField(),
