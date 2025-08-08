@@ -358,7 +358,7 @@ Se necesita tener ubuntu y el comando instalado para su ejecución.
 kubectl exec -it deployment/backend-dev -n dev -- find /app -name ".env"
 ```
 
- Para comproabr si sigue en la imagen el .env
+ Para comprobar si sigue en la imagen el .env
 ```bash
  docker run --rm -it ferbaq-crm-backend sh -c "find /app -name .env"
  ```
@@ -480,7 +480,9 @@ After=network.target
 User=ubuntu
 Group=ubuntu
 WorkingDirectory=/var/www/ferbaq_crm_backend
-ExecStart=/var/www/ferbaq_crm_backend/venv/bin/gunicorn --workers 3 --bind unix:/var/www/ferbaq_crm_backend/gunicorn.sock core.wsgi:application
+Environment=PATH=/var/www/ferbaq_crm_backend/venv/bin
+ExecStart=/var/www/ferbaq_crm_backend/venv/bin/gunicorn --bind 127.0.0.1:8080 --workers 3 --timeout 120 core.wsgi:application
+Restart=always
 
 [Install]
 WantedBy=multi-user.target

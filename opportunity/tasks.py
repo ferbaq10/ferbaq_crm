@@ -12,11 +12,12 @@ logger = logging.getLogger(__name__)
 SHAREPOINT_SITE_URL = config("SHAREPOINT_SITE_URL")
 
 @job
-def upload_to_sharepoint_db(udn: str, opportunity: Opportunity, file_data: bytes, file_name: str):
+def upload_to_sharepoint_db(udn: str, opportunity_id: int, file_data: bytes, file_name: str):
     try:
+        # Hay que volver a obtener el objeto opportunity porque no se puede pasar como parametro el objeto
+        opportunity = Opportunity.objects.get(id=opportunity_id)
         project_name = opportunity.project.name
-        first_client = opportunity.project.clients.first()
-
+        file_name = file_name[:200] # Solo hasta 200 caracteres
         sharepoint_path = f"COMERCIAL/WORKSPACE/{udn}/{project_name}/{opportunity.name}"
         full_path = f"{sharepoint_path}/{file_name}"
 

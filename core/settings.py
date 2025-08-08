@@ -45,6 +45,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware', # Middleware CSRF
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'middleware.cache_user_groups.CacheUserGroupsMiddleware', # precarga en memoria los grupos del usuario autenticado
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]

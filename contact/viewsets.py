@@ -9,7 +9,6 @@ from .models import Contact
 from .serializers import ContactSerializer, ContactWriteSerializer
 from .services.contact_service import ContactService
 
-
 class ContactViewSet(CachedViewSet):
     model = Contact
     serializer_class = ContactSerializer
