@@ -29,6 +29,6 @@ class ObjetiveForm(forms.ModelForm):
 
     def clean_amount(self):
         amount = self.cleaned_data.get('amount')
-        if amount is not None and amount <= 0:
-            raise forms.ValidationError("El monto debe ser mayor a cero.")
+        if amount is not None and amount < 0:
+            raise forms.ValidationError("El monto debe ser mayor o igual a cero.")
         return amount

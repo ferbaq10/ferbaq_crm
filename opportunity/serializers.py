@@ -118,8 +118,14 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
             'error_messages': {
                 'max_length': 'El número de requisición no puede tener más de 100 caracteres.'},
                 'max_length': 100},
-            'amount': {'error_messages': {'required': 'El monto es obligatorio.'}},
             'status_opportunity': {'error_messages': {'required': 'El estado es obligatorio.'}},
+            'amount': {
+                    'error_messages': {
+                        'min_value': 'El monto debe ser mayor o igual a cero.',
+                        'invalid': 'Ingrese un monto válido.',
+                    },
+                    'min_value': 0  # Valor mínimo permitido
+            },
             'contact': {'error_messages': {'required': 'El contacto es obligatorio.'}},
             'currency': {'error_messages': {'required': 'La moneda es obligatoria.'}},
             'project': {'error_messages': {'required': 'El proyecto es obligatorio.'}},
@@ -129,8 +135,8 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
         read_only_fields = ['created']
 
     def validate_amount(self, value):
-        if value <= 0:
-            raise serializers.ValidationError("El monto debe ser mayor a cero.")
+        if value < 0:
+            raise serializers.ValidationError("El monto debe ser mayor o igual a cero.")
         return value
 
     def validate(self, data):
@@ -164,7 +170,7 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
 
     # NUEVO: Método update personalizado
     def update(self, instance, validated_data):
-        print(f"🔍 Actualizando oportunidad {instance.id}: {instance.name}")
+        print(f" Actualizando oportunidad {instance.id}: {instance.name}")
         
         # Extraer finance_opportunity del validated_data
         finance_data = validated_data.pop('finance_opportunity', None)
@@ -176,11 +182,11 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
         
         # Manejar finance_opportunity si viene en los datos
         if finance_data:
-            print(f"🔍 Procesando finance_data: {finance_data}")
+            print(f" Procesando finance_data: {finance_data}")
             try:
                 # Intentar obtener FinanceOpportunity existente
                 finance_obj = instance.finance_data
-                print(f"✅ FinanceOpportunity existente encontrado, actualizando...")
+                print(f" FinanceOpportunity existente encontrado, actualizando...")
                 
                 # Actualizar campos
                 for field, value in finance_data.items():
@@ -188,14 +194,14 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
                 finance_obj.save()
                 
             except FinanceOpportunity.DoesNotExist:
-                print(f"🔍 No existe FinanceOpportunity, creando nuevo...")
+                print(f" No existe FinanceOpportunity, creando nuevo...")
                 
                 # Crear nuevo FinanceOpportunity
                 finance_obj = FinanceOpportunity.objects.create(
                     opportunity=instance,
                     **finance_data
                 )
-                print(f"✅ FinanceOpportunity creado: {finance_obj}")
+                print(f" FinanceOpportunity creado: {finance_obj}")
                 
         instance.refresh_from_db()
         return instance
