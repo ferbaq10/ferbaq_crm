@@ -105,6 +105,8 @@ class FinanceOpportunity(BaseModel):
     earned_amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Monto ganado")
     cost_subtotal = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Costo subtotal")
     order_closing_date = models.DateTimeField(blank=True, verbose_name="Fecha de cierre de orden")
+    oc_number = models.CharField(blank=True, null=True, verbose_name="Número de orden de compra cliente", max_length=255)
+
     opportunity = models.OneToOneField(
         Opportunity,
         on_delete=models.DO_NOTHING,

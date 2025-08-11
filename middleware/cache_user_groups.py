@@ -10,7 +10,6 @@ class CacheUserGroupsMiddleware(MiddlewareMixin):
 
     def process_request(self, request):
         user = getattr(request, 'user', None)
-        print("user", user)
         if not (user and user.is_authenticated):
             # asegurar que siempre exista
             if user:

@@ -363,8 +363,6 @@ kubectl exec -it deployment/backend-dev -n dev -- find /app -name ".env"
  docker run --rm -it ferbaq-crm-backend sh -c "find /app -name .env"
  ```
 
-
-
 ## 🚀 PASOS MANUALES PARA DESPLEGAR DJANGO + REDIS + POSTGRES EN EC2:
 
 ### PASO 1: Conectarte por SSH
@@ -425,7 +423,7 @@ El user del superuser es admin y la contraseña puede ser la de la laptop.
 
  Probar localmente
 ```bash
-      gunicorn core.wsgi:application
+ gunicorn core.wsgi:application
 ```
 
 ### PASO 8: Configurar django_rq y el worker
@@ -436,18 +434,21 @@ El user del superuser es admin y la contraseña puede ser la de la laptop.
 ```bash
 [Unit]
 Description=RQ Worker
-After=network.target
+After=network.target redis.service
 
 [Service]
+Type=simple
 User=ubuntu
 Group=ubuntu
 WorkingDirectory=/var/www/ferbaq_crm_backend
-Environment="PATH=/var/www/ferbaq_crm_backend/venv/bin"
+Environment="PATH=/var/www/ferbaq_crm_backend/venv/bin:/usr/local/bin:/usr/bin:/bin"
 Environment="DJANGO_SETTINGS_MODULE=core.settings"
-ExecStart=/var/www/ferbaq_crm_backend/venv/bin/rq worker default
-StandardOutput=file:/var/log/rqworker/access.log
-StandardError=file:/var/log/rqworker/error.log
+Environment="PYTHONPATH=/var/www/ferbaq_crm_backend"
+ExecStart=/var/www/ferbaq_crm_backend/venv/bin/python /var/www/ferbaq_crm_backend/manage.py rqworker default
+StandardOutput=append:/var/log/rqworker/access.log
+StandardError=append:/var/log/rqworker/error.log
 Restart=always
+RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
@@ -707,6 +708,11 @@ Revisar los logs
   sudo tail -f /opt/aws/amazon-cloudwatch-agent/logs/amazon-cloudwatch-agent.log
 ```
 Deberías ver líneas como: piping log from /var/log/django/error.log to ferbaq-application-errors/{instance_id}
+
+Ver los logs en tiempo real
+```bash
+  sudo journalctl -u rqworker.service -f
+```
 
 ### Revisar en AWS 
 1. Ve a AWS Console → CloudWatch → Log groups
