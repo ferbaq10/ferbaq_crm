@@ -14,7 +14,6 @@ class ContactSerializer(serializers.ModelSerializer):
     clients = ClientSerializer(
         many=True,
         read_only=True,
-        source='contact_pref_clients', # atributo cargado por Prefetch
     )
 
     class Meta:
