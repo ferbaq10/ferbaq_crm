@@ -17,8 +17,7 @@ class ClientSerializer(serializers.ModelSerializer):
     city = CitySerializer()
     business_group = BusinessGroupSerializer()
     projects = ProjectSerializer(many=True,
-                                 read_only=True,
-                                 source='client_pref_projects') # atributo cargado por Prefetch
+                                 read_only=True) # atributo cargado por Prefetch
 
     class Meta:
         model = Client
