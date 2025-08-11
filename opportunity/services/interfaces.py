@@ -12,6 +12,7 @@ class AbstractFinanceOpportunityFactory(ABC):
         cost_subtotal: float,
         earned_amount: float,
         order_closing_date: datetime,
+        oc_number: str
     ) -> tuple[FinanceOpportunity, bool]:
         """
         Crea o actualiza una instancia de FinanceOpportunity.

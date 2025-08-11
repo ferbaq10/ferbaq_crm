@@ -146,7 +146,8 @@ class OpportunityService:
                     opportunity=instance,
                     cost_subtotal=finance_data.get("cost_subtotal", 0),
                     earned_amount=finance_data.get("earned_amount", 0),
-                    order_closing_date=finance_data.get("order_closing_date")
+                    order_closing_date=finance_data.get("order_closing_date"),
+                    oc_number=finance_data.get("oc_number", None)
                 )
 
             # Si es PERDIDA → guardar tipo de oportunidad perdida

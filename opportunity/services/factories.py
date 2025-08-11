@@ -13,6 +13,7 @@ class DefaultFinanceOpportunityFactory(AbstractFinanceOpportunityFactory):
         cost_subtotal: float,
         earned_amount: float,
         order_closing_date: datetime,
+        oc_number: str
 
     ) -> tuple[FinanceOpportunity, bool]:
         return FinanceOpportunity.objects.update_or_create(
@@ -20,7 +21,8 @@ class DefaultFinanceOpportunityFactory(AbstractFinanceOpportunityFactory):
             defaults={
                 'cost_subtotal': cost_subtotal,
                 'earned_amount': earned_amount,
-                'order_closing_date': order_closing_date or timezone.now(),  # ✅ CORREGIDO: Usar el parámetro recibido
+                'order_closing_date': order_closing_date or timezone.now(),
+                'oc_number': oc_number,
             }
         )
 
