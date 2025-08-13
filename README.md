@@ -415,6 +415,10 @@ o las configuraciones propias
 ```
 El user del superuser es admin y la contraseña puede ser la de la laptop.
 
+Este comando recupera las imágenes para que se muestre bien el admin
+```bash
+  python manage.py collectstatic
+```
 ### PASO 7: Configurar Gunicorn
  Instalar gunicorn
 ```bash
@@ -505,7 +509,15 @@ Activa y arranca:
 server {
     listen 80;
     server_name crm.portal-ferbaq.net;
-
+    client_max_body_size 4M;
+    
+    # Aumentar límites de buffer para cabeceras grandes
+    large_client_header_buffers 4 32k;
+    client_header_buffer_size 8k;
+    proxy_buffer_size 128k;
+    proxy_buffers 4 256k;
+    proxy_busy_buffers_size 256k;
+    
     # Frontend (Next.js)
     location / {
         proxy_pass http://localhost:3000;
@@ -517,16 +529,26 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_cache_bypass $http_upgrade;
+        
+        # Límites específicos para proxy
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
     }
-
+    
     # Backend (Django) bajo /api/
     location /api/static/ {
         alias /var/www/ferbaq_crm_backend/static/;
     }
-
+    
     location /endpoint/ {
         include proxy_params;
-        proxy_pass http://unix:/var/www/ferbaq_crm_backend/gunicorn.sock;
+        proxy_pass http://127.0.0.1:8080;
+        
+        # Límites para el backend también
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
     }
 }
 ```
