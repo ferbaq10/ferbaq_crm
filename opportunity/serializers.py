@@ -3,8 +3,9 @@ from datetime import datetime
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from catalog.models import OpportunityType, StatusOpportunity, Currency
-from catalog.serializers import StatusOpportunitySerializer, CurrencySerializer, OpportunityTypeSerializer
+from catalog.models import OpportunityType, StatusOpportunity, Currency, LostOpportunityType
+from catalog.serializers import StatusOpportunitySerializer, CurrencySerializer, OpportunityTypeSerializer, \
+    LostOpportunityTypeSerializer
 from client.models import Client
 from client.serializers import ClientSerializer
 from contact.models import Contact
@@ -12,7 +13,7 @@ from contact.serializers import ContactSerializer
 from project.models import Project
 from project.serializers import ProjectSerializer
 from users.serializers import UserSerializer
-from .models import CommercialActivity, FinanceOpportunity, Opportunity, LostOpportunity, OpportunityDocument
+from .models import CommercialActivity, FinanceOpportunity, Opportunity, OpportunityDocument
 
 User = get_user_model()
 
@@ -65,6 +66,7 @@ class OpportunitySerializer(serializers.ModelSerializer):
     opportunityType = OpportunityTypeSerializer()
     status_opportunity = StatusOpportunitySerializer()
     client = ClientSerializer()
+    lost_opportunity = LostOpportunityTypeSerializer()
 
     finance_opportunity = FinanceOpportunitySerializer(
         source='finance_data',
@@ -80,7 +82,7 @@ class OpportunitySerializer(serializers.ModelSerializer):
             'status_opportunity', 'contact', 'currency',
             'project', 'opportunityType', 'closing_percentage',
             'finance_opportunity', 'is_removed', 'documents',
-            'agent', 'client'
+            'agent', 'client', 'lost_opportunity'
         ]
         read_only_fields = ['created', 'modified']
 
@@ -104,6 +106,7 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
     status_opportunity = serializers.PrimaryKeyRelatedField(queryset=StatusOpportunity.objects.all(), write_only=True)
 
     finance_opportunity = FinanceOpportunitySerializer(write_only=True, required=False)
+    lost_opportunity = serializers.PrimaryKeyRelatedField(queryset=LostOpportunityType.objects.all(), write_only=True)
 
     class Meta:
         model = Opportunity
@@ -112,7 +115,8 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
             'date_reception', 'sent_date', 'date_status',
             'status_opportunity', 'contact', 'currency',
             'project', 'opportunityType', 'closing_percentage',
-            'finance_opportunity', 'is_removed', 'client'
+            'finance_opportunity', 'is_removed', 'client',
+            'lost_opportunity'
         ]
         extra_kwargs = {
             'requisition_number': {
@@ -207,7 +211,7 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
         instance.refresh_from_db()
         return instance
 
-    # ✅ ACTUALIZADO: Método create para manejar finance_opportunity
+    # ACTUALIZADO: Método create para manejar finance_opportunity
     def create(self, validated_data):
         # Extraer finance_opportunity del validated_data
         finance_data = validated_data.pop('finance_opportunity', None)
@@ -229,13 +233,3 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
         return instance
 
 
-class LostOpportunitySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = LostOpportunity
-        fields = [
-            'id',
-            'is_removed',
-            'opportunity',
-            'lost_opportunity_type',
-        ]
-        read_only_fields = ['created', 'modified']

@@ -1,8 +1,7 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
 
-from catalog.models import LostOpportunityType
-from opportunity.models import Opportunity, FinanceOpportunity, LostOpportunity
+from opportunity.models import Opportunity, FinanceOpportunity
 
 class AbstractFinanceOpportunityFactory(ABC):
     @abstractmethod
@@ -16,20 +15,6 @@ class AbstractFinanceOpportunityFactory(ABC):
     ) -> tuple[FinanceOpportunity, bool]:
         """
         Crea o actualiza una instancia de FinanceOpportunity.
-        Retorna un tuple con la instancia y un booleano que indica si fue creada (True) o actualizada (False).
-        """
-        pass
-
-
-class AbstractLostOpportunityFactory(ABC):
-    @abstractmethod
-    def create_or_update(
-        self,
-        opportunity: Opportunity,
-        lost_opportunity_type: LostOpportunityType,
-    ) -> tuple[LostOpportunity, bool]:
-        """
-        Crea o actualiza una instancia de Lost Opportunity.
         Retorna un tuple con la instancia y un booleano que indica si fue creada (True) o actualizada (False).
         """
         pass

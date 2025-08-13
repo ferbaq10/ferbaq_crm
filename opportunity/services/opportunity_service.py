@@ -15,7 +15,7 @@ from catalog.models import LostOpportunityType
 from client.models import Client
 from opportunity.models import Opportunity
 from opportunity.models import OpportunityDocument
-from opportunity.services.interfaces import AbstractFinanceOpportunityFactory, AbstractLostOpportunityFactory
+from opportunity.services.interfaces import AbstractFinanceOpportunityFactory
 from opportunity.tasks import upload_to_sharepoint_db, delete_file_from_sharepoint_db
 from purchase.models import PurchaseStatus
 
@@ -28,10 +28,8 @@ ROLE_GERENTE = 'Gerente Comercial'
 
 class OpportunityService:
     @inject
-    def __init__(self, finance_factory: AbstractFinanceOpportunityFactory,
-                 lost_opportunity_factory: AbstractLostOpportunityFactory):
+    def __init__(self, finance_factory: AbstractFinanceOpportunityFactory):
         self.finance_factory = finance_factory
-        self.lost_opportunity_factory = lost_opportunity_factory
 
     def get_base_queryset(self, user):
         optimized_clients = Prefetch(
@@ -148,20 +146,6 @@ class OpportunityService:
                     earned_amount=finance_data.get("earned_amount", 0),
                     order_closing_date=finance_data.get("order_closing_date"),
                     oc_number=finance_data.get("oc_number", None)
-                )
-
-            # Si es PERDIDA → guardar tipo de oportunidad perdida
-            if new_status and new_status.id == StatusIDs.LOST:
-                lost_type_id = request_data.get("lost_opportunity_type")
-                try:
-                    lost_type = LostOpportunityType.objects.get(id=lost_type_id)
-                except LostOpportunityType.DoesNotExist:
-                    logger.error(f"[LOST TYPE NOT FOUND] ID={lost_type_id}")
-                    raise ValidationError({"lost_opportunity_type": "El tipo de oportunidad perdida no existe."})
-
-                self.lost_opportunity_factory.create_or_update(
-                    opportunity=instance,
-                    lost_opportunity_type=lost_type
                 )
 
             # Subida de archivo si aplica

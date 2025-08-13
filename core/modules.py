@@ -6,8 +6,8 @@ from client.services.interfaces import AbstractClientFactory
 from contact.services.contact_service import ContactService
 from contact.services.factories import ContactServiceFactory
 from contact.services.interfaces import AbstractContactFactory
-from opportunity.services.factories import DefaultFinanceOpportunityFactory, DefaultLostOpportunityFactory
-from opportunity.services.interfaces import AbstractFinanceOpportunityFactory, AbstractLostOpportunityFactory
+from opportunity.services.factories import DefaultFinanceOpportunityFactory
+from opportunity.services.interfaces import AbstractFinanceOpportunityFactory
 from opportunity.services.opportunity_service import OpportunityService
 from project.services.factories import ProjectServiceFactory
 from project.services.interfaces import AbstractProjectFactory
@@ -24,7 +24,6 @@ class AppModule(Module):
     def configure(self, binder: Binder) -> None:
         # Para Opportunity
         binder.bind(AbstractFinanceOpportunityFactory, to=DefaultFinanceOpportunityFactory, scope=singleton)
-        binder.bind(AbstractLostOpportunityFactory, to=DefaultLostOpportunityFactory, scope=singleton)
 
         # Para Purchase
         binder.bind(AbstractPurchaseOpportunityFactory, to=DefaultPurchaseStatusFactory, scope=singleton)
