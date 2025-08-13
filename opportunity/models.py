@@ -63,6 +63,12 @@ class Opportunity(BaseModel):
         null=True,
         on_delete=models.DO_NOTHING
     )
+    lost_opportunity = models.ForeignKey(
+        LostOpportunityType,
+        blank=True,
+        null=True,
+        on_delete=models.DO_NOTHING
+    )
 
     class Meta:
         db_table = 'opportunity_opportunities'
@@ -120,18 +126,6 @@ class FinanceOpportunity(BaseModel):
 
     def __str__(self):
         return f"Finanzas - {self.opportunity.name}"
-
-class LostOpportunity(BaseModel):
-    lost_opportunity_type = models.ForeignKey(
-        LostOpportunityType,
-        on_delete=models.DO_NOTHING,
-        verbose_name="Tipo de oportunidad perdida"
-    )
-    opportunity = models.OneToOneField(
-        Opportunity,
-        on_delete=models.DO_NOTHING,
-        related_name = 'lost_opportunity'
-    )
 
 class OpportunityDocument(models.Model):
     opportunity = models.ForeignKey(
