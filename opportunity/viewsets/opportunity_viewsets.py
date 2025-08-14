@@ -10,12 +10,12 @@ from rest_framework.response import Response
 
 from catalog.viewsets.base import CachedViewSet
 from core.di import injector
-from opportunity.services.opportunity_service import OpportunityService
-from .models import Opportunity, CommercialActivity
-from .serializers import (
+from opportunity.models import Opportunity, CommercialActivity
+from opportunity.serializers import (
     OpportunitySerializer, OpportunityWriteSerializer,
     CommercialActivitySerializer
 )
+from opportunity.services.opportunity_service import OpportunityService
 
 logger = logging.getLogger(__name__)
 
@@ -104,24 +104,6 @@ class OpportunityViewSet(CachedViewSet):
         except Exception as e:
             print(e)
             raise APIException('Error interno del servidor.')
-        
-    @action(detail=True, methods=['delete'], url_path='documents/(?P<document_id>[^/.]+)')
-    def delete_document(self, request, pk=None, document_id=None):
-        """
-        Eliminar un documento específico de una oportunidad.
-        URL: DELETE /api/opportunities/{opportunity_id}/documents/{document_id}/
-        """
-        try:
-            opportunity = self.get_object()
-            result = self.opportunity_service.delete_document(opportunity, document_id)
-            return Response(result, status=status.HTTP_200_OK)
-
-        except ObjectDoesNotExist:
-            return Response({"error": "Documento no encontrado"}, status=status.HTTP_404_NOT_FOUND)
-
-        except Exception as e:
-            print(f" Error al eliminar documento: {e}")
-            return Response({"error": "Error interno del servidor"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class CommercialActivityViewSet(CachedViewSet):
     model = CommercialActivity
