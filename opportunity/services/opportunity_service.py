@@ -71,7 +71,6 @@ class OpportunityService:
             optimized_documents
         )
 
-        user_role =getattr(user, 'role', None)
         if user.groups.filter(name=ROLE_VENDEDOR).exists():
             queryset = queryset.filter(agent=user)
         elif user.groups.filter(name__in=[ROLE_DIRECTOR, ROLE_GERENTE]).exists():
@@ -80,10 +79,55 @@ class OpportunityService:
             queryset = queryset.none()
         return queryset
 
+    def get_base_documents_queryset(self, user):
+        optimized_clients = Prefetch(
+            'opportunity__contact__clients',
+            queryset=Client.objects.select_related('city', 'business_group')
+        )
+
+        optimized_finance = Prefetch(
+            'opportunity__finance_data',
+            queryset=Opportunity._meta.get_field('finance_data').related_model.objects.all()
+        )
+
+        queryset = OpportunityDocument.objects.select_related(
+            'opportunity',
+            'opportunity__status_opportunity',
+            'opportunity__currency',
+            'opportunity__opportunityType',
+            'opportunity__contact',
+            'opportunity__contact__job',
+            'opportunity__project',
+            'opportunity__project__specialty',
+            'opportunity__project__subdivision',
+            'opportunity__project__subdivision__division',
+            'opportunity__project__project_status',
+            'opportunity__project__work_cell',
+            'opportunity__project__work_cell__udn',
+            'opportunity__client',
+            'opportunity__client__city',
+            'opportunity__client__business_group'
+        ).prefetch_related(
+            optimized_finance,
+            optimized_clients)
+
+        if user.groups.filter(name=ROLE_VENDEDOR).exists():
+            queryset = queryset.filter(opportunity__agent=user)
+        elif user.groups.filter(name__in=[ROLE_DIRECTOR, ROLE_GERENTE]).exists():
+            queryset = queryset.filter(opportunity__project__work_cell__users=user)
+        else:
+            queryset = queryset.none()
+        return queryset
+
     def get_filtered_queryset(self, user):
         return self.get_base_queryset(user).filter(
             created__year=datetime.now().year
         ).distinct().order_by('-created')
+
+    def get_filtered_documents_queryset(self, user):
+        return self.get_base_documents_queryset(user).filter(
+            uploaded_at__year=datetime.now().year
+        ).distinct().order_by('-uploaded_at')
 
     def process_create(self, serializer, request, files=None) -> Opportunity:
         serializer.validated_data["date_status"] = timezone.now()
@@ -212,12 +256,7 @@ class OpportunityService:
             else:
                 logger.error(f"No se pudo obtener UDN para {file_name}")
 
-    def delete_document(self, opportunity, document_id: int) -> dict:
-        try:
-            document = OpportunityDocument.objects.get(id=document_id, opportunity=opportunity)
-        except OpportunityDocument.DoesNotExist:
-            raise ObjectDoesNotExist("Documento no encontrado.")
-
+    def delete_document(self, document: OpportunityDocument) -> dict:
         try:
             # Eliminar en SharePoint y BD
             delete_file_from_sharepoint_db(document.sharepoint_url, document.id)

@@ -23,7 +23,7 @@ ferbaq_crm/
 │   │   └── interfaces.py
 │   ├── tests.py               # Pruebas unitarias
 │   ├── urls.py                # Rutas API
-│   └── viewsets.py            # Vistas basadas en ViewSets
+│   └── opportunity_viewsets.py            # Vistas basadas en ViewSets
 ├── catalog/                   # Catálogos de datos maestros (ciudades, UDN, divisiones, etc.)
 │   ├── admin.py               
 │   ├── apps.py                
@@ -54,7 +54,7 @@ ferbaq_crm/
 │   ├── signals.py             
 │   ├── tests.py               
 │   ├── urls.py                
-│   └── viewsets.py            
+│   └── opportunity_viewsets.py            
 ├── contact/                   # Gestión de contactos (clientes, oportunidades)
 │   ├── admin.py               
 │   ├── apps.py                
@@ -70,7 +70,7 @@ ferbaq_crm/
 │   ├── signals.py             
 │   ├── tests.py               
 │   ├── urls.py                
-│   └── viewsets.py            
+│   └── opportunity_viewsets.py            
 ├── core/                      # Configuración central del proyecto
 │   ├── apps.py                
 │   ├── asgi.py               
@@ -102,7 +102,7 @@ ferbaq_crm/
 │   ├── signals.py             
 │   ├── tests.py               
 │   ├── urls.py                
-│   └── viewsets.py            
+│   └── opportunity_viewsets.py            
 ├── opportunity/              # Oportunidades comerciales
 │   ├── admin.py               
 │   ├── apps.py                
@@ -119,7 +119,7 @@ ferbaq_crm/
 │   ├── tasks.py               # Tareas asíncronas
 │   ├── tests.py               
 │   ├── urls.py                
-│   └── viewsets.py            
+│   └── opportunity_viewsets.py            
 ├── poetry.lock               # Archivo de bloqueo de dependencias Poetry
 ├── project/                  # Gestión de proyectos derivados
 │   ├── admin.py               
@@ -136,7 +136,7 @@ ferbaq_crm/
 │   ├── signals.py             
 │   ├── tests.py               
 │   ├── urls.py                
-│   └── viewsets.py            
+│   └── opportunity_viewsets.py            
 ├── purchase/                 # Compras y adquisiciones
 │   ├── admin.py               
 │   ├── apps.py                
@@ -150,7 +150,7 @@ ferbaq_crm/
 │   ├── signals.py             
 │   ├── tests.py               
 │   ├── urls.py                
-│   └── viewsets.py            
+│   └── opportunity_viewsets.py            
 ├── pyproject.toml             # Configuración de dependencias (Poetry)
 ├── README para k8s.md                  # Documentación general del proyecto
 ├── run_simple_worker.py       # Script para ejecución de worker simple
@@ -162,7 +162,7 @@ ferbaq_crm/
     ├── serializers.py        
     ├── tests.py              
     ├── urls.py               
-    └── viewsets.py          
+    └── opportunity_viewsets.py          
 ```
 
 ## 🧱 Patrones utilizados
