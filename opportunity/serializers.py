@@ -66,6 +66,7 @@ class OpportunitySerializer(serializers.ModelSerializer):
     opportunityType = OpportunityTypeSerializer()
     status_opportunity = StatusOpportunitySerializer()
     client = ClientSerializer()
+
     lost_opportunity = LostOpportunityTypeSerializer()
 
     finance_opportunity = FinanceOpportunitySerializer(
@@ -100,8 +101,13 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
     )
     project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all(), write_only=True)
     contact = serializers.PrimaryKeyRelatedField(queryset=Contact.objects.all(), write_only=True)
-    currency = serializers.PrimaryKeyRelatedField(queryset=Currency.objects.all(), write_only=True)
     client = serializers.PrimaryKeyRelatedField(queryset=Client.objects.all(), write_only=True)
+    currency = serializers.PrimaryKeyRelatedField(
+        queryset=Currency.objects.all(),
+        write_only=True,
+        required=False,
+        allow_null=True
+    )
     opportunityType = serializers.PrimaryKeyRelatedField(queryset=OpportunityType.objects.all(), write_only=True)
     status_opportunity = serializers.PrimaryKeyRelatedField(queryset=StatusOpportunity.objects.all(), write_only=True)
 
