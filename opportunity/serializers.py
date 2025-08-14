@@ -106,7 +106,12 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
     status_opportunity = serializers.PrimaryKeyRelatedField(queryset=StatusOpportunity.objects.all(), write_only=True)
 
     finance_opportunity = FinanceOpportunitySerializer(write_only=True, required=False)
-    lost_opportunity = serializers.PrimaryKeyRelatedField(queryset=LostOpportunityType.objects.all(), write_only=True)
+    lost_opportunity = serializers.PrimaryKeyRelatedField(
+        queryset=LostOpportunityType.objects.all(),
+        write_only=True,
+        required=False,
+        default=None
+    )
 
     class Meta:
         model = Opportunity
@@ -132,7 +137,6 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
                     'min_value': 0  # Valor mínimo permitido
             },
             'contact': {'error_messages': {'required': 'El contacto es obligatorio.'}},
-            'currency': {'error_messages': {'required': 'La moneda es obligatoria.'}},
             'project': {'error_messages': {'required': 'El proyecto es obligatorio.'}},
             'client': {'error_messages': {'required': 'El cliente es obligatorio.'}},
             'opportunityType': {'error_messages': {'required': 'El tipo de oportunidad es obligatorio.'}},
