@@ -1,8 +1,10 @@
 from datetime import datetime
 
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
 
+from catalog.constants import StatusIDs
 from catalog.models import OpportunityType, StatusOpportunity, Currency, LostOpportunityType
 from catalog.serializers import StatusOpportunitySerializer, CurrencySerializer, OpportunityTypeSerializer, \
     LostOpportunityTypeSerializer
@@ -14,6 +16,8 @@ from project.models import Project
 from project.serializers import ProjectSerializer
 from users.serializers import UserSerializer
 from .models import CommercialActivity, FinanceOpportunity, Opportunity, OpportunityDocument
+from decimal import Decimal, InvalidOperation
+
 
 User = get_user_model()
 
@@ -95,6 +99,7 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
         required=True,
         error_messages={
             'required': 'El nombre es obligatorio.',
+            'min_length': 'El nombre debe tener un mínimo de 20 caracteres.',
             'max_length': 'El nombre no puede exceder los 100 caracteres.',
             'unique': 'Ya existe una oportunidad con este nombre.'
         }
@@ -154,34 +159,145 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("El monto debe ser mayor o igual a cero.")
         return value
 
-    def validate(self, data):
-        sent_date = data.get("sent_date")
-        date_status = data.get("date_status")
-        date_reception = data.get("date_reception")
+    def validate(self, attrs):
+        """
+        Validación cruzada de campos para oportunidades.
+        """
+        # Extraer datos una sola vez
+        sent_date = attrs.get("sent_date")
+        date_status = attrs.get("date_status")
+        date_reception = attrs.get("date_reception")
+        status_opportunity = attrs.get("status_opportunity")
+        amount = attrs.get("amount")
+        currency = attrs.get("currency")
+        order_closing_date = attrs.get("order_closing_date")
+        lost_opportunity_type = attrs.get("lost_opportunity_type")
 
-        # Validar tipos datetime solo si los campos están presentes
-        if date_reception is not None and not isinstance(date_reception, datetime):
-            raise serializers.ValidationError({
-                "date_reception": "La fecha de recepción debe ser un valor datetime válido."
-            })
+        errors = {}
 
-        if date_status is not None and not isinstance(date_status, datetime):
-            raise serializers.ValidationError({
-                "date_status": "La fecha del estado debe ser un valor datetime válido."
-            })
+        # ===========================
+        # VALIDACIONES DE FECHAS
+        # ===========================
+        def validate_datetime_field(field_name, field_value):
+            """Valida que un campo sea datetime válido"""
+            if field_value is not None and not isinstance(field_value, datetime):
+                return f"La fecha debe ser un valor datetime válido."
+            return None
 
-        if sent_date is not None and not isinstance(sent_date, datetime):
-            raise serializers.ValidationError({
-                "sent_date": "La fecha de envío debe ser un valor datetime válido."
-            })
+        # Validar tipos de fechas
+        datetime_fields = {
+            'date_reception': ('date_reception', date_reception),
+            'date_status': ('date_status', date_status),
+            'sent_date': ('sent_date', sent_date)
+        }
 
-        # Validar que sent_date no sea anterior a date_reception solo si ambos existen
+        for field_key, (field_name, field_value) in datetime_fields.items():
+            error_msg = validate_datetime_field(field_name, field_value)
+            if error_msg:
+                errors[field_key] = error_msg
+
+        # Validar lógica de fechas
         if sent_date and date_reception and sent_date < date_reception:
-            raise serializers.ValidationError(
-                "La fecha de envío no puede ser anterior a la de recepción."
+            errors['sent_date'] = "La fecha de envío no puede ser anterior a la de recepción."
+
+        # ===========================
+        # VALIDACIÓN AMOUNT VS EARNED_AMOUNT
+        # ===========================
+        def to_decimal(val):
+            """Convierte valor a Decimal de forma segura"""
+            if val is None:
+                return None
+            try:
+                return Decimal(str(val))
+            except (InvalidOperation, TypeError, ValueError):
+                return None
+
+        # Obtener amount propuesto o actual
+        amount_in_request = attrs.get('amount', getattr(self.instance, 'amount', None))
+        amount_dec = to_decimal(amount_in_request)
+
+        # Obtener earned_amount de finance_opportunity
+        earned_dec = None
+        finance_data = attrs.get('finance_opportunity')
+
+        if isinstance(finance_data, dict):
+            earned_in_request = finance_data.get('earned_amount')
+            earned_dec = to_decimal(earned_in_request)
+
+        # Si no hay earned_amount en request, buscar en instancia existente
+        if earned_dec is None and self.instance is not None:
+            try:
+                existing_finance = getattr(self.instance, 'finance_opportunity', None)
+                if existing_finance is not None:
+                    earned_dec = to_decimal(getattr(existing_finance, 'earned_amount', None))
+            except (ObjectDoesNotExist, AttributeError):
+                earned_dec = None
+
+        # Validar relación amount >= earned_amount para oportunidades ganadas
+        if (amount_dec is not None and
+                earned_dec is not None and
+                status_opportunity == StatusIDs.WON and
+                amount_dec < earned_dec):
+            errors['amount'] = (
+                f'El monto ({amount_dec}) no puede ser menor que el monto ganado '
+                f'({earned_dec}) para oportunidades ganadas.'
             )
 
-        return data
+        # ===========================
+        # VALIDACIONES POR ESTADO
+        # ===========================
+
+        # Estados que requieren campos obligatorios
+        states_requiring_fields = [StatusIDs.SEND, StatusIDs.NEGOTIATING, StatusIDs.WON]
+
+        if status_opportunity.id in states_requiring_fields:
+            if not currency:
+                errors['currency'] = (
+                    'La moneda es obligatoria para oportunidades en el estado de la oportunidad seleccionada.'
+                )
+
+            if not amount or amount <= 0:
+                errors['amount'] = (
+                    'El monto debe ser mayor a 0 para oportunidades en el estado de la oportunidad seleccionada.'
+                )
+
+            if not earned_dec or earned_dec <= 0:
+                errors['earned_amount'] = (
+                    'El monto ganado debe ser mayor a 0 para oportunidades en el estado de la oportunidad ganada.'
+                )
+
+            if not order_closing_date and status_opportunity.id is not StatusIDs.WON:
+                errors['order_closing_date'] = (
+                    'La fecha de cierre es obligatoria para oportunidades en el estado de la oportunidad seleccionada.'
+                )
+            if not finance_data.get('order_closing_date') and StatusIDs.WON:
+                errors['order_closing_date'] = (
+                    'La fecha de cierre es obligatoria para oportunidades en el estado de la oportunidad seleccionada.'
+                )
+
+        # Validación específica para oportunidades perdidas
+        if status_opportunity.id == StatusIDs.LOST:
+            if not lost_opportunity_type:
+                errors['lost_opportunity_type'] = (
+                    'El tipo de pérdida es obligatorio para oportunidades en el estado de la oportunidad perdida.'
+                )
+            if not currency:
+                errors['currency'] = (
+                    'La moneda es obligatoria para oportunidades en el estado de la oportunidad seleccionada'
+                )
+
+            if not amount or amount <= 0:
+                errors['amount'] = (
+                    'El monto debe ser mayor a 0 para oportunidades en el estado de la oportunidad seleccionada.'
+                )
+
+        # ===========================
+        # LANZAR ERRORES SI EXISTEN
+        # ===========================
+        if errors:
+            raise serializers.ValidationError(errors)
+
+        return attrs
 
     # NUEVO: Método update personalizado
     def update(self, instance, validated_data):
