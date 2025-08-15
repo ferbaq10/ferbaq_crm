@@ -12,7 +12,7 @@ from django.conf import settings
 class Opportunity(BaseModel):
     name = models.CharField(unique=True, max_length=100)
     description = models.TextField(blank=True, null=True)
-    closing_percentage = models.DecimalField(max_digits=4, blank=True, null=True,
+    closing_percentage = models.DecimalField(max_digits=5, blank=True, null=True,
                                              decimal_places=2, verbose_name="Porcentaje de cierre")
     amount = models.DecimalField(max_digits=12,
                                  decimal_places=2,
@@ -22,6 +22,8 @@ class Opportunity(BaseModel):
     date_reception = models.DateTimeField(blank=True, null=True, verbose_name="Fecha de recepción")
     sent_date = models.DateTimeField(blank=True, null=True, verbose_name="Fecha de enviado")
     date_status = models.DateTimeField(auto_now_add=True, verbose_name="Fecha del estado")
+    number_items = models.IntegerField(blank=True, null=True, verbose_name="Número de partidas")
+
     history = HistoricalRecords()
 
     status_opportunity = models.ForeignKey(
@@ -111,7 +113,13 @@ class FinanceOpportunity(BaseModel):
     earned_amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Monto ganado")
     cost_subtotal = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Costo subtotal")
     order_closing_date = models.DateTimeField(blank=True, verbose_name="Fecha de cierre de orden")
-    oc_number = models.CharField(blank=True, null=True, verbose_name="Número de orden de compra cliente", max_length=255)
+    oc_number = models.CharField(blank=True, null=True, verbose_name="Número de orden de compra cliente",
+                                 max_length=255)
+
+    cash_percentage = models.DecimalField(max_digits=5, blank=True, null=True,
+                                             decimal_places=2, verbose_name="Porcentaje de contado")
+    credit_percentage = models.DecimalField(max_digits=5, blank=True, null=True,
+                                          decimal_places=2, verbose_name="Porcentaje de crédito")
 
     opportunity = models.OneToOneField(
         Opportunity,
