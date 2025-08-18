@@ -2,11 +2,9 @@ import logging
 from datetime import datetime
 from typing import TypeVar
 
-from django.contrib.auth.models import User
 from django.db import IntegrityError
 from django.db import transaction
 from django.db.models import Prefetch
-from django.db.models import QuerySet
 from django.utils import timezone
 from django_rq import enqueue
 from injector import inject
@@ -16,74 +14,30 @@ from catalog.constants import StatusIDs, StatusPurchaseTypeIDs
 from client.models import Client
 from opportunity.models import Opportunity
 from opportunity.models import OpportunityDocument
+from opportunity.services.base import BaseService
 from opportunity.services.interfaces import AbstractFinanceOpportunityFactory
 from opportunity.tasks import upload_to_sharepoint_db, delete_file_from_sharepoint_db
 from purchase.models import PurchaseStatus
-from users.models import RoleScope
-from users.services.access import resolve_scope
 
 # Si usas un modelo genérico para el queryset
 T = TypeVar('T')
 logger = logging.getLogger(__name__)
 
-class OpportunityService:
+class OpportunityService(BaseService):
     @inject
     def __init__(self, finance_factory: AbstractFinanceOpportunityFactory):
         self.finance_factory = finance_factory
 
-    def add_filter_by_rol(self, user: User, queryset: QuerySet[T])-> QuerySet[T]:
-        """
-            Aplica un filtro al queryset de acuerdo con el alcance (scope) definido en las políticas de rol (RolePolicy) para el usuario.
-
-            Modo de funcionamiento:
-            1. Se obtiene el "scope" del usuario mediante la función resolve_scope(user), la cual determina el nivel de acceso
-               revisando sus grupos y las políticas de rol configuradas en la base de datos.
-               - RoleScope.ALL     → Acceso total a todos los registros.
-               - RoleScope.WORKCELL → Acceso únicamente a registros ligados a la(s) célula(s) de trabajo (work_cell) en la(s) que participa el usuario.
-               - RoleScope.OWNED   → Acceso únicamente a registros donde el usuario es el agente responsable.
-               - RoleScope.NONE    → Sin acceso a registros.
-
-            2. Según el scope obtenido:
-               - Si es ALL: devuelve el queryset completo sin filtrar.
-               - Si es WORKCELL: filtra por la relación project__work_cell__users para incluir solo los registros asociados a la(s) célula(s) del usuario.
-               - Si es OWNED: filtra por el campo "agent" para incluir solo registros del propio usuario.
-               - En cualquier otro caso (NONE): devuelve queryset vacío.
-
-            Este método permite:
-            - Controlar el acceso a los datos de forma centralizada y dinámica.
-            - Modificar el comportamiento sin tocar código, cambiando únicamente las políticas de rol en el administrador de Django.
-            - Mantener la lógica desacoplada de los nombres de grupos, usando la resolución de alcance (RoleScope) como única fuente de verdad.
-
-            Parámetros:
-                user (User): Usuario autenticado que realiza la consulta.
-                queryset (QuerySet[T]): Conjunto base de datos sobre el cual se aplicará el filtro.
-
-            Retorna:
-                QuerySet[T]: El conjunto filtrado de acuerdo con el alcance del usuario.
-            """
-        scope = resolve_scope(user)
-
-        if scope == RoleScope.ALL:
-            return queryset
-        elif scope == RoleScope.WORKCELL:
-            return queryset.filter(project__work_cell__users=user)
-        elif scope == RoleScope.OWNED:
-            return queryset.filter(agent=user)
-        else:
-            return queryset.none()
-
-
-    def get_base_queryset(self, user):
+    def get_prefetched_queryset(self):
+        # Igual que tu get_base_queryset, PERO sin add_filter_by_rol
         optimized_clients = Prefetch(
             'contact__clients',
             queryset=Client.objects.select_related('city', 'business_group')
         )
-
         optimized_finance = Prefetch(
             'finance_data',
             queryset=Opportunity._meta.get_field('finance_data').related_model.objects.all()
         )
-
         optimized_documents = Prefetch(
             'documents',
             queryset=OpportunityDocument.objects.only(
@@ -91,30 +45,23 @@ class OpportunityService:
             )
         )
 
-        queryset = Opportunity.objects.select_related(
-            'status_opportunity',
-            'currency',
-            'opportunityType',
-            'contact',
-            'contact__job',
-            'project',
-            'project__specialty',
-            'project__subdivision',
-            'project__subdivision__division',
-            'project__project_status',
-            'project__work_cell',
-            'project__work_cell__udn',
-            'client',
-            'client__city',
-            'client__business_group'
-        ).prefetch_related(
-            optimized_finance,
-            optimized_clients,
-            optimized_documents
+        return (Opportunity.objects
+                .select_related(
+            'status_opportunity', 'currency', 'opportunityType', 'contact', 'contact__job',
+            'project', 'project__specialty', 'project__subdivision',
+            'project__subdivision__division', 'project__project_status',
+            'project__work_cell', 'project__work_cell__udn',
+            'client', 'client__city', 'client__business_group'
         )
+                .prefetch_related(optimized_finance, optimized_clients, optimized_documents)
+                )
 
-        return self.add_filter_by_rol(user, queryset)
+    def get_base_queryset(self, user):
+        return self.add_filter_by_rol(user, self.get_prefetched_queryset())
 
+    def get_filtered_queryset(self, user):
+        return (self.add_filter_by_rol(user, self.get_prefetched_queryset())
+                    .filter(is_removed=False).distinct())
 
     def get_base_documents_queryset(self, user):
         optimized_clients = Prefetch(

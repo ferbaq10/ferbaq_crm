@@ -21,7 +21,10 @@ class Opportunity(BaseModel):
                                           blank=True, null=True)
     date_reception = models.DateTimeField(blank=True, null=True, verbose_name="Fecha de recepción")
     sent_date = models.DateTimeField(blank=True, null=True, verbose_name="Fecha de enviado")
+    date_limit_send = models.DateTimeField(auto_now_add=True,
+                                           blank=True, null=True, verbose_name="Fecha límite de envío")
     date_status = models.DateTimeField(auto_now_add=True, verbose_name="Fecha del estado")
+    order_closing_date = models.DateTimeField(blank=True, null=True, verbose_name="Fecha de cierre de orden")
     number_items = models.IntegerField(blank=True, null=True, verbose_name="Número de partidas")
 
     history = HistoricalRecords()
