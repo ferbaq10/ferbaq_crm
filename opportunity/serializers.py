@@ -170,13 +170,13 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
         errors = {}
 
         # ===== Utilidades =====
-        def to_decimal(val):
-            if val is None:
+        def to_decimal_or_none(v):
+            if v in (None, '', 'null'):
                 return None
             try:
-                return Decimal(str(val))
-            except (InvalidOperation, TypeError, ValueError):
-                return None
+                return Decimal(str(v))
+            except Exception:
+                raise serializers.ValidationError("Valor numérico inválido.")
 
         def validate_datetime_field(field_value):
             if field_value is not None and not isinstance(field_value, datetime):
@@ -207,7 +207,7 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
         # ===== Amount y earned_amount =====
         # amount propuesto o actual
         amount_in_request = attrs.get('amount', getattr(self.instance, 'amount', None))
-        amount_dec = to_decimal(amount_in_request)
+        amount_dec = to_decimal_or_none(amount_in_request)
 
         # Tomar finance_opportunity del request o el actual (para earned_amount y order_closing_date)
         finance_data_req = attrs.get('finance_opportunity')
@@ -215,8 +215,8 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
         order_closing_date = None
 
         if isinstance(finance_data_req, dict):
-            earned_dec = to_decimal(finance_data_req.get('earned_amount'))
-            order_closing_date = finance_data_req.get('order_closing_date')
+            earned_dec = to_decimal_or_none((finance_data_req or {}).get("earned_amount"))
+            order_closing_date = (finance_data_req or {}).get("order_closing_date")
 
         # Si no llegó info financiera en el request, intenta leer de la instancia
         if (earned_dec is None or order_closing_date is None) and self.instance is not None:
@@ -226,7 +226,7 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
             existing_finance = getattr(self.instance, finance_related_name, None)
             if existing_finance:
                 if earned_dec is None:
-                    earned_dec = to_decimal(getattr(existing_finance, 'earned_amount', None))
+                    earned_dec = to_decimal_or_none(getattr(existing_finance, 'earned_amount', None))
                 if order_closing_date is None:
                     order_closing_date = getattr(existing_finance, 'order_closing_date', None)
 
@@ -238,8 +238,8 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
                     f'El monto ({amount_dec}) no puede ser menor que el monto ganado ({earned_dec}) '
                     f'para oportunidades ganadas.'
                 )
-        cash_percentage = finance_data_req.get('cash_percentage')
-        credit_percentage = finance_data_req.get('credit_percentage')
+        cash_percentage   = to_decimal_or_none((finance_data_req or {}).get("cash_percentage"))
+        credit_percentage = to_decimal_or_none((finance_data_req or {}).get("credit_percentage"))
         if cash_percentage and credit_percentage and cash_percentage + credit_percentage > 100:
             errors['cash_percentage'] = f'La suma del porcentaje de contado y porcentaje de crédito no puede ser mayor a 100.'
 
