@@ -9,10 +9,12 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from catalog.models import WorkCell
 from catalog.viewsets.base import CachedViewSet
 from core.di import injector
-from users.serializers import UserSerializer, UserWithWorkcellSerializer
+from users.serializers import UserSerializer, UserWithWorkcellSerializer, UserProfileUpdateSerializer, \
+    ProfilePhotoUploadSerializer
 from users.services.user_service import UserService
 from .permissions import CanAssignWorkcell, CanUnassignWorkcell
 from .serializers import MyTokenObtainPairSerializer
+from .services.sharepoint_profile_service import SharePointProfileService
 
 User = get_user_model()
 
@@ -110,3 +112,94 @@ class UserViewSet(CachedViewSet):
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def me(self, request):
+        """Obtiene el perfil del usuario autenticado"""
+        serializer = self.get_serializer(request.user)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['patch'], permission_classes=[IsAuthenticated])
+    def update_profile(self, request):
+        """Actualiza los datos del perfil del usuario autenticado"""
+        serializer = UserProfileUpdateSerializer(
+            instance=request.user,
+            data=request.data,
+            partial=True
+        )
+
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer.save()
+
+        # Devolver datos actualizados
+        user_serializer = UserSerializer(request.user)
+        return Response({
+            'message': 'Perfil actualizado correctamente',
+            'user': user_serializer.data
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated])
+    def upload_photo(self, request):
+        """Sube foto de perfil a SharePoint"""
+        serializer = ProfilePhotoUploadSerializer(data=request.data)
+
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        photo_file = serializer.validated_data['photo']
+        file_extension = photo_file.name.split('.')[-1].lower()
+
+        # Subir a SharePoint usando tu servicio
+        sharepoint_url = SharePointProfileService.upload_profile_photo(
+            user_id=request.user.id,
+            photo_file=photo_file,
+            file_extension=file_extension
+        )
+
+        if not sharepoint_url:
+            return Response(
+                {'error': 'Error subiendo la foto a SharePoint'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        # Actualizar perfil del usuario
+        profile = request.user.profile
+        old_photo_url = profile.photo_sharepoint_url
+
+        profile.photo_sharepoint_url = sharepoint_url
+        profile.save()
+
+        # Eliminar foto anterior si existía
+        if old_photo_url:
+            SharePointProfileService.delete_profile_photo(old_photo_url)
+
+        return Response({
+            'message': 'Foto subida correctamente',
+            'photo_url': sharepoint_url
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['delete'], permission_classes=[IsAuthenticated])
+    def delete_photo(self, request):
+        """Elimina foto de perfil del usuario autenticado"""
+        profile = request.user.profile
+
+        if not profile.photo_sharepoint_url:
+            return Response(
+                {'error': 'No hay foto para eliminar'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Eliminar de SharePoint
+        deleted = SharePointProfileService.delete_profile_photo(profile.photo_sharepoint_url)
+
+        if deleted:
+            profile.photo_sharepoint_url = None
+            profile.save()
+            return Response({'message': 'Foto eliminada correctamente'})
+        else:
+            return Response(
+                {'error': 'Error eliminando la foto'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

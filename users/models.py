@@ -1,5 +1,5 @@
 from django.db import models
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import Group, User
 
 class RoleScope(models.TextChoices):
     OWNED = 'OWNED', 'Propias'
@@ -30,3 +30,27 @@ class RolePolicy(models.Model):
 
     def __str__(self):
         return f'{self.group.name} → {self.scope} (prio={self.priority})'
+
+
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    photo_sharepoint_url = models.URLField(
+        blank=True,
+        null=True,
+        help_text="URL de la foto de perfil en SharePoint"
+    )
+    bio = models.TextField(max_length=500, blank=True)
+    phone = models.CharField(max_length=15, blank=True)
+    created = models.DateTimeField(auto_now_add=True)
+    modified = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Perfil de Usuario'
+        verbose_name_plural = 'Perfiles de Usuario'
+
+    def __str__(self):
+        return f"Perfil de {self.user.username}"
+
+    def get_photo_url(self):
+        """Retorna la URL de la foto o None si no tiene"""
+        return self.photo_sharepoint_url if self.photo_sharepoint_url else None
