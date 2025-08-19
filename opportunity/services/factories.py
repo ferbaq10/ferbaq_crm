@@ -12,7 +12,9 @@ class DefaultFinanceOpportunityFactory(AbstractFinanceOpportunityFactory):
         cost_subtotal: float,
         earned_amount: float,
         order_closing_date: datetime,
-        oc_number: str
+        oc_number: str,
+        cash_percentage: float,
+        credit_percentage: float
 
     ) -> tuple[FinanceOpportunity, bool]:
         return FinanceOpportunity.objects.update_or_create(
@@ -22,5 +24,7 @@ class DefaultFinanceOpportunityFactory(AbstractFinanceOpportunityFactory):
                 'earned_amount': earned_amount,
                 'order_closing_date': order_closing_date or timezone.now(),
                 'oc_number': oc_number,
+                'cash_percentage': cash_percentage,
+                'credit_percentage': credit_percentage
             }
         )

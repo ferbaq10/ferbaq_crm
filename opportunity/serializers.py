@@ -35,7 +35,9 @@ class FinanceOpportunitySerializer(serializers.ModelSerializer):
             'earned_amount',
             'cost_subtotal',
             'order_closing_date',
-            'oc_number'
+            'oc_number',
+            'cash_percentage',
+            'credit_percentage'
         ]
         read_only_fields = ['created', 'modified']
 
@@ -236,6 +238,13 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
                     f'El monto ({amount_dec}) no puede ser menor que el monto ganado ({earned_dec}) '
                     f'para oportunidades ganadas.'
                 )
+        cash_percentage = finance_data_req.get('cash_percentage')
+        credit_percentage = finance_data_req.get('credit_percentage')
+        if cash_percentage and credit_percentage and cash_percentage + credit_percentage > 100:
+            errors['cash_percentage'] = f'La suma del porcentaje de contado y porcentaje de crédito no puede ser mayor a 100.'
+
+        if cash_percentage and credit_percentage and cash_percentage + credit_percentage < 0:
+            errors['cash_percentage'] =  'La suma del porcentaje de contado y porcentaje de crédito no puede ser menor a 0.'
 
         # ===== Reglas por estado (solo si conocemos el estado) =====
         states_requiring_fields = [StatusIDs.SEND, StatusIDs.NEGOTIATING, StatusIDs.WON]

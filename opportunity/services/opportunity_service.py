@@ -169,7 +169,9 @@ class OpportunityService(BaseService):
                     cost_subtotal=finance_data.get("cost_subtotal", 0),
                     earned_amount=finance_data.get("earned_amount", 0),
                     order_closing_date=finance_data.get("order_closing_date"),
-                    oc_number=finance_data.get("oc_number", None)
+                    oc_number=finance_data.get("oc_number"),
+                    cash_percentage=finance_data.get("cash_percentage"),
+                    credit_percentage = finance_data.get("credit_percentage")
                 )
 
             # Subida de archivo si aplica
