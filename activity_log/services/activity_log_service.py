@@ -4,9 +4,10 @@ from django.db.models import QuerySet
 from activity_log.models import ActivityLog
 from activity_log.services.interfaces import AbstractActivityLogFactory
 from client.models import Client
+from opportunity.services.base import BaseService
 
 
-class ActivityLogService(AbstractActivityLogFactory):
+class ActivityLogService(AbstractActivityLogFactory, BaseService):
     def create(self, validated_data: dict) -> ActivityLog:
         pass
 
@@ -19,7 +20,7 @@ class ActivityLogService(AbstractActivityLogFactory):
             queryset=Client.objects.select_related('city', 'business_group')
         )
 
-        return ActivityLog.objects.select_related(
+        queryset = ActivityLog.objects.select_related(
             'activity_type',
             'meeting_type',
             'meeting_result',
@@ -46,4 +47,5 @@ class ActivityLogService(AbstractActivityLogFactory):
         ).prefetch_related(
             optimized_clients
         )
-        # .filter(agent=user)
+        return self.add_filter_by_rol(user, queryset,
+                                      workcell_filter_field="projects__work_cell__users")
