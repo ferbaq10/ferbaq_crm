@@ -1,9 +1,12 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+
+from .models import UserProfile
 
 User = get_user_model()
 
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
@@ -62,20 +65,35 @@ class UserWithRolesSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'email', 'groups', 'user_permissions']
 
 
+class UserProfileSerializer(serializers.ModelSerializer):
+    photo_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = UserProfile
+        fields = ['id', 'photo_sharepoint_url', 'photo_url', 'bio', 'phone', 'created', 'modified']
+        read_only_fields = ['created', 'modified']
+
+    def get_photo_url(self, obj):
+        return obj.get_photo_url()
+
+
 class UserSerializer(serializers.ModelSerializer):
+    profile = UserProfileSerializer(read_only=True)
+
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'is_active', 'is_superuser']
+        fields = ['id', 'username', 'email', 'is_active', 'is_superuser', 'profile']
 
 
 class UserWithWorkcellSerializer(serializers.ModelSerializer):
+    profile = UserProfileSerializer(read_only=True)
     workcells = serializers.SerializerMethodField()
     workcell_count = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = ['id', 'username', 'email', 'first_name', 'last_name',
-                  'is_active', 'workcells', 'workcell_count']
+                  'is_active', 'workcells', 'workcell_count', 'profile']
 
     def get_workcells(self, obj):
         """Devuelve las WorkCells asignadas al usuario"""
@@ -90,3 +108,58 @@ class UserWithWorkcellSerializer(serializers.ModelSerializer):
     def get_workcell_count(self, obj):
         """Cuenta las WorkCells asignadas"""
         return obj.workcell.count()
+
+
+class UserProfileUpdateSerializer(serializers.ModelSerializer):
+    # Campos del User
+    first_name = serializers.CharField(max_length=30, required=False, allow_blank=True)
+    last_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
+    email = serializers.EmailField(required=False)
+
+    # Campos del Profile
+    bio = serializers.CharField(max_length=500, required=False, allow_blank=True)
+    phone = serializers.CharField(max_length=15, required=False, allow_blank=True)
+
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'email', 'bio', 'phone']
+
+    def update(self, instance, validated_data):
+        # Actualizar campos del User
+        instance.first_name = validated_data.get('first_name', instance.first_name)
+        instance.last_name = validated_data.get('last_name', instance.last_name)
+        instance.email = validated_data.get('email', instance.email)
+        instance.save()
+
+        # Actualizar campos del Profile
+        profile = instance.profile
+        profile.bio = validated_data.get('bio', profile.bio)
+        profile.phone = validated_data.get('phone', profile.phone)
+        profile.save()
+
+        return instance
+
+
+class ProfilePhotoUploadSerializer(serializers.Serializer):
+    photo = serializers.ImageField(
+        required=True,
+        error_messages={
+            'required': 'La foto es obligatoria.',
+            'invalid': 'El archivo debe ser una imagen válida.'
+        }
+    )
+
+    def validate_photo(self, value):
+        # Validar tamaño (máximo 5MB)
+        if value.size > 5 * 1024 * 1024:
+            raise serializers.ValidationError("La imagen no puede superar 5MB")
+
+        # Validar formato
+        allowed_formats = ['jpeg', 'jpg', 'png', 'webp']
+        file_extension = value.name.split('.')[-1].lower()
+        if file_extension not in allowed_formats:
+            raise serializers.ValidationError(f"Formato no permitido. Use: {', '.join(allowed_formats)}")
+
+        return value
+
+

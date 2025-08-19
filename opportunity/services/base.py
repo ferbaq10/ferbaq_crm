@@ -9,16 +9,21 @@ T = TypeVar('T')
 
 
 class BaseService:
-    def add_filter_by_rol(self, user: User, queryset: QuerySet[T]) -> QuerySet[T]:
+    def add_filter_by_rol(self,
+                          user: User,
+                          queryset: QuerySet[T],
+                          workcell_filter_field: str = "project__work_cell__users") -> QuerySet[T]:
         """
-        [Tu documentación actual aquí]
+        Args:
+            workcell_filter_field: Campo para filtrar por work_cell (ej: "project__work_cell__users")
         """
         scope = resolve_scope(user)
 
         if scope == RoleScope.ALL:
             return queryset
         elif scope == RoleScope.WORKCELL:
-            return queryset.filter(project__work_cell__users=user)
+            filter_kwargs = {workcell_filter_field: user}
+            return queryset.filter(**filter_kwargs)
         elif scope == RoleScope.OWNED:
             return queryset.filter(agent=user)
         else:
