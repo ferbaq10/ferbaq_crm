@@ -3,10 +3,11 @@ from django.db.models import QuerySet
 
 from client.models import Client
 from client.services.interfaces import AbstractClientFactory
+from opportunity.services.base import BaseService
 from project.models import Project
 
 
-class ClientService(AbstractClientFactory):
+class ClientService(AbstractClientFactory, BaseService):
     def create(self, validated_data: dict) -> Client:
         project_ids = validated_data.pop('projects', [])
         instance = Client.objects.create(**validated_data)
@@ -37,12 +38,13 @@ class ClientService(AbstractClientFactory):
             'project_status'
         )
 
-        return (
+        queryset = (
             Client.objects
-            .filter(projects__work_cell__users=user)
             .distinct()
             .select_related('city', 'business_group')
             .prefetch_related(
                 Prefetch('projects', queryset=project_qs)
             )
         )
+
+        return self.add_filter_by_rol(user, queryset, workcell_filter_field="projects__work_cell__users")
