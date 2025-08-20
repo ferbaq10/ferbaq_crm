@@ -11,7 +11,7 @@ from catalog.viewsets.base import CachedViewSet
 from core.di import injector
 from users.serializers import (
     UserSerializer, UserWithWorkcellSerializer, UserProfileUpdateSerializer, 
-    ProfilePhotoUploadSerializer, PasswordChangeSerializer)
+    ProfilePhotoUploadSerializer, PasswordChangeSerializer, PasswordResetRequestSerializer, PasswordResetConfirmSerializer)
 from users.services.user_service import UserService
 from .permissions import CanAssignWorkcell, CanUnassignWorkcell
 from .serializers import MyTokenObtainPairSerializer
@@ -275,4 +275,50 @@ class UserViewSet(CachedViewSet):
             
             return Response({
                 'error': 'Error interno del servidor al cambiar la contraseña'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+    @action(detail=False, methods=['post'], permission_classes=[AllowAny])
+    def password_reset_request(self, request):
+        """Solicitar restablecimiento de contraseña por email"""
+        serializer = PasswordResetRequestSerializer(data=request.data)
+        
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            serializer.save()
+            return Response({
+                'message': 'Si el correo existe en nuestro sistema, recibirás un enlace para restablecer tu contraseña.'
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.exception(f"Error en password reset request: {e}")
+            
+            return Response({
+                'error': 'Error interno del servidor al procesar la solicitud.'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['post'], permission_classes=[AllowAny])
+    def password_reset_confirm(self, request):
+        """Confirmar restablecimiento de contraseña con token"""
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            serializer.save()
+            return Response({
+                'message': 'Contraseña restablecida correctamente. Ya puedes iniciar sesión.'
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.exception(f"Error en password reset confirm: {e}")
+            
+            return Response({
+                'error': 'Error interno del servidor al restablecer la contraseña.'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
