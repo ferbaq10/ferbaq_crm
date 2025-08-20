@@ -9,8 +9,9 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from catalog.models import WorkCell
 from catalog.viewsets.base import CachedViewSet
 from core.di import injector
-from users.serializers import UserSerializer, UserWithWorkcellSerializer, UserProfileUpdateSerializer, \
-    ProfilePhotoUploadSerializer
+from users.serializers import (
+    UserSerializer, UserWithWorkcellSerializer, UserProfileUpdateSerializer, 
+    ProfilePhotoUploadSerializer, PasswordChangeSerializer)
 from users.services.user_service import UserService
 from .permissions import CanAssignWorkcell, CanUnassignWorkcell
 from .serializers import MyTokenObtainPairSerializer
@@ -246,3 +247,28 @@ class UserViewSet(CachedViewSet):
         except Exception as e:
             logger.exception(f"❌ Error en proxy de foto: {e}")
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+    @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated])
+    def change_password(self, request):
+        """Cambia la contraseña del usuario autenticado"""
+        serializer = PasswordChangeSerializer(data=request.data)
+
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Actualizar contraseña
+            serializer.save(user=request.user)
+            
+            return Response({
+                'message': 'Contraseña actualizada correctamente'
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.exception(f"Error cambiando contraseña para usuario {request.user.username}: {e}")
+            
+            return Response({
+                'error': 'Error interno del servidor al cambiar la contraseña'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

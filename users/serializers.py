@@ -1,12 +1,12 @@
 from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from django.core.exceptions import ValidationError
 
 from .models import UserProfile
 
 User = get_user_model()
-
-
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
@@ -70,15 +70,13 @@ class UserProfileSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = UserProfile
-        fields = ['id', 'photo_sharepoint_url', 'photo_url', 'bio', 'phone', 'created', 'modified']
+        fields = ['id', 'photo_sharepoint_url', 'photo_url', 'phone', 'created', 'modified']  # ← Quitamos 'bio'
         read_only_fields = ['created', 'modified']
     
     def get_photo_url(self, obj):
         if obj.photo_sharepoint_url:
             filename = obj.photo_sharepoint_url.split('/')[-1]
-            # Cambiar de /endpoint/ a /api/ para que coincida con Next.js
             proxy_url = f"/api/users/photo/{filename}"
-            print(f"🔍 URL generada para proxy: {proxy_url}")
             return proxy_url
         return None
 
@@ -117,33 +115,69 @@ class UserWithWorkcellSerializer(serializers.ModelSerializer):
 
 
 class UserProfileUpdateSerializer(serializers.ModelSerializer):
-    # Campos del User
     first_name = serializers.CharField(max_length=30, required=False, allow_blank=True)
     last_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
     email = serializers.EmailField(required=False)
-
-    # Campos del Profile
-    bio = serializers.CharField(max_length=500, required=False, allow_blank=True)
     phone = serializers.CharField(max_length=15, required=False, allow_blank=True)
 
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'email', 'bio', 'phone']
+        fields = ['first_name', 'last_name', 'email', 'phone']
 
     def update(self, instance, validated_data):
-        # Actualizar campos del User
         instance.first_name = validated_data.get('first_name', instance.first_name)
         instance.last_name = validated_data.get('last_name', instance.last_name)
         instance.email = validated_data.get('email', instance.email)
         instance.save()
-
-        # Actualizar campos del Profile
         profile = instance.profile
-        profile.bio = validated_data.get('bio', profile.bio)
         profile.phone = validated_data.get('phone', profile.phone)
         profile.save()
 
         return instance
+
+
+class PasswordChangeSerializer(serializers.Serializer):
+    new_password = serializers.CharField(
+        write_only=True,
+        min_length=8,
+        error_messages={
+            'required': 'La nueva contraseña es obligatoria.',
+            'min_length': 'La contraseña debe tener al menos 8 caracteres.'
+        }
+    )
+    confirm_password = serializers.CharField(
+        write_only=True,
+        error_messages={
+            'required': 'Debe confirmar la nueva contraseña.'
+        }
+    )
+
+    def validate_new_password(self, value):
+        """Validar la nueva contraseña usando los validadores de Django"""
+        try:
+            validate_password(value)
+        except ValidationError as e:
+            raise serializers.ValidationError(list(e.messages))
+        return value
+
+    def validate(self, data):
+        """Validar que las contraseñas coincidan"""
+        new_password = data.get('new_password')
+        confirm_password = data.get('confirm_password')
+
+        if new_password != confirm_password:
+            raise serializers.ValidationError({
+                'confirm_password': 'Las contraseñas no coinciden.'
+            })
+
+        return data
+
+    def save(self, user):
+        """Actualizar la contraseña del usuario"""
+        password = self.validated_data['new_password']
+        user.set_password(password)
+        user.save()
+        return user
 
 
 class ProfilePhotoUploadSerializer(serializers.Serializer):
@@ -167,5 +201,3 @@ class ProfilePhotoUploadSerializer(serializers.Serializer):
             raise serializers.ValidationError(f"Formato no permitido. Use: {', '.join(allowed_formats)}")
 
         return value
-
-
