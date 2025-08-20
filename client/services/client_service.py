@@ -47,4 +47,5 @@ class ClientService(AbstractClientFactory, BaseService):
             )
         )
 
-        return self.add_filter_by_rol(user, queryset, workcell_filter_field="projects__work_cell__users")
+        return self.add_filter_by_rol(user, queryset, workcell_filter_field="projects__work_cell__users",
+                                      owner_field="projects__work_cell__users")

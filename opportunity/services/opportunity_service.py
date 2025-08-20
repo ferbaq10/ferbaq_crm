@@ -57,7 +57,7 @@ class OpportunityService(BaseService):
                 )
 
     def get_base_queryset(self, user):
-        return self.add_filter_by_rol(user, self.get_prefetched_queryset())
+        return self.add_filter_by_rol(user, self.get_prefetched_queryset(), owner_field='agent')
 
     def get_filtered_queryset(self, user):
         return (self.add_filter_by_rol(user, self.get_prefetched_queryset())
@@ -95,7 +95,7 @@ class OpportunityService(BaseService):
             optimized_finance,
             optimized_clients)
 
-        return self.add_filter_by_rol(user, queryset)
+        return self.add_filter_by_rol(user, queryset, owner_field='agent')
 
 
 

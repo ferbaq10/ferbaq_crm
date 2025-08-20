@@ -72,7 +72,7 @@ class PurchaseService(BaseService):
             optimized_finance
         )
 
-        return self.add_filter_by_rol(user, queryset)
+        return self.add_filter_by_rol(user, queryset, owner_field='agent')
 
 
     def process_update(self, instance: Opportunity, request_data: dict) -> Opportunity:
