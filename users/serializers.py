@@ -70,13 +70,19 @@ class UserProfileSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = UserProfile
-        fields = ['id', 'photo_sharepoint_url', 'photo_url', 'phone', 'created', 'modified']  # ← Quitamos 'bio'
+        fields = ['id', 'photo_sharepoint_url', 'photo_url', 'phone', 'created', 'modified']
         read_only_fields = ['created', 'modified']
     
     def get_photo_url(self, obj):
         if obj.photo_sharepoint_url:
             filename = obj.photo_sharepoint_url.split('/')[-1]
             proxy_url = f"/api/users/photo/{filename}"
+            
+            # ✅ DEBUG: Ver qué está generando
+            print(f"🔍 SharePoint URL: {obj.photo_sharepoint_url}")
+            print(f"🔍 Filename extraído: {filename}")
+            print(f"🔍 Proxy URL generada: {proxy_url}")
+            
             return proxy_url
         return None
 
