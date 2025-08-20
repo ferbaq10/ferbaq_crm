@@ -15,6 +15,7 @@ from users.services.user_service import UserService
 from .permissions import CanAssignWorkcell, CanUnassignWorkcell
 from .serializers import MyTokenObtainPairSerializer
 from .services.sharepoint_profile_service import SharePointProfileService
+from rest_framework.permissions import AllowAny
 
 User = get_user_model()
 
@@ -119,7 +120,7 @@ class UserViewSet(CachedViewSet):
         serializer = self.get_serializer(request.user)
         return Response(serializer.data)
 
-    @action(detail=False, methods=['patch'], permission_classes=[IsAuthenticated])
+    @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated])
     def update_profile(self, request):
         """Actualiza los datos del perfil del usuario autenticado"""
         serializer = UserProfileUpdateSerializer(
@@ -203,3 +204,45 @@ class UserViewSet(CachedViewSet):
                 {'error': 'Error eliminando la foto'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+    @action(detail=False, methods=['get'], url_path='photo/(?P<filename>[^/]+)', 
+        permission_classes=[AllowAny])  # ← Sin autenticación para fotos
+    def get_photo(self, request, filename=None):
+        """Proxy para servir fotos de perfil desde SharePoint - Endpoint público"""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        try:
+            from decouple import config
+            SHAREPOINT_SITE_URL = config("SHAREPOINT_SITE_URL")
+            SHAREPOINT_DOC_LIB = config("SHAREPOINT_DOC_LIB", "Biblioteca de Documentos")
+            
+            # Construir URL completa del archivo
+            photo_url = f"{SHAREPOINT_SITE_URL}/{SHAREPOINT_DOC_LIB}/users/profile_photos/{filename}"
+            
+            # Obtener el archivo de SharePoint
+            photo_content = SharePointProfileService.get_photo_content(photo_url)
+            
+            if photo_content:
+                from django.http import HttpResponse
+                
+                # Determinar tipo de contenido por extensión
+                content_type = 'image/jpeg'
+                if filename.lower().endswith('.png'):
+                    content_type = 'image/png'
+                elif filename.lower().endswith('.webp'):
+                    content_type = 'image/webp'
+                elif filename.lower().endswith('.gif'):
+                    content_type = 'image/gif'
+                
+                response = HttpResponse(photo_content, content_type=content_type)
+                response['Cache-Control'] = 'max-age=3600'  # Cache por 1 hora
+                response['Access-Control-Allow-Origin'] = '*'  # Para CORS
+                return response
+            else:
+                return Response({'error': 'Foto no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+                
+        except Exception as e:
+            logger.exception(f"❌ Error en proxy de foto: {e}")
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
