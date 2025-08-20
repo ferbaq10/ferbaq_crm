@@ -48,4 +48,5 @@ class ActivityLogService(AbstractActivityLogFactory, BaseService):
             optimized_clients
         )
         return self.add_filter_by_rol(user, queryset,
-                                      workcell_filter_field="projects__work_cell__users")
+                                      workcell_filter_field="project__work_cell__users",
+                                      owner_field="project__work_cell__users")
