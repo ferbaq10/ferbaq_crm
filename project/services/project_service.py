@@ -24,4 +24,6 @@ class ProjectService(AbstractProjectFactory, BaseService):
             'work_cell__users'
         )
 
-        return self.add_filter_by_rol(user, queryset, workcell_filter_field = "work_cell__users")
+        return self.add_filter_by_rol(user, queryset,
+                                      workcell_filter_field = "work_cell__users",
+                                      owner_field='work_cell__users')

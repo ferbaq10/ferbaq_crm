@@ -19,6 +19,7 @@ class ContactService(AbstractContactFactory, BaseService):
             Prefetch('clients', queryset=Client.objects.prefetch_related('projects'))))
 
         return self.add_filter_by_rol(user, queryset,
-                                      workcell_filter_field="clients__projects__work_cell__users")
+                                      workcell_filter_field="clients__projects__work_cell__users",
+                                      owner_field="clients__projects__work_cell__users")
 
 
