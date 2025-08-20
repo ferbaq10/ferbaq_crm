@@ -67,14 +67,20 @@ class UserWithRolesSerializer(serializers.ModelSerializer):
 
 class UserProfileSerializer(serializers.ModelSerializer):
     photo_url = serializers.SerializerMethodField()
-
+    
     class Meta:
         model = UserProfile
         fields = ['id', 'photo_sharepoint_url', 'photo_url', 'bio', 'phone', 'created', 'modified']
         read_only_fields = ['created', 'modified']
-
+    
     def get_photo_url(self, obj):
-        return obj.get_photo_url()
+        if obj.photo_sharepoint_url:
+            filename = obj.photo_sharepoint_url.split('/')[-1]
+            # Cambiar de /endpoint/ a /api/ para que coincida con Next.js
+            proxy_url = f"/api/users/photo/{filename}"
+            print(f"🔍 URL generada para proxy: {proxy_url}")
+            return proxy_url
+        return None
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -82,7 +88,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'is_active', 'is_superuser', 'profile']
+        fields = ['id', 'username', 'first_name', 'last_name', 'email', 'is_active', 'is_superuser', 'profile']
 
 
 class UserWithWorkcellSerializer(serializers.ModelSerializer):

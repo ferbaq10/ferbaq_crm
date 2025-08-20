@@ -82,3 +82,31 @@ class SharePointProfileService:
         except Exception as e:
             logger.exception(f"❌ Error eliminando foto: {e}")
             return False
+        
+    @staticmethod
+    def get_photo_content(photo_url: str) -> Optional[bytes]:
+        """Obtiene el contenido binario de una foto desde SharePoint"""
+        try:
+            from urllib.parse import urlparse, unquote
+            
+            parsed = urlparse(photo_url)
+            relative_url = unquote(parsed.path)
+
+            ctx_auth = AuthenticationContext(SHAREPOINT_SITE_URL)
+            if not ctx_auth.acquire_token_for_user(SHAREPOINT_USERNAME, SHAREPOINT_PASSWORD):
+                logger.error("❌ Falló autenticación con SharePoint")
+                return None
+
+            ctx = ClientContext(SHAREPOINT_SITE_URL, ctx_auth)
+            file = ctx.web.get_file_by_server_relative_url(relative_url)
+            
+            # Obtener contenido del archivo
+            content = file.get_content()
+            ctx.execute_query()
+            
+            logger.info(f"✅ Foto obtenida exitosamente: {len(content.value)} bytes")
+            return content.value
+            
+        except Exception as e:
+            logger.exception(f"❌ Error obteniendo foto: {e}")
+            return None
