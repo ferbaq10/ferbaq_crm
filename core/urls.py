@@ -2,8 +2,13 @@ from django.contrib import admin
 from django.urls import path, include
 from users.viewsets import CustomTokenObtainPairView
 from . import views
+from django.http import HttpResponse
+
+def health(_):
+    return HttpResponse("OK", content_type="text/plain")
 
 urlpatterns = [
+    path("", health),
     path('endpoint/admin/', admin.site.urls),
 
     path("endpoint/test-error/", views.test_error),

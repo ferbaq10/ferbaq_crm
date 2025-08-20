@@ -76,6 +76,9 @@ DJOSER = {
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=Csv()) # aplica a peticiones HTTP directas al servidor.
 
+CSRF_TRUSTED_ORIGINS = ["https://crm.portal-ferbaq.net"]
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
 

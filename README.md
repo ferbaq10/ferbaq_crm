@@ -486,8 +486,10 @@ User=ubuntu
 Group=ubuntu
 WorkingDirectory=/var/www/ferbaq_crm_backend
 Environment=PATH=/var/www/ferbaq_crm_backend/venv/bin
-ExecStart=/var/www/ferbaq_crm_backend/venv/bin/gunicorn --bind 127.0.0.1:8080 --workers 3 --timeout 120 core.wsgi:application
+ExecStart=/var/www/ferbaq_crm_backend/venv/bin/gunicorn --bind 127.0.0.1:8080 --workers 3 --timeout 120 core.wsgi:application --access-logfile --error-logfile core.wsgi:application
 Restart=always
+RestartSec=3
+LimitNOFILE=65535
 
 [Install]
 WantedBy=multi-user.target
