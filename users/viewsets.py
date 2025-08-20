@@ -153,7 +153,7 @@ class UserViewSet(CachedViewSet):
         photo_file = serializer.validated_data['photo']
         file_extension = photo_file.name.split('.')[-1].lower()
 
-        # Subir a SharePoint usando tu servicio
+        # Subir a SharePoint
         sharepoint_url = SharePointProfileService.upload_profile_photo(
             user_id=request.user.id,
             photo_file=photo_file,
@@ -177,9 +177,13 @@ class UserViewSet(CachedViewSet):
         if old_photo_url:
             SharePointProfileService.delete_profile_photo(old_photo_url)
 
+        # ✅ CORRECCIÓN: Devolver URL del proxy, no la directa de SharePoint
+        filename = sharepoint_url.split('/')[-1]
+        proxy_url = f"/api/users/photo/{filename}"
+
         return Response({
             'message': 'Foto subida correctamente',
-            'photo_url': sharepoint_url
+            'photo_url': proxy_url  # ← Devolver URL del proxy
         }, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['delete'], permission_classes=[IsAuthenticated])
