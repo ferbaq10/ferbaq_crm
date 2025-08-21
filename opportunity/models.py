@@ -2,6 +2,7 @@ from django.db import models
 from simple_history.models import HistoricalRecords
 
 from catalog.models import StatusOpportunity, City, Currency, BaseModel, OpportunityType, LostOpportunityType
+from client.models import Client
 from contact.models import Contact
 from project.models import Project
 from model_utils.models import SoftDeletableModel, TimeStampedModel
@@ -11,14 +12,21 @@ from django.conf import settings
 class Opportunity(BaseModel):
     name = models.CharField(unique=True, max_length=100)
     description = models.TextField(blank=True, null=True)
-    closing_percentage = models.DecimalField(max_digits=4, blank=True, null=True,
+    closing_percentage = models.DecimalField(max_digits=5, blank=True, null=True,
                                              decimal_places=2, verbose_name="Porcentaje de cierre")
-    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    amount = models.DecimalField(max_digits=12,
+                                 decimal_places=2,
+                                 blank=True, null=True,)
     requisition_number = models.CharField(max_length=100, verbose_name="Número de requisición",
                                           blank=True, null=True)
     date_reception = models.DateTimeField(blank=True, null=True, verbose_name="Fecha de recepción")
     sent_date = models.DateTimeField(blank=True, null=True, verbose_name="Fecha de enviado")
+    date_limit_send = models.DateTimeField(auto_now_add=True,
+                                           blank=True, null=True, verbose_name="Fecha límite de envío")
     date_status = models.DateTimeField(auto_now_add=True, verbose_name="Fecha del estado")
+    order_closing_date = models.DateTimeField(blank=True, null=True, verbose_name="Fecha de cierre de orden")
+    number_items = models.IntegerField(blank=True, null=True, verbose_name="Número de partidas")
+
     history = HistoricalRecords()
 
     status_opportunity = models.ForeignKey(
@@ -33,6 +41,8 @@ class Opportunity(BaseModel):
 
     currency = models.ForeignKey(
         Currency,
+        blank=True,
+        null=True,
         on_delete=models.DO_NOTHING
     )
 
@@ -49,6 +59,19 @@ class Opportunity(BaseModel):
 
     opportunityType = models.ForeignKey(
         OpportunityType,
+        on_delete=models.DO_NOTHING
+    )
+
+    client = models.ForeignKey(
+        Client,
+        blank=True,
+        null=True,
+        on_delete=models.DO_NOTHING
+    )
+    lost_opportunity = models.ForeignKey(
+        LostOpportunityType,
+        blank=True,
+        null=True,
         on_delete=models.DO_NOTHING
     )
 
@@ -93,6 +116,14 @@ class FinanceOpportunity(BaseModel):
     earned_amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Monto ganado")
     cost_subtotal = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Costo subtotal")
     order_closing_date = models.DateTimeField(blank=True, verbose_name="Fecha de cierre de orden")
+    oc_number = models.CharField(blank=True, null=True, verbose_name="Número de orden de compra cliente",
+                                 max_length=255)
+
+    cash_percentage = models.DecimalField(max_digits=5, blank=True, null=True,
+                                             decimal_places=2, verbose_name="Porcentaje de contado")
+    credit_percentage = models.DecimalField(max_digits=5, blank=True, null=True,
+                                          decimal_places=2, verbose_name="Porcentaje de crédito")
+
     opportunity = models.OneToOneField(
         Opportunity,
         on_delete=models.DO_NOTHING,
@@ -107,18 +138,6 @@ class FinanceOpportunity(BaseModel):
     def __str__(self):
         return f"Finanzas - {self.opportunity.name}"
 
-class LostOpportunity(BaseModel):
-    lost_opportunity_type = models.ForeignKey(
-        LostOpportunityType,
-        on_delete=models.DO_NOTHING,
-        verbose_name="Tipo de oportunidad perdida"
-    )
-    opportunity = models.OneToOneField(
-        Opportunity,
-        on_delete=models.DO_NOTHING,
-        related_name = 'lost_opportunity'
-    )
-
 class OpportunityDocument(models.Model):
     opportunity = models.ForeignKey(
         Opportunity,
@@ -126,7 +145,7 @@ class OpportunityDocument(models.Model):
         related_name="documents"
     )
     file_name = models.CharField(max_length=255)
-    sharepoint_url = models.URLField()
+    sharepoint_url = models.URLField(max_length=1000)
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

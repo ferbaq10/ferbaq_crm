@@ -1,15 +1,23 @@
 from datetime import datetime
 
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
 
-from catalog.models import OpportunityType, StatusOpportunity, Currency
-from catalog.serializers import StatusOpportunitySerializer, CurrencySerializer, OpportunityTypeSerializer
+from catalog.constants import StatusIDs
+from catalog.models import OpportunityType, StatusOpportunity, Currency, LostOpportunityType
+from catalog.serializers import StatusOpportunitySerializer, CurrencySerializer, OpportunityTypeSerializer, \
+    LostOpportunityTypeSerializer
+from client.models import Client
+from client.serializers import ClientSerializer
 from contact.models import Contact
 from contact.serializers import ContactSerializer
 from project.models import Project
 from project.serializers import ProjectSerializer
-from .models import CommercialActivity, FinanceOpportunity, Opportunity, LostOpportunity, OpportunityDocument
+from users.serializers import UserSerializer
+from .models import CommercialActivity, FinanceOpportunity, Opportunity, OpportunityDocument
+from decimal import Decimal, InvalidOperation
+
 
 User = get_user_model()
 
@@ -27,6 +35,9 @@ class FinanceOpportunitySerializer(serializers.ModelSerializer):
             'earned_amount',
             'cost_subtotal',
             'order_closing_date',
+            'oc_number',
+            'cash_percentage',
+            'credit_percentage'
         ]
         read_only_fields = ['created', 'modified']
 
@@ -55,10 +66,14 @@ class CommercialActivitySerializer(serializers.ModelSerializer):
 # --- Opportunity SOLO LECTURA ---
 class OpportunitySerializer(serializers.ModelSerializer):
     contact = ContactSerializer()
+    agent = UserSerializer()
     project = ProjectSerializer()
     currency = CurrencySerializer()
     opportunityType = OpportunityTypeSerializer()
     status_opportunity = StatusOpportunitySerializer()
+    client = ClientSerializer()
+
+    lost_opportunity = LostOpportunityTypeSerializer()
 
     finance_opportunity = FinanceOpportunitySerializer(
         source='finance_data',
@@ -73,7 +88,9 @@ class OpportunitySerializer(serializers.ModelSerializer):
             'date_reception', 'sent_date', 'date_status',
             'status_opportunity', 'contact', 'currency',
             'project', 'opportunityType', 'closing_percentage',
-            'finance_opportunity', 'is_removed', 'documents'
+            'finance_opportunity', 'is_removed', 'documents',
+            'agent', 'client', 'lost_opportunity', 'date_limit_send',
+            'number_items', 'order_closing_date'
         ]
         read_only_fields = ['created', 'modified']
 
@@ -85,17 +102,30 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
         required=True,
         error_messages={
             'required': 'El nombre es obligatorio.',
+            'min_length': 'El nombre debe tener un mínimo de 20 caracteres.',
             'max_length': 'El nombre no puede exceder los 100 caracteres.',
             'unique': 'Ya existe una oportunidad con este nombre.'
         }
     )
     project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all(), write_only=True)
     contact = serializers.PrimaryKeyRelatedField(queryset=Contact.objects.all(), write_only=True)
-    currency = serializers.PrimaryKeyRelatedField(queryset=Currency.objects.all(), write_only=True)
+    client = serializers.PrimaryKeyRelatedField(queryset=Client.objects.all(), write_only=True)
+    currency = serializers.PrimaryKeyRelatedField(
+        queryset=Currency.objects.all(),
+        write_only=True,
+        required=False,
+        allow_null=True
+    )
     opportunityType = serializers.PrimaryKeyRelatedField(queryset=OpportunityType.objects.all(), write_only=True)
     status_opportunity = serializers.PrimaryKeyRelatedField(queryset=StatusOpportunity.objects.all(), write_only=True)
 
     finance_opportunity = FinanceOpportunitySerializer(write_only=True, required=False)
+    lost_opportunity = serializers.PrimaryKeyRelatedField(
+        queryset=LostOpportunityType.objects.all(),
+        write_only=True,
+        required=False,
+        default=None
+    )
 
     class Meta:
         model = Opportunity
@@ -104,59 +134,159 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
             'date_reception', 'sent_date', 'date_status',
             'status_opportunity', 'contact', 'currency',
             'project', 'opportunityType', 'closing_percentage',
-            'finance_opportunity', 'is_removed',
+            'finance_opportunity', 'is_removed', 'client',
+            'lost_opportunity', 'date_limit_send', 'number_items',
+            'order_closing_date'
         ]
         extra_kwargs = {
             'requisition_number': {
             'error_messages': {
                 'max_length': 'El número de requisición no puede tener más de 100 caracteres.'},
                 'max_length': 100},
-            'amount': {'error_messages': {'required': 'El monto es obligatorio.'}},
             'status_opportunity': {'error_messages': {'required': 'El estado es obligatorio.'}},
+            'amount': {
+                    'error_messages': {
+                        'min_value': 'El monto debe ser mayor o igual a cero.',
+                        'invalid': 'Ingrese un monto válido.',
+                    },
+                    'min_value': 0  # Valor mínimo permitido
+            },
             'contact': {'error_messages': {'required': 'El contacto es obligatorio.'}},
-            'currency': {'error_messages': {'required': 'La moneda es obligatoria.'}},
             'project': {'error_messages': {'required': 'El proyecto es obligatorio.'}},
+            'client': {'error_messages': {'required': 'El cliente es obligatorio.'}},
             'opportunityType': {'error_messages': {'required': 'El tipo de oportunidad es obligatorio.'}},
         }
         read_only_fields = ['created']
 
     def validate_amount(self, value):
-        if value <= 0:
-            raise serializers.ValidationError("El monto debe ser mayor a cero.")
+        if value < 0:
+            raise serializers.ValidationError("El monto debe ser mayor o igual a cero.")
         return value
 
-    def validate(self, data):
-        sent_date = data.get("sent_date")
-        date_status = data.get("date_status")
-        date_reception = data.get("date_reception")
+    def validate(self, attrs):
+        """
+        Validación cruzada robusta (soporta PATCH parciales como reactivar con solo is_removed).
+        """
+        errors = {}
 
-        # Validar tipos datetime solo si los campos están presentes
-        if date_reception is not None and not isinstance(date_reception, datetime):
-            raise serializers.ValidationError({
-                "date_reception": "La fecha de recepción debe ser un valor datetime válido."
-            })
+        # ===== Utilidades =====
+        def to_decimal_or_none(v):
+            if v in (None, '', 'null'):
+                return None
+            try:
+                return Decimal(str(v))
+            except Exception:
+                raise serializers.ValidationError("Valor numérico inválido.")
 
-        if date_status is not None and not isinstance(date_status, datetime):
-            raise serializers.ValidationError({
-                "date_status": "La fecha del estado debe ser un valor datetime válido."
-            })
+        def validate_datetime_field(field_value):
+            if field_value is not None and not isinstance(field_value, datetime):
+                return "La fecha debe ser un valor datetime válido."
+            return None
 
-        if sent_date is not None and not isinstance(sent_date, datetime):
-            raise serializers.ValidationError({
-                "sent_date": "La fecha de envío debe ser un valor datetime válido."
-            })
+        # ===== Fechas (tipos y lógica básica) =====
+        date_reception = attrs.get("date_reception", getattr(self.instance, "date_reception", None))
+        date_status = attrs.get("date_status", getattr(self.instance, "date_status", None))
+        sent_date = attrs.get("sent_date", getattr(self.instance, "sent_date", None))
 
-        # Validar que sent_date no sea anterior a date_reception solo si ambos existen
+        field_type_checks = {
+            'date_reception': validate_datetime_field(date_reception),
+            'date_status': validate_datetime_field(date_status),
+            'sent_date': validate_datetime_field(sent_date),
+        }
+        for k, maybe_err in field_type_checks.items():
+            if maybe_err:
+                errors[k] = maybe_err
+
         if sent_date and date_reception and sent_date < date_reception:
-            raise serializers.ValidationError(
-                "La fecha de envío no puede ser anterior a la de recepción."
-            )
+            errors['sent_date'] = "La fecha de envío no puede ser anterior a la de recepción."
 
-        return data
+        # ===== Estado de la oportunidad (desde request o instancia) =====
+        status_obj = attrs.get("status_opportunity", getattr(self.instance, "status_opportunity", None))
+        status_id = getattr(status_obj, "id", None)
+
+        # ===== Amount y earned_amount =====
+        # amount propuesto o actual
+        amount_in_request = attrs.get('amount', getattr(self.instance, 'amount', None))
+        amount_dec = to_decimal_or_none(amount_in_request)
+
+        # Tomar finance_opportunity del request o el actual (para earned_amount y order_closing_date)
+        finance_data_req = attrs.get('finance_opportunity')
+        earned_dec = None
+        order_closing_date = None
+
+        if isinstance(finance_data_req, dict):
+            earned_dec = to_decimal_or_none((finance_data_req or {}).get("earned_amount"))
+            order_closing_date = (finance_data_req or {}).get("order_closing_date")
+
+        # Si no llegó info financiera en el request, intenta leer de la instancia
+        if (earned_dec is None or order_closing_date is None) and self.instance is not None:
+            # OJO: asegúrate de usar el nombre correcto del related: finance_data vs finance_opportunity
+            # Ajusta una sola vez y úsalo siempre igual:
+            finance_related_name = 'finance_data'  # o 'finance_opportunity' según tu modelo real
+            existing_finance = getattr(self.instance, finance_related_name, None)
+            if existing_finance:
+                if earned_dec is None:
+                    earned_dec = to_decimal_or_none(getattr(existing_finance, 'earned_amount', None))
+                if order_closing_date is None:
+                    order_closing_date = getattr(existing_finance, 'order_closing_date', None)
+
+        # ===== Regla: amount >= earned_amount cuando está WON =====
+        # Solo valida si se conoce el estado y hay ambos valores
+        if status_id is not None and status_id == StatusIDs.WON:
+            if amount_dec is not None and earned_dec is not None and amount_dec < earned_dec:
+                errors['amount'] = (
+                    f'El monto ({amount_dec}) no puede ser menor que el monto ganado ({earned_dec}) '
+                    f'para oportunidades ganadas.'
+                )
+        cash_percentage   = to_decimal_or_none((finance_data_req or {}).get("cash_percentage"))
+        credit_percentage = to_decimal_or_none((finance_data_req or {}).get("credit_percentage"))
+        if cash_percentage and credit_percentage and cash_percentage + credit_percentage > 100:
+            errors['cash_percentage'] = f'La suma del porcentaje de contado y porcentaje de crédito no puede ser mayor a 100.'
+
+        if cash_percentage and credit_percentage and cash_percentage + credit_percentage < 0:
+            errors['cash_percentage'] =  'La suma del porcentaje de contado y porcentaje de crédito no puede ser menor a 0.'
+
+        # ===== Reglas por estado (solo si conocemos el estado) =====
+        states_requiring_fields = [StatusIDs.SEND, StatusIDs.NEGOTIATING, StatusIDs.WON]
+
+        currency = attrs.get("currency", getattr(self.instance, "currency", None))
+        lost_opportunity = attrs.get("lost_opportunity", getattr(self.instance, "lost_opportunity", None))
+
+        if status_id in states_requiring_fields:
+            if not currency:
+                errors[
+                    'currency'] = 'La moneda es obligatoria para oportunidades en el estado de la oportunidad seleccionada.'
+
+            if amount_dec is None or amount_dec <= 0:
+                errors[
+                    'amount'] = 'El monto debe ser mayor a 0 para oportunidades en el estado de la oportunidad seleccionada.'
+
+            # earned_amount > 0 cuando se exige (por ejemplo, WON)
+            if status_id == StatusIDs.WON:
+                if earned_dec is None or earned_dec <= 0:
+                    errors['earned_amount'] = 'El monto ganado debe ser mayor a 0 para oportunidades ganadas.'
+                # order_closing_date requerido en WON
+                if not order_closing_date:
+                    errors['order_closing_date'] = 'La fecha de cierre es obligatoria para oportunidades ganadas.'
+
+        # Perdidas
+        if status_id == StatusIDs.LOST:
+            if not lost_opportunity:
+                errors['lost_opportunity'] = 'El tipo de pérdida es obligatorio para oportunidades perdidas.'
+            if not currency:
+                errors['currency'] = 'La moneda es obligatoria para oportunidades perdidas.'
+            if amount_dec is None or amount_dec <= 0:
+                errors['amount'] = 'El monto debe ser mayor a 0 para oportunidades perdidas.'
+
+        # ===== Resultado =====
+        if errors:
+            raise serializers.ValidationError(errors)
+
+        return attrs
 
     # NUEVO: Método update personalizado
     def update(self, instance, validated_data):
-        print(f"🔍 Actualizando oportunidad {instance.id}: {instance.name}")
+        print(f" Actualizando oportunidad {instance.id}: {instance.name}")
         
         # Extraer finance_opportunity del validated_data
         finance_data = validated_data.pop('finance_opportunity', None)
@@ -168,11 +298,11 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
         
         # Manejar finance_opportunity si viene en los datos
         if finance_data:
-            print(f"🔍 Procesando finance_data: {finance_data}")
+            print(f" Procesando finance_data: {finance_data}")
             try:
                 # Intentar obtener FinanceOpportunity existente
                 finance_obj = instance.finance_data
-                print(f"✅ FinanceOpportunity existente encontrado, actualizando...")
+                print(f" FinanceOpportunity existente encontrado, actualizando...")
                 
                 # Actualizar campos
                 for field, value in finance_data.items():
@@ -180,19 +310,19 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
                 finance_obj.save()
                 
             except FinanceOpportunity.DoesNotExist:
-                print(f"🔍 No existe FinanceOpportunity, creando nuevo...")
+                print(f" No existe FinanceOpportunity, creando nuevo...")
                 
                 # Crear nuevo FinanceOpportunity
                 finance_obj = FinanceOpportunity.objects.create(
                     opportunity=instance,
                     **finance_data
                 )
-                print(f"✅ FinanceOpportunity creado: {finance_obj}")
+                print(f" FinanceOpportunity creado: {finance_obj}")
                 
         instance.refresh_from_db()
         return instance
 
-    # ✅ ACTUALIZADO: Método create para manejar finance_opportunity
+    # ACTUALIZADO: Método create para manejar finance_opportunity
     def create(self, validated_data):
         # Extraer finance_opportunity del validated_data
         finance_data = validated_data.pop('finance_opportunity', None)
@@ -214,13 +344,3 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
         return instance
 
 
-class LostOpportunitySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = LostOpportunity
-        fields = [
-            'id',
-            'is_removed',
-            'opportunity',
-            'lost_opportunity_type',
-        ]
-        read_only_fields = ['created', 'modified']

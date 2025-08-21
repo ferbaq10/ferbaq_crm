@@ -23,7 +23,7 @@ ferbaq_crm/
 │   │   └── interfaces.py
 │   ├── tests.py               # Pruebas unitarias
 │   ├── urls.py                # Rutas API
-│   └── viewsets.py            # Vistas basadas en ViewSets
+│   └── opportunity_viewsets.py            # Vistas basadas en ViewSets
 ├── catalog/                   # Catálogos de datos maestros (ciudades, UDN, divisiones, etc.)
 │   ├── admin.py               
 │   ├── apps.py                
@@ -54,7 +54,7 @@ ferbaq_crm/
 │   ├── signals.py             
 │   ├── tests.py               
 │   ├── urls.py                
-│   └── viewsets.py            
+│   └── opportunity_viewsets.py            
 ├── contact/                   # Gestión de contactos (clientes, oportunidades)
 │   ├── admin.py               
 │   ├── apps.py                
@@ -70,7 +70,7 @@ ferbaq_crm/
 │   ├── signals.py             
 │   ├── tests.py               
 │   ├── urls.py                
-│   └── viewsets.py            
+│   └── opportunity_viewsets.py            
 ├── core/                      # Configuración central del proyecto
 │   ├── apps.py                
 │   ├── asgi.py               
@@ -102,7 +102,7 @@ ferbaq_crm/
 │   ├── signals.py             
 │   ├── tests.py               
 │   ├── urls.py                
-│   └── viewsets.py            
+│   └── opportunity_viewsets.py            
 ├── opportunity/              # Oportunidades comerciales
 │   ├── admin.py               
 │   ├── apps.py                
@@ -119,7 +119,7 @@ ferbaq_crm/
 │   ├── tasks.py               # Tareas asíncronas
 │   ├── tests.py               
 │   ├── urls.py                
-│   └── viewsets.py            
+│   └── opportunity_viewsets.py            
 ├── poetry.lock               # Archivo de bloqueo de dependencias Poetry
 ├── project/                  # Gestión de proyectos derivados
 │   ├── admin.py               
@@ -136,7 +136,7 @@ ferbaq_crm/
 │   ├── signals.py             
 │   ├── tests.py               
 │   ├── urls.py                
-│   └── viewsets.py            
+│   └── opportunity_viewsets.py            
 ├── purchase/                 # Compras y adquisiciones
 │   ├── admin.py               
 │   ├── apps.py                
@@ -150,7 +150,7 @@ ferbaq_crm/
 │   ├── signals.py             
 │   ├── tests.py               
 │   ├── urls.py                
-│   └── viewsets.py            
+│   └── opportunity_viewsets.py            
 ├── pyproject.toml             # Configuración de dependencias (Poetry)
 ├── README para k8s.md                  # Documentación general del proyecto
 ├── run_simple_worker.py       # Script para ejecución de worker simple
@@ -162,7 +162,7 @@ ferbaq_crm/
     ├── serializers.py        
     ├── tests.py              
     ├── urls.py               
-    └── viewsets.py          
+    └── opportunity_viewsets.py          
 ```
 
 ## 🧱 Patrones utilizados
@@ -358,12 +358,10 @@ Se necesita tener ubuntu y el comando instalado para su ejecución.
 kubectl exec -it deployment/backend-dev -n dev -- find /app -name ".env"
 ```
 
- Para comproabr si sigue en la imagen el .env
+ Para comprobar si sigue en la imagen el .env
 ```bash
  docker run --rm -it ferbaq-crm-backend sh -c "find /app -name .env"
  ```
-
-
 
 ## 🚀 PASOS MANUALES PARA DESPLEGAR DJANGO + REDIS + POSTGRES EN EC2:
 
@@ -417,6 +415,10 @@ o las configuraciones propias
 ```
 El user del superuser es admin y la contraseña puede ser la de la laptop.
 
+Este comando recupera las imágenes para que se muestre bien el admin
+```bash
+  python manage.py collectstatic
+```
 ### PASO 7: Configurar Gunicorn
  Instalar gunicorn
 ```bash
@@ -425,7 +427,7 @@ El user del superuser es admin y la contraseña puede ser la de la laptop.
 
  Probar localmente
 ```bash
-      gunicorn core.wsgi:application
+ gunicorn core.wsgi:application
 ```
 
 ### PASO 8: Configurar django_rq y el worker
@@ -436,15 +438,21 @@ El user del superuser es admin y la contraseña puede ser la de la laptop.
 ```bash
 [Unit]
 Description=RQ Worker
-After=network.target
+After=network.target redis.service
 
 [Service]
+Type=simple
 User=ubuntu
 Group=ubuntu
 WorkingDirectory=/var/www/ferbaq_crm_backend
-Environment="PATH=/var/www/ferbaq_crm_backend/venv/bin"
+Environment="PATH=/var/www/ferbaq_crm_backend/venv/bin:/usr/local/bin:/usr/bin:/bin"
 Environment="DJANGO_SETTINGS_MODULE=core.settings"
-ExecStart=/var/www/ferbaq_crm_backend/venv/bin/rq worker default
+Environment="PYTHONPATH=/var/www/ferbaq_crm_backend"
+ExecStart=/var/www/ferbaq_crm_backend/venv/bin/python /var/www/ferbaq_crm_backend/manage.py rqworker default
+StandardOutput=append:/var/log/rqworker/access.log
+StandardError=append:/var/log/rqworker/error.log
+Restart=always
+RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
@@ -452,6 +460,10 @@ WantedBy=multi-user.target
 
  Recarga systemd y activa:
 ```bash
+  sudo mkdir -p /var/log/rqworker
+  sudo touch /var/log/rqworker/error.log
+  sudo touch /var/log/rqworker/access.log
+  sudo chown -R ubuntu:ubuntu /var/log/rqworker
   sudo systemctl daemon-reexec
   sudo systemctl daemon-reload
   sudo systemctl enable rqworker
@@ -473,7 +485,11 @@ After=network.target
 User=ubuntu
 Group=ubuntu
 WorkingDirectory=/var/www/ferbaq_crm_backend
-ExecStart=/var/www/ferbaq_crm_backend/venv/bin/gunicorn --workers 3 --bind unix:/var/www/ferbaq_crm_backend/gunicorn.sock core.wsgi:application
+Environment=PATH=/var/www/ferbaq_crm_backend/venv/bin
+ExecStart=/var/www/ferbaq_crm_backend/venv/bin/gunicorn --bind 127.0.0.1:8080 --workers 3 --timeout 120 core.wsgi:application --access-logfile --error-logfile core.wsgi:application
+Restart=always
+RestartSec=3
+LimitNOFILE=65535
 
 [Install]
 WantedBy=multi-user.target
@@ -495,7 +511,15 @@ Activa y arranca:
 server {
     listen 80;
     server_name crm.portal-ferbaq.net;
-
+    client_max_body_size 4M;
+    
+    # Aumentar límites de buffer para cabeceras grandes
+    large_client_header_buffers 4 32k;
+    client_header_buffer_size 8k;
+    proxy_buffer_size 128k;
+    proxy_buffers 4 256k;
+    proxy_busy_buffers_size 256k;
+    
     # Frontend (Next.js)
     location / {
         proxy_pass http://localhost:3000;
@@ -507,16 +531,26 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_cache_bypass $http_upgrade;
+        
+        # Límites específicos para proxy
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
     }
-
+    
     # Backend (Django) bajo /api/
     location /api/static/ {
         alias /var/www/ferbaq_crm_backend/static/;
     }
-
+    
     location /endpoint/ {
         include proxy_params;
-        proxy_pass http://unix:/var/www/ferbaq_crm_backend/gunicorn.sock;
+        proxy_pass http://127.0.0.1:8080;
+        
+        # Límites para el backend también
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
     }
 }
 ```
@@ -579,3 +613,134 @@ Cambiar la contraseña de un usuario desde Django Shell
  user.set_password('admin')                    
  user.save()
 ```
+
+## Configurar CloudWatch en EC2
+
+### Verificar permisos IAM
+Tu instancia EC2 necesita un Role con la política CloudWatchAgentServerPolicy
+1. Ve a AWS Console → EC2 → Instancias → tu instancia
+
+2. En Detalles, busca IAM role
+
+3. Si no tiene, debes asignarle un Role con esta política
+
+### Instalar CloudWatch Agent en Ubuntu
+
+Descargar el paquete deb oficial de AWS
+```bash
+wget https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
+```
+
+  Instalar el paquete
+```bash
+    sudo dpkg -i amazon-cloudwatch-agent.deb
+```
+
+Verificar instalación
+```bash
+amazon-cloudwatch-agent-ctl -a status
+```
+
+### Crear el archivo de configuración
+
+```bash
+    sudo mkdir -p /opt/aws/amazon-cloudwatch-agent/etc
+    
+    sudo nano /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+```
+
+y pegar este contenido
+```bash
+{
+  "logs": {
+    "logs_collected": {
+      "files": {
+        "collect_list": [
+          {
+            "file_path": "/var/log/django/error.log",
+            "log_group_name": "ferbaq-application-errors",
+            "log_stream_name": "{instance_id}"
+          },
+          {
+            "file_path": "/var/log/gunicorn/error.log",
+            "log_group_name": "ferbaq-application-errors",
+            "log_stream_name": "{instance_id}"
+          },
+          {
+            "file_path": "/var/log/rqworker/error.log",
+            "log_group_name": "ferbaq-application-errors",
+            "log_stream_name": "{instance_id}"
+          },
+          {
+            "file_path": "/var/log/nginx/error.log",
+            "log_group_name": "ferbaq-application-errors",
+            "log_stream_name": "{instance_id}"
+          },
+          {
+            "file_path": "/var/log/nginx/access.log",
+            "log_group_name": "ferbaq-application-access",
+            "log_stream_name": "{instance_id}"
+          },
+          {
+            "file_path": "/var/log/gunicorn/access.log",
+            "log_group_name": "ferbaq-application-access",
+            "log_stream_name": "{instance_id}"
+          }
+        ]
+      }
+    }
+  }
+}
+```
+   Este JSON hace que el agente lea el log de Django y lo envíe al grupo ferbaq-django-errors en CloudWatch.
+{instance_id} se reemplaza automáticamente con el ID de la instancia EC2
+
+### Iniciar el servicio
+```bash
+    sudo systemctl enable amazon-cloudwatch-agent
+    sudo systemctl start amazon-cloudwatch-agent
+    sudo systemctl status amazon-cloudwatch-agent
+```
+
+### Iniciar el agente con la nueva configuración
+```bash
+    sudo amazon-cloudwatch-agent-ctl -a stop
+    sudo amazon-cloudwatch-agent-ctl -a start
+```
+
+y 
+
+```bash
+    sudo amazon-cloudwatch-agent-ctl -a stop
+
+    sudo amazon-cloudwatch-agent-ctl \
+      -a fetch-config \
+      -m ec2 \
+      -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json \
+      -s
+```
+
+Deberías ver: Successfully fetched the config and started the amazon-cloudwatch-agent
+
+### Verifica el estado
+```bash
+  amazon-cloudwatch-agent-ctl -a status
+```
+
+Revisar los logs
+```bash
+  sudo tail -f /opt/aws/amazon-cloudwatch-agent/logs/amazon-cloudwatch-agent.log
+```
+Deberías ver líneas como: piping log from /var/log/django/error.log to ferbaq-application-errors/{instance_id}
+
+Ver los logs en tiempo real
+```bash
+  sudo journalctl -u rqworker.service -f
+```
+
+### Revisar en AWS 
+1. Ve a AWS Console → CloudWatch → Log groups
+
+2. Busca ferbaq-django-errors
+
+3. Abre el stream con el nombre de tu instancia y confirma que los errores se están enviando.

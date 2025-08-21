@@ -1,15 +1,19 @@
 from django.utils.functional import cached_property
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.response import Response
 
 from catalog.viewsets.base import CachedViewSet
 from core.di import injector
+from .filters import ContactFilter
 from .models import Contact
 from .serializers import ContactSerializer, ContactWriteSerializer
 from .services.contact_service import ContactService
 
-
 class ContactViewSet(CachedViewSet):
     model = Contact
     serializer_class = ContactSerializer
+    filter_backends = [DjangoFilterBackend]  # Agregar filtros
+    filterset_class = ContactFilter
 
     # Configuración específica de Contact
     cache_prefix = "contact"  # Override del "catalog" por defecto
@@ -33,5 +37,13 @@ class ContactViewSet(CachedViewSet):
 
     def get_actives_queryset(self, request):
         user = request.user
-        return self.contact_service.get_base_queryset(user).filter(is_removed=False).distinct()
+        queryset =self.contact_service.get_base_queryset(user).filter(is_removed=False).distinct()
+
+        filterset = ContactFilter(request.query_params, queryset=queryset)
+        if not filterset.is_valid():
+            return Response(filterset.errors, status=400)
+
+        queryset = filterset.qs
+
+        return queryset
 

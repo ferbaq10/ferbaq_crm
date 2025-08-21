@@ -1,15 +1,16 @@
 import os
-from decouple import config, Csv
-import dj_database_url
 from datetime import timedelta
+from pathlib import Path
+import platform
+import dj_database_url
+from decouple import config, Csv
+
 
 # --- SECRET KEY ---
 SECRET_KEY = os.environ.get("SECRET_KEY") or config("SECRET_KEY", default="insecure-default")
 
 # --- DEBUG ---
 DEBUG = config("DEBUG", default=True, cast=bool)
-
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=Csv())
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -44,6 +45,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware', # Middleware CSRF
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'middleware.cache_user_groups.CacheUserGroupsMiddleware', # precarga en memoria los grupos del usuario autenticado
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -72,14 +74,18 @@ DJOSER = {
     }
 }
 
-CORS_ALLOW_ALL_ORIGINS = config('CORS_ALLOW_ALL_ORIGINS', default=False, cast=bool)
-CORS_ALLOW_CREDENTIALS = config('CORS_ALLOW_CREDENTIALS', default=True, cast=bool)
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=Csv()) # aplica a peticiones HTTP directas al servidor.
+
+CSRF_TRUSTED_ORIGINS = ["https://crm.portal-ferbaq.net"]
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOW_CREDENTIALS = True
 
 # Configuración adicional de CORS
-CORS_ALLOWED_ORIGINS = []
+
 cors_origins = config('CORS_ALLOWED_ORIGINS', default='')
-if cors_origins:
-    CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins.split(',')]
+CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins.split(',')]
 
 # Headers permitidos
 CORS_ALLOW_HEADERS = [
@@ -217,3 +223,75 @@ STATIC_ROOT = '/var/www/ferbaq_crm_backend/static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Detectar si estamos en Windows o Linux
+IS_WINDOWS = os.name == "nt"
+
+# Definir carpeta de logs
+# En Windows -> BASE_DIR/logs
+# En Linux -> /var/log/ferbaq (pero si no existe, cae en BASE_DIR/logs)
+default_log_dir = BASE_DIR / "logs"
+linux_log_dir = Path("/var/log/ferbaq")
+
+if IS_WINDOWS:
+    LOG_DIR = default_log_dir
+else:
+    LOG_DIR = linux_log_dir if linux_log_dir.exists() else default_log_dir
+
+# Crear carpeta de logs si no existe
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+
+    'formatters': {
+        'detailed': {
+            'format': '[{asctime}] {levelname} {name} - {message}',
+            'style': '{',
+        },
+    },
+
+    'handlers': {
+        'console_detailed': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'detailed',
+        },
+        'file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': str(LOG_DIR / 'django_extensions.log'),  # Ruta dinámica
+             'maxBytes': 5*1024*1024,  # 5 MB Para que no crezca los logs indefinidamente
+             'backupCount': 5,
+             'formatter': 'detailed',
+        },
+    },
+
+    'loggers': {
+        'django_extensions': {
+            'handlers': ['console_detailed', 'file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'django.db.backends': {
+            'handlers': ['console_detailed'],  # Solo consola
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+    },
+}
+
+EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
+EMAIL_HOST = config('EMAIL_HOST', default='')
+EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
+EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
+EMAIL_USE_SSL = config('EMAIL_USE_SSL', default=False, cast=bool)
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=f'Ferbaq Opportunity Manager <{EMAIL_HOST_USER}>')
+
+FRONTEND_URL = config('FRONTEND_URL', default='')
+
+# Agregar carpeta de templates para emails (dentro de users)
+TEMPLATES[0]['DIRS'].append(BASE_DIR / 'users' / 'templates')

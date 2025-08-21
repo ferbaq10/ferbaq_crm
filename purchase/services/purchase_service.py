@@ -10,12 +10,13 @@ from catalog.constants import CurrencyIDs, StatusIDs, OpportunityFilters
 from catalog.models import PurchaseStatusType
 from client.models import Client
 from opportunity.models import Opportunity
+from opportunity.services.base import BaseService
 from purchase.services.interfaces import AbstractPurchaseOpportunityFactory
 
 logger = logging.getLogger(__name__)
 
 
-class PurchaseService:
+class PurchaseService(BaseService):
     NEGOTIATING_STATUS_ID = 4  # Id del estado de la oportunidad 'Negociando'
 
     @inject
@@ -51,7 +52,7 @@ class PurchaseService:
             queryset=Opportunity._meta.get_field('finance_data').related_model.objects.all()
         )
 
-        return Opportunity.objects.select_related(
+        queryset = Opportunity.objects.select_related(
             'status_opportunity',
             'currency',
             'opportunityType',
@@ -69,7 +70,10 @@ class PurchaseService:
         ).prefetch_related(
             optimized_clients,
             optimized_finance
-        ).filter(agent=user)
+        )
+
+        return self.add_filter_by_rol(user, queryset, owner_field='agent')
+
 
     def process_update(self, instance: Opportunity, request_data: dict) -> Opportunity:
         purchase_status_type_id = request_data.get("purchase_status_type")

@@ -16,7 +16,8 @@ logger = logging.getLogger(__name__)
 class ClientSerializer(serializers.ModelSerializer):
     city = CitySerializer()
     business_group = BusinessGroupSerializer()
-    projects = ProjectSerializer(many=True, read_only=True)
+    projects = ProjectSerializer(many=True,
+                                 read_only=True) # atributo cargado por Prefetch
 
     class Meta:
         model = Client
@@ -38,10 +39,6 @@ class ClientWriteSerializer(CacheInvalidationMixin, serializers.ModelSerializer)
     Serializer híbrido que detecta automáticamente si Redis está disponible
     y optimiza en consecuencia - MÁXIMO 2 consultas siempre
     """
-    cache_keys = [
-        "cities_ids_cache_v1",
-        "business_groups_ids_cache_v1"
-    ]
 
     projects = serializers.ListField(
         child=serializers.IntegerField(),
@@ -105,59 +102,25 @@ class ClientWriteSerializer(CacheInvalidationMixin, serializers.ModelSerializer)
 
     def get_cities_queryset(self):
         """
-        Obtiene queryset de ciudades con cache inteligente
+        Obtiene queryset de ciudades directamente (sin cache)
         """
-        if not self.is_redis_available():
-            # Sin Redis: queryset directo (muy eficiente)
-            return City.objects.all()
-
-        # Con Redis: usar cache optimizado
-        cache_key = "cities_ids_cache_v1"
-
         try:
-            cached_ids = cache.get(cache_key)
-            if cached_ids is not None:
-                logger.debug(f"[Cache HIT] Ciudades: {len(cached_ids)} IDs")
-                return City.objects.filter(id__in=cached_ids)
-
-            # Cache miss: almacenar solo IDs
-            city_ids = list(City.objects.values_list('id', flat=True))
-            cache.set(cache_key, city_ids, 60 * 30)  # 30 minutos
-            logger.info(f"[Cache SET] Ciudades: {len(city_ids)} IDs cacheados")
-
-            return City.objects.filter(id__in=city_ids)
-
+            return City.objects.filter(is_removed=False)
         except Exception as e:
-            logger.warning(f"Error en cache de ciudades: {e}")
-            return City.objects.all()
+            logger.warning(f"Error en obtener las ciudades: {e}")
+            # Fallback: retornar queryset vacío en lugar de fallar
+            return City.objects.none()
 
     def get_business_groups_queryset(self):
         """
-        Obtiene queryset de grupos empresariales con cache inteligente
+        Obtiene queryset de grupos empresariales activos (sin cache)
         """
-        if not self.is_redis_available():
-            # Sin Redis: queryset directo (muy eficiente)
-            return BusinessGroup.objects.all()
-
-        # Con Redis: usar cache optimizado
-        cache_key = "business_groups_ids_cache_v1"
-
         try:
-            cached_ids = cache.get(cache_key)
-            if cached_ids is not None:
-                logger.debug(f"[Cache HIT] Grupos: {len(cached_ids)} IDs")
-                return BusinessGroup.objects.filter(id__in=cached_ids)
-
-            # Cache miss: almacenar solo IDs
-            group_ids = list(BusinessGroup.objects.values_list('id', flat=True))
-            cache.set(cache_key, group_ids, 60 * 30)  # 30 minutos
-            logger.info(f"[Cache SET] Grupos: {len(group_ids)} IDs cacheados")
-
-            return BusinessGroup.objects.filter(id__in=group_ids)
-
+            return BusinessGroup.objects.filter(is_removed=False)
         except Exception as e:
-            logger.warning(f"Error en cache de grupos: {e}")
-            return BusinessGroup.objects.all()
+            logger.warning(f"Error al obtener grupos empresariales: {e}")
+            # Fallback: retornar queryset vacío en lugar de fallar
+            return BusinessGroup.objects.none()
 
     def validate(self, attrs):
         """

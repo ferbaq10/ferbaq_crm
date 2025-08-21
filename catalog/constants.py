@@ -1,4 +1,5 @@
 class StatusIDs:
+    SEND = 3
     NEGOTIATING = 4
     WON = 5
     LOST = 6

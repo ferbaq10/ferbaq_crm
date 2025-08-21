@@ -1,44 +1,43 @@
 import logging
 from datetime import datetime
+from typing import TypeVar
 
-from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError
 from django.db import transaction
 from django.db.models import Prefetch
 from django.utils import timezone
+from django_rq import enqueue
 from injector import inject
 from rest_framework.exceptions import ValidationError
 
 from catalog.constants import StatusIDs, StatusPurchaseTypeIDs
-from catalog.models import LostOpportunityType
 from client.models import Client
 from opportunity.models import Opportunity
 from opportunity.models import OpportunityDocument
-from opportunity.services.interfaces import AbstractFinanceOpportunityFactory, AbstractLostOpportunityFactory
+from opportunity.services.base import BaseService
+from opportunity.services.interfaces import AbstractFinanceOpportunityFactory
 from opportunity.tasks import upload_to_sharepoint_db, delete_file_from_sharepoint_db
 from purchase.models import PurchaseStatus
 
+# Si usas un modelo genérico para el queryset
+T = TypeVar('T')
 logger = logging.getLogger(__name__)
 
-
-class OpportunityService:
+class OpportunityService(BaseService):
     @inject
-    def __init__(self, finance_factory: AbstractFinanceOpportunityFactory,
-                 lost_opportunity_factory: AbstractLostOpportunityFactory):
+    def __init__(self, finance_factory: AbstractFinanceOpportunityFactory):
         self.finance_factory = finance_factory
-        self.lost_opportunity_factory = lost_opportunity_factory
 
-    def get_base_queryset(self, user):
+    def get_prefetched_queryset(self):
+        # Igual que tu get_base_queryset, PERO sin add_filter_by_rol
         optimized_clients = Prefetch(
             'contact__clients',
             queryset=Client.objects.select_related('city', 'business_group')
         )
-
         optimized_finance = Prefetch(
             'finance_data',
             queryset=Opportunity._meta.get_field('finance_data').related_model.objects.all()
         )
-
         optimized_documents = Prefetch(
             'documents',
             queryset=OpportunityDocument.objects.only(
@@ -46,29 +45,69 @@ class OpportunityService:
             )
         )
 
-        return Opportunity.objects.select_related(
-            'status_opportunity',
-            'currency',
-            'opportunityType',
-            'contact',
-            'contact__job',
-            'project',
-            'project__specialty',
-            'project__subdivision',
-            'project__subdivision__division',
-            'project__project_status',
-            'project__work_cell',
-            'project__work_cell__udn'
+        return (Opportunity.objects
+                .select_related(
+            'status_opportunity', 'currency', 'opportunityType', 'contact', 'contact__job',
+            'project', 'project__specialty', 'project__subdivision',
+            'project__subdivision__division', 'project__project_status',
+            'project__work_cell', 'project__work_cell__udn',
+            'client', 'client__city', 'client__business_group'
+        )
+                .prefetch_related(optimized_finance, optimized_clients, optimized_documents)
+                )
+
+    def get_base_queryset(self, user):
+        return self.add_filter_by_rol(user, self.get_prefetched_queryset(), owner_field='agent')
+
+    def get_filtered_queryset(self, user):
+        return (self.add_filter_by_rol(user, self.get_prefetched_queryset())
+                    .filter(is_removed=False).distinct())
+
+    def get_base_documents_queryset(self, user):
+        optimized_clients = Prefetch(
+            'opportunity__contact__clients',
+            queryset=Client.objects.select_related('city', 'business_group')
+        )
+
+        optimized_finance = Prefetch(
+            'opportunity__finance_data',
+            queryset=Opportunity._meta.get_field('finance_data').related_model.objects.all()
+        )
+
+        queryset = OpportunityDocument.objects.select_related(
+            'opportunity',
+            'opportunity__status_opportunity',
+            'opportunity__currency',
+            'opportunity__opportunityType',
+            'opportunity__contact',
+            'opportunity__contact__job',
+            'opportunity__project',
+            'opportunity__project__specialty',
+            'opportunity__project__subdivision',
+            'opportunity__project__subdivision__division',
+            'opportunity__project__project_status',
+            'opportunity__project__work_cell',
+            'opportunity__project__work_cell__udn',
+            'opportunity__client',
+            'opportunity__client__city',
+            'opportunity__client__business_group'
         ).prefetch_related(
             optimized_finance,
-            optimized_clients,
-            optimized_documents
-        ).filter(agent=user)
+            optimized_clients)
+
+        return self.add_filter_by_rol(user, queryset, owner_field='agent')
+
+
 
     def get_filtered_queryset(self, user):
         return self.get_base_queryset(user).filter(
             created__year=datetime.now().year
         ).distinct().order_by('-created')
+
+    def get_filtered_documents_queryset(self, user):
+        return self.get_base_documents_queryset(user).filter(
+            uploaded_at__year=datetime.now().year
+        ).distinct().order_by('-uploaded_at')
 
     def process_create(self, serializer, request, files=None) -> Opportunity:
         serializer.validated_data["date_status"] = timezone.now()
@@ -124,26 +163,15 @@ class OpportunityService:
             instance.save()
 
             # Si es GANADA y hay datos financieros → crear/actualizar FinanceOpportunity
-            if new_status and new_status.id == StatusIDs.WON and finance_data:
+            if new_status and (new_status.id == StatusIDs.WON) and finance_data:
                 self.finance_factory.create_or_update(
                     opportunity=instance,
                     cost_subtotal=finance_data.get("cost_subtotal", 0),
                     earned_amount=finance_data.get("earned_amount", 0),
-                    order_closing_date=finance_data.get("order_closing_date")
-                )
-
-            # Si es PERDIDA → guardar tipo de oportunidad perdida
-            if new_status and new_status.id == StatusIDs.LOST:
-                lost_type_id = request_data.get("lost_opportunity_type")
-                try:
-                    lost_type = LostOpportunityType.objects.get(id=lost_type_id)
-                except LostOpportunityType.DoesNotExist:
-                    logger.error(f"[LOST TYPE NOT FOUND] ID={lost_type_id}")
-                    raise ValidationError({"lost_opportunity_type": "El tipo de oportunidad perdida no existe."})
-
-                self.lost_opportunity_factory.create_or_update(
-                    opportunity=instance,
-                    lost_opportunity_type=lost_type
+                    order_closing_date=finance_data.get("order_closing_date"),
+                    oc_number=finance_data.get("oc_number"),
+                    cash_percentage=finance_data.get("cash_percentage"),
+                    credit_percentage = finance_data.get("credit_percentage")
                 )
 
             # Subida de archivo si aplica
@@ -194,9 +222,13 @@ class OpportunityService:
             if udn_name:
                 try:
                     transaction.on_commit(
-                        lambda f_data=file_data, f_name=file_name:
-                        upload_to_sharepoint_db.delay(udn_name, instance.pk, f_data, f_name)
+                        lambda udn=udn_name,
+                               id=instance.id,
+                               f_data=file_data,
+                               f_name=file_name:
+                        enqueue(upload_to_sharepoint_db, udn, id, f_data, f_name)
                     )
+                    # upload_to_sharepoint_db(udn_name, instance.id, file_data, file_name)
                     logger.info(f"Subido archivo {file_name}")
                     
                 except Exception as e:
@@ -206,12 +238,7 @@ class OpportunityService:
             else:
                 logger.error(f"No se pudo obtener UDN para {file_name}")
 
-    def delete_document(self, opportunity, document_id: int) -> dict:
-        try:
-            document = OpportunityDocument.objects.get(id=document_id, opportunity=opportunity)
-        except OpportunityDocument.DoesNotExist:
-            raise ObjectDoesNotExist("Documento no encontrado.")
-
+    def delete_document(self, document: OpportunityDocument) -> dict:
         try:
             # Eliminar en SharePoint y BD
             delete_file_from_sharepoint_db(document.sharepoint_url, document.id)
