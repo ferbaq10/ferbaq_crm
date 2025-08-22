@@ -12,11 +12,13 @@ from rest_framework.exceptions import ValidationError
 
 from catalog.constants import StatusIDs, StatusPurchaseTypeIDs
 from client.models import Client
+from contact.models import Contact
 from opportunity.models import Opportunity
 from opportunity.models import OpportunityDocument
 from opportunity.services.base import BaseService
 from opportunity.services.interfaces import AbstractFinanceOpportunityFactory
 from opportunity.tasks import upload_to_sharepoint_db, delete_file_from_sharepoint_db
+from project.models import Project
 from purchase.models import PurchaseStatus
 
 # Si usas un modelo genérico para el queryset
@@ -29,33 +31,50 @@ class OpportunityService(BaseService):
         self.finance_factory = finance_factory
 
     def get_prefetched_queryset(self):
-        # Igual que tu get_base_queryset, PERO sin add_filter_by_rol
+        # Optimizar proyectos con todas sus relaciones
+        optimized_projects = Prefetch(
+            'contact__clients__projects',
+            queryset=Project.objects.select_related(
+                'work_cell__udn',
+                'specialty',
+                'subdivision__division',
+                'project_status'
+            ).order_by('id')
+        )
+
+        # Optimizar clientes con city y business_group
         optimized_clients = Prefetch(
             'contact__clients',
-            queryset=Client.objects.select_related('city', 'business_group')
+            queryset=Client.objects.select_related(
+                'city',
+                'business_group'
+            ).order_by('id')
         )
-        optimized_finance = Prefetch(
-            'finance_data',
-            queryset=Opportunity._meta.get_field('finance_data').related_model.objects.all()
-        )
-        optimized_documents = Prefetch(
-            'documents',
-            queryset=OpportunityDocument.objects.only(
-                'id', 'file_name', 'sharepoint_url', 'uploaded_at', 'opportunity'
+
+        return (
+            Opportunity.objects
+            .select_related(
+                'status_opportunity',
+                'currency',
+                'opportunityType',
+                'contact__job',
+                'project__specialty',
+                'project__subdivision__division',
+                'project__project_status',
+                'project__work_cell__udn',
+                'client__city',
+                'client__business_group',
+                'agent__profile',
+                'lost_opportunity',
             )
+            .prefetch_related(
+                optimized_clients,
+                optimized_projects,
+                'finance_data',
+                'documents'
+            )
+            .order_by('created')
         )
-
-        return (Opportunity.objects
-                .select_related(
-            'status_opportunity', 'currency', 'opportunityType', 'contact', 'contact__job',
-            'project', 'project__specialty', 'project__subdivision',
-            'project__subdivision__division', 'project__project_status',
-            'project__work_cell', 'project__work_cell__udn',
-            'client', 'client__city', 'client__business_group'
-        )
-                .prefetch_related(optimized_finance, optimized_clients, optimized_documents)
-                )
-
     def get_base_queryset(self, user):
         return self.add_filter_by_rol(user, self.get_prefetched_queryset(), owner_field='agent')
 
