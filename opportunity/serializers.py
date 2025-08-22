@@ -9,11 +9,11 @@ from catalog.models import OpportunityType, StatusOpportunity, Currency, LostOpp
 from catalog.serializers import StatusOpportunitySerializer, CurrencySerializer, OpportunityTypeSerializer, \
     LostOpportunityTypeSerializer
 from client.models import Client
-from client.serializers import ClientSerializer
+from client.serializers import ClientSerializer, ClientSimplifySerializer
 from contact.models import Contact
-from contact.serializers import ContactSerializer
+from contact.serializers import ContactSerializer, ContactSimplifySerializer
 from project.models import Project
-from project.serializers import ProjectSerializer
+from project.serializers import ProjectSerializer, ProjectSimplifySerializer
 from users.serializers import UserSerializer
 from .models import CommercialActivity, FinanceOpportunity, Opportunity, OpportunityDocument
 from decimal import Decimal, InvalidOperation
@@ -65,13 +65,13 @@ class CommercialActivitySerializer(serializers.ModelSerializer):
 
 # --- Opportunity SOLO LECTURA ---
 class OpportunitySerializer(serializers.ModelSerializer):
-    contact = ContactSerializer()
+    contact = ContactSimplifySerializer()
     agent = UserSerializer()
-    project = ProjectSerializer()
+    project = ProjectSimplifySerializer()
     currency = CurrencySerializer()
     opportunityType = OpportunityTypeSerializer()
     status_opportunity = StatusOpportunitySerializer()
-    client = ClientSerializer()
+    client = ClientSimplifySerializer()
 
     lost_opportunity = LostOpportunityTypeSerializer()
 

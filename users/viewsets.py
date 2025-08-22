@@ -1,7 +1,12 @@
+import os
+
+from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.http import HttpResponse
 from django.utils.functional import cached_property
 from rest_framework import status
 from rest_framework.decorators import action
+from rest_framework.permissions import AllowAny
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -10,13 +15,13 @@ from catalog.models import WorkCell
 from catalog.viewsets.base import CachedViewSet
 from core.di import injector
 from users.serializers import (
-    UserSerializer, UserWithWorkcellSerializer, UserProfileUpdateSerializer, 
-    ProfilePhotoUploadSerializer, PasswordChangeSerializer, PasswordResetRequestSerializer, PasswordResetConfirmSerializer)
+    UserSerializer, UserWithWorkcellSerializer, UserProfileUpdateSerializer,
+    ProfilePhotoUploadSerializer, PasswordChangeSerializer, PasswordResetRequestSerializer,
+    PasswordResetConfirmSerializer)
 from users.services.user_service import UserService
 from .permissions import CanAssignWorkcell, CanUnassignWorkcell
 from .serializers import MyTokenObtainPairSerializer
 from .services.sharepoint_profile_service import SharePointProfileService
-from rest_framework.permissions import AllowAny
 
 User = get_user_model()
 
@@ -246,11 +251,30 @@ class UserViewSet(CachedViewSet):
                 response['Access-Control-Allow-Origin'] = '*'  # Para CORS
                 return response
             else:
-                return Response({'error': 'Foto no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+                return self.serve_default_avatar()
                 
         except Exception as e:
             logger.exception(f"❌ Error en proxy de foto: {e}")
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            #return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return self.serve_default_avatar()
+
+    def serve_default_avatar(self):
+        """Sirve una imagen avatar por defecto"""
+        default_photo_path = os.path.join(settings.STATIC_ROOT, 'images', 'default-avatar.jpg')
+
+        if os.path.exists(default_photo_path):
+            with open(default_photo_path, 'rb') as f:
+                return HttpResponse(f.read(), content_type='image/jpeg')
+        else:
+            # SVG avatar por defecto
+            default_svg = '''
+            <svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="50" cy="50" r="40" fill="#ccc"/>
+                <circle cx="50" cy="40" r="15" fill="#999"/>
+                <path d="M25 75 Q50 60 75 75" stroke="#999" stroke-width="8" fill="none"/>
+            </svg>
+            '''
+            return HttpResponse(default_svg, content_type='image/svg+xml')
         
     @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated])
     def change_password(self, request):

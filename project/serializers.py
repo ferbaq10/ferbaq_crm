@@ -117,3 +117,18 @@ class ProjectWriteSerializer(serializers.ModelSerializer):
 
         return ret
 
+
+class ProjectSimplifySerializer(serializers.ModelSerializer):
+    specialty_name = serializers.CharField(source='specialty.name', read_only=True)
+    subdivision_name = serializers.CharField(source='subdivision.name', read_only=True)
+    project_status_name = serializers.CharField(source='project_status.name', read_only=True)
+    work_cell_name = serializers.CharField(source='work_cell.name', read_only=True)
+    udn_name = serializers.CharField(source='work_cell.udn.name', read_only=True)
+
+    class Meta:
+        model = Project
+        fields = [
+            'id', 'name', 'latitude', 'longitude', 'description',
+            'specialty_name', 'subdivision_name', 'project_status_name',
+            'work_cell_name', 'udn_name', 'is_removed'
+        ]
