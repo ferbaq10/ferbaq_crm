@@ -111,7 +111,7 @@ jobs:
         echo "Esperando a que el servicio responda..."
         sleep 10
         for i in {1..5}; do
-          if curl -s -f --max-time 10 "https://${{ secrets.EC2_HOST }}:8080/health/"; then
+          if curl -s -f --max-time 10 "http://${{ secrets.EC2_HOST }}:8000/health-check/"; then
             echo "Health check OK (intento $i)"; exit 0
           else
             echo "Health check falló (intento $i/5)"; sleep 5
