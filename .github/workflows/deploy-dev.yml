@@ -4,32 +4,181 @@ on:
   push:
     branches:
       - develop
+  workflow_dispatch:  # Permite ejecución manual
+
+env:
+  DEPLOYMENT_TIMEOUT: 600  # 10 minutos timeout
 
 jobs:
   deploy:
+    name: Deploy to Development
     runs-on: ubuntu-latest
+    environment: development  # Usar GitHub Environments para mayor seguridad
 
     steps:
     - name: Checkout código
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4  # Usar versión más reciente
+      with:
+        fetch-depth: 0  # Para git operations
 
     - name: Configurar SSH
       run: |
         mkdir -p ~/.ssh
-        echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+        echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
         ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-    - name: Deploy en EC2
+    - name: Verificar conectividad SSH
       run: |
-        ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-          set -e
-          cd ${{ secrets.EC2_PROJECT_DIR }}
-          git pull origin develop
+        ssh -o ConnectTimeout=10 ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "echo 'Conexión SSH exitosa'"
+
+    - name: Deploy en EC2
+      timeout-minutes: 10  # Timeout para evitar deploys colgados
+      run: |
+        ssh -o ConnectTimeout=10 ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+          set -e  # Exit on error
+          set -x  # Debug mode
+          
+          # Variables
+          PROJECT_DIR="${{ secrets.EC2_PROJECT_DIR }}"
+          VENV_PATH="$PROJECT_DIR/venv"
+          BACKUP_DIR="$PROJECT_DIR/backups"
+          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          
+          echo "Iniciando deploy en $TIMESTAMP"
+          cd $PROJECT_DIR
+          
+          # Crear backup antes del deploy
+          echo "Creando backup..."
+          mkdir -p $BACKUP_DIR
+          if [ -f "manage.py" ]; then
+            tar -czf "$BACKUP_DIR/backup_$TIMESTAMP.tar.gz" \
+              --exclude='venv' \
+              --exclude='__pycache__' \
+              --exclude='*.pyc' \
+              --exclude='logs' \
+              --exclude='backups' \
+              .
+            echo "Backup creado: backup_$TIMESTAMP.tar.gz"
+          fi
+          
+          # Actualizar código
+          echo "Actualizando código..."
+          git fetch origin
+          git reset --hard origin/develop
+          git clean -fd
+          
+          # Virtual Environment
+          echo "Configurando virtual environment..."
+          if [ ! -d "$VENV_PATH" ]; then
+            python3 -m venv venv
+          fi
           source venv/bin/activate
+          
+          # Dependencias
+          echo "Instalando dependencias..."
+          pip install --upgrade pip
           pip install -r requirements.txt
+          
+          # Crear archivo .env con secrets
+          echo "Configurando variables de entorno..."
+          cat > .env << EOL
+          DEBUG=False
+          SECRET_KEY='${{ secrets.DJANGO_SECRET_KEY }}'
+          DATABASE_URL='${{ secrets.DATABASE_URL }}'
+          ALLOWED_HOSTS='${{ secrets.ALLOWED_HOSTS }}'
+          CORS_ALLOWED_ORIGINS='${{ secrets.CORS_ALLOWED_ORIGINS }}'
+          REDIS_URL='${{ secrets.REDIS_URL }}'
+          EMAIL_HOST='${{ secrets.EMAIL_HOST }}'
+          EMAIL_HOST_USER='${{ secrets.EMAIL_HOST_USER }}'
+          EMAIL_HOST_PASSWORD='${{ secrets.EMAIL_HOST_PASSWORD }}'
+          FRONTEND_URL='${{ secrets.FRONTEND_URL }}'
+          EOL
+          
+          # Asegurar permisos del .env
+          chmod 600 .env
+          
+          # Database migrations
+          echo "Ejecutando migraciones..."
           python manage.py migrate --noinput
-          python manage.py collectstatic --noinput
-          sudo systemctl restart gunicorn
-          sudo systemctl restart rqworker
+          
+          # Static files
+          echo "Recolectando archivos estáticos..."
+          python manage.py collectstatic --noinput --clear
+          
+          # Validar Django
+          echo "Validando configuración Django..."
+          python manage.py check --deploy
+          
+          # Test de conectividad básica
+          echo "Probando configuración..."
+          python manage.py shell << SHELL
+          from django.conf import settings
+          print(f"DEBUG: {settings.DEBUG}")
+          print(f"ALLOWED_HOSTS: {settings.ALLOWED_HOSTS}")
+          exit()
+          SHELL
+          
+          # Restart services
+          echo "Reiniciando servicios..."
+          sudo systemctl daemon-reload
+          
+          # Restart con verificación
+          if sudo systemctl restart gunicorn; then
+            echo "Gunicorn reiniciado exitosamente"
+          else
+            echo "Error reiniciando Gunicorn"
+            exit 1
+          fi
+          
+          if sudo systemctl restart rqworker; then
+            echo "RQ Worker reiniciado exitosamente"
+          else
+            echo "Warning: Error reiniciando RQ Worker (puede ser normal si no está configurado)"
+          fi
+          
+          # Verificar status
+          echo "Estado de servicios:"
+          sudo systemctl is-active gunicorn || echo "Gunicorn no está activo"
+          sudo systemctl is-active rqworker || echo "RQ Worker no está activo"
+          
+          # Cleanup
+          deactivate
+          
+          # Limpiar backups antiguos (mantener solo últimos 5)
+          echo "Limpiando backups antiguos..."
+          cd $BACKUP_DIR
+          ls -t backup_*.tar.gz 2>/dev/null | tail -n +6 | xargs rm -f
+          
+          echo "Deploy completado exitosamente en $TIMESTAMP"
         EOF
+
+    - name: Verificar deploy
+      run: |
+        echo "Esperando que el servicio esté disponible..."
+        sleep 10
+        
+        # Verificar health check con retry
+        for i in {1..5}; do
+          if curl -s -f --max-time 10 "http://${{ secrets.EC2_HOST }}:8000/health-check/"; then
+            echo "Health check exitoso (intento $i)"
+            break
+          else
+            echo "Health check falló (intento $i/5)"
+            if [ $i -eq 5 ]; then
+              echo "Deploy verification failed después de 5 intentos"
+              exit 1
+            fi
+            sleep 5
+          fi
+        done
+
+    - name: Deploy Summary
+      if: always()
+      run: |
+        echo "## Deploy Summary" >> $GITHUB_STEP_SUMMARY
+        echo "- **Environment**: Development" >> $GITHUB_STEP_SUMMARY
+        echo "- **Branch**: develop" >> $GITHUB_STEP_SUMMARY
+        echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **URL**: http://${{ secrets.EC2_HOST }}:8000" >> $GITHUB_STEP_SUMMARY
