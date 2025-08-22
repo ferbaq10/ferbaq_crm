@@ -8,12 +8,7 @@ class RoleScope(models.TextChoices):
     NONE = 'NONE', 'Ninguna'
 
 class RolePolicy(models.Model):
-    group = models.ForeignKey(
-        Group,
-        on_delete=models.CASCADE,
-        unique=True,               # un policy por grupo
-        related_name='role_policy'
-    )
+    group = models.OneToOneField(Group, on_delete=models.CASCADE)
     scope = models.CharField(
         max_length=20,
         choices=RoleScope.choices

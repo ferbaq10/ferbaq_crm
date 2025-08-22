@@ -83,12 +83,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
         if obj.photo_sharepoint_url:
             filename = obj.photo_sharepoint_url.split('/')[-1]
             proxy_url = f"/api/users/photo/{filename}"
-            
-            # ✅ DEBUG: Ver qué está generando
-            print(f"🔍 SharePoint URL: {obj.photo_sharepoint_url}")
-            print(f"🔍 Filename extraído: {filename}")
-            print(f"🔍 Proxy URL generada: {proxy_url}")
-            
             return proxy_url
         return None
 
