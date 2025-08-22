@@ -108,7 +108,7 @@ jobs:
 
     - name: Verificar deploy
       env:
-        HEALTH_URL: ${{ secrets.HEALTH_URL }}
+        HEALTH_URL: ${{ secrets.HEALTH_URL }}  # ej: https://crm-dev.portal-ferbaq.net/health/
       run: |
         echo "Esperando que el servicio responda..."
         sleep 10
