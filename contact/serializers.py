@@ -116,3 +116,17 @@ class ContactWriteSerializer(serializers.ModelSerializer):
         ret['job'] = JobSerializer(instance.job).data if instance.job else None
 
         return ret
+
+class ContactSimplifySerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Contact
+        fields = [
+            'id',
+            'name',
+            'email',
+            'phone',
+            'address',
+            'is_removed'
+        ]
+        read_only_fields = ['created', 'modified']
