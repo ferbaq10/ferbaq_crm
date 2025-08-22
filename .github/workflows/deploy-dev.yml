@@ -107,14 +107,21 @@ jobs:
         EOF
 
     - name: Verificar deploy
+      env:
+        HEALTH_URL: ${{ secrets.HEALTH_URL }}  # ej: https://crm-dev.portal-ferbaq.net/health/
       run: |
-        echo "Esperando a que el servicio responda..."
+        echo "Esperando que el servicio responda..."
         sleep 10
-        for i in {1..5}; do
-          if curl -s -f --max-time 10 "http://${{ secrets.EC2_HOST }}:8000/health-check/"; then
-            echo "Health check OK (intento $i)"; exit 0
+        for i in {1..10}; do
+          code=$(curl -s -o /dev/null -w "%{http_code}" -L --max-time 10 "$HEALTH_URL")
+          if [ "$code" -ge 200 ] && [ "$code" -lt 400 ]; then
+            echo "Health check OK (HTTP $code) intento $i"
+            # (opcional) imprime un pedacito de la respuesta
+            curl -s --max-time 5 "$HEALTH_URL" | head -c 200 || true
+            exit 0
           else
-            echo "Health check falló (intento $i/5)"; sleep 5
+            echo "Health check falló (HTTP $code) intento $i/10"
+            sleep 5
           fi
         done
         echo "Deploy verification failed"; exit 1
