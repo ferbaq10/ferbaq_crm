@@ -124,8 +124,7 @@ jobs:
             sleep 5
           fi
         done
-        echo "Deploy verification failed"
-        exit 1
+        echo "Deploy verification failed"; exit 1
 
     - name: Deploy Summary
       if: always()
