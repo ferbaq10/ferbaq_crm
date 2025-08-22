@@ -131,14 +131,21 @@ WSGI_APPLICATION = 'core.wsgi.application'
 
 
 # --- DATABASE ---
+# --- DATABASE ---
 DATABASE_URL = os.environ.get("DATABASE_URL") or config("DATABASE_URL", default=None)
-print(f"🔍 DATABASE_URL desde entorno de despliegue: {DATABASE_URL}")
 if DATABASE_URL:
     DATABASES = {
         'default': dj_database_url.parse(DATABASE_URL)
     }
+    # Agregar configuraciones adicionales a la conexión parseada
+    DATABASES['default'].update({
+        'CONN_MAX_AGE': 60,  # Mantener conexiones por 1 minuto
+        'OPTIONS': {
+            'connect_timeout': 60,  # 60 segundos para conectar
+            'options': '-c statement_timeout=30000'  # 30 segundos por consulta
+        }
+    })
 else:
-    print(f"🔍 DATABASE: {config('DB_NAME', default='ferbaq_local')}")
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -147,6 +154,11 @@ else:
             'PASSWORD': config('DB_PASSWORD', default='password'),
             'HOST': config('DB_HOST', default='localhost'),
             'PORT': config('DB_PORT', default='5432', cast=int),
+            'CONN_MAX_AGE': 60,  # Reutilizar conexiones por 1 minuto
+            'OPTIONS': {
+                'connect_timeout': 60,  # Timeout para establecer conexión
+                'options': '-c statement_timeout=30000 -c idle_in_transaction_session_timeout=30000'
+            }
         }
     }
 
