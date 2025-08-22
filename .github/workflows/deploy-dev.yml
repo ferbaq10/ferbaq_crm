@@ -160,7 +160,7 @@ jobs:
         
         # Verificar health check con retry
         for i in {1..5}; do
-          if curl -s -f --max-time 10 "http://${{ secrets.EC2_HOST }}:8000/health-check/"; then
+          if curl -s -f --max-time 10 "https://${{ secrets.EC2_HOST }}:8080/health/"; then
             echo "Health check exitoso (intento $i)"
             break
           else
