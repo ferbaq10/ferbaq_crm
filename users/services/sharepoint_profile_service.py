@@ -1,11 +1,14 @@
 import io
 import logging
 from typing import Optional
+from urllib.parse import urlparse
+
 from decouple import config
 from office365.runtime.auth.authentication_context import AuthenticationContext
+from office365.runtime.client_request_exception import ClientRequestException
 from office365.sharepoint.client_context import ClientContext
-from urllib.parse import urlparse
-from opportunity.sharepoint import ensure_folder  # Reutilizar tu función existente
+
+from opportunity.sharepoint import ensure_folder
 
 logger = logging.getLogger(__name__)
 
@@ -137,7 +140,7 @@ class SharePointProfileService:
         """Obtiene el contenido binario de una foto desde SharePoint"""
         try:
             from urllib.parse import urlparse, unquote
-            
+
             parsed = urlparse(photo_url)
             relative_url = unquote(parsed.path)
 
@@ -148,14 +151,20 @@ class SharePointProfileService:
 
             ctx = ClientContext(SHAREPOINT_SITE_URL, ctx_auth)
             file = ctx.web.get_file_by_server_relative_url(relative_url)
-            
+
             # Obtener contenido del archivo
             content = file.get_content()
             ctx.execute_query()
-            
-            logger.info(f"✅ Foto obtenida exitosamente: {len(content.value)} bytes")
             return content.value
-            
+
+        except ClientRequestException as e:
+            # Manejar archivo no encontrado
+            if "404" in str(e) or "no existe" in str(e):
+                return None  # o return foto por defecto
+            else:
+                # Re-lanzar otros errores
+                raise e
+
         except Exception as e:
             logger.exception(f"❌ Error obteniendo foto: {e}")
             return None
