@@ -68,6 +68,7 @@ class Opportunity(BaseModel):
         null=True,
         on_delete=models.DO_NOTHING
     )
+
     lost_opportunity = models.ForeignKey(
         LostOpportunityType,
         blank=True,

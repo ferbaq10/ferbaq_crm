@@ -509,17 +509,14 @@ Activa y arranca:
 
 ```bash
 server {
-    listen 80;
     server_name crm.portal-ferbaq.net;
     client_max_body_size 4M;
-    
     # Aumentar límites de buffer para cabeceras grandes
     large_client_header_buffers 4 32k;
     client_header_buffer_size 8k;
     proxy_buffer_size 128k;
     proxy_buffers 4 256k;
     proxy_busy_buffers_size 256k;
-    
     # Frontend (Next.js)
     location / {
         proxy_pass http://localhost:3000;
@@ -529,29 +526,38 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto https;
         proxy_cache_bypass $http_upgrade;
-        
         # Límites específicos para proxy
         proxy_connect_timeout 60s;
         proxy_send_timeout 60s;
         proxy_read_timeout 60s;
-    }
-    
-    # Backend (Django) bajo /api/
+    }   # Backend (Django) bajo /api/
     location /api/static/ {
         alias /var/www/ferbaq_crm_backend/static/;
     }
     
     location /endpoint/ {
         include proxy_params;
-        proxy_pass http://127.0.0.1:8080;
-        
+        proxy_pass http://127.0.0.1:8080; # Cambiado del socket a TCP
         # Límites para el backend también
         proxy_connect_timeout 60s;
         proxy_send_timeout 60s;
         proxy_read_timeout 60s;
-    }
+      }
+    listen 443 ssl; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/crm.portal-ferbaq.net/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/crm.portal-ferbaq.net/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+}
+server {
+    if ($host = crm.portal-ferbaq.net) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+    listen 80;
+    server_name crm.portal-ferbaq.net;
+    return 404; # managed by Certbot
 }
 ```
  Crear el nuevo enlace simbólico para el archivo combinado

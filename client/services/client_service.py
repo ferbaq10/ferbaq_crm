@@ -40,7 +40,6 @@ class ClientService(AbstractClientFactory, BaseService):
 
         queryset = (
             Client.objects
-            .distinct()
             .select_related('city', 'business_group')
             .prefetch_related(
                 Prefetch('projects', queryset=project_qs)
