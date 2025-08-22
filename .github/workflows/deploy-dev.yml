@@ -1,35 +1,129 @@
 name: Deploy to EC2 (Dev)
 
 on:
-  push:
-    branches:
-      - develop
+  pull_request:
+    types: [closed]   # Se dispara cuando un PR se cierra
+    branches: [develop]  # ...y el destino del PR es develop
+  workflow_dispatch:      # Permite ejecución manual opcional
+
+env:
+  DEPLOYMENT_TIMEOUT: 600  # 10 minutos timeout
 
 jobs:
   deploy:
+    name: Deploy to Development
     runs-on: ubuntu-latest
+    environment: development
+
+    # Solo corre si el PR fue MERGED (no solo cerrado) o si se ejecuta manualmente
+    if: ${{ github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch' }}
 
     steps:
     - name: Checkout código
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        # En PR merged, usa el commit de merge; en manual, usa develop
+        ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.merge_commit_sha || 'develop' }}
 
     - name: Configurar SSH
       run: |
         mkdir -p ~/.ssh
-        echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+        echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
         ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
+    - name: Verificar conectividad SSH
+      run: ssh -o ConnectTimeout=10 ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "echo 'Conexión SSH exitosa'"
+
     - name: Deploy en EC2
+      timeout-minutes: 10
       run: |
-        ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-          set -e
-          cd ${{ secrets.EC2_PROJECT_DIR }}
-          git pull origin develop
+        ssh -o ConnectTimeout=10 ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+          set -euo pipefail
+          
+          PROJECT_DIR="${{ secrets.EC2_PROJECT_DIR }}"
+          VENV_PATH="$PROJECT_DIR/venv"
+          BACKUP_DIR="$PROJECT_DIR/backups"
+          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+
+          echo "Iniciando deploy en $TIMESTAMP"
+          cd "$PROJECT_DIR"
+
+          # Backup
+          mkdir -p "$BACKUP_DIR"
+          if [ -f "manage.py" ]; then
+            tar -czf "$BACKUP_DIR/backup_$TIMESTAMP.tar.gz" \
+              --exclude='venv' --exclude='__pycache__' --exclude='*.pyc' \
+              --exclude='logs' --exclude='backups' .
+          fi
+
+          # Actualizar código a develop (ya se mergeó el PR)
+          git fetch origin
+          git reset --hard origin/develop
+          git clean -fd
+
+          # Virtualenv
+          [ -d "$VENV_PATH" ] || python3 -m venv venv
           source venv/bin/activate
-          pip install -r requirements.txt
+
+          # Dependencias
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+          # .env (si lo usas así; idealmente usa EnvironmentFile en systemd)
+          cat > .env << EOL
+          DEBUG=False
+          SECRET_KEY='${{ secrets.DJANGO_SECRET_KEY }}'
+          DATABASE_URL='${{ secrets.DATABASE_URL }}'
+          ALLOWED_HOSTS='${{ secrets.ALLOWED_HOSTS }}'
+          CORS_ALLOWED_ORIGINS='${{ secrets.CORS_ALLOWED_ORIGINS }}'
+          REDIS_URL='${{ secrets.REDIS_URL }}'
+          EMAIL_HOST='${{ secrets.EMAIL_HOST }}'
+          EMAIL_HOST_USER='${{ secrets.EMAIL_HOST_USER }}'
+          EMAIL_HOST_PASSWORD='${{ secrets.EMAIL_HOST_PASSWORD }}'
+          FRONTEND_URL='${{ secrets.FRONTEND_URL }}'
+          EOL
+          chmod 600 .env
+
+          # Migraciones / estáticos
           python manage.py migrate --noinput
-          python manage.py collectstatic --noinput
+          python manage.py collectstatic --noinput --clear
+          python manage.py check --deploy || true
+
+          # Reinicio servicios
+          sudo systemctl daemon-reload
           sudo systemctl restart gunicorn
-          sudo systemctl restart rqworker
+          sudo systemctl restart rqworker || true
+          sudo systemctl is-active gunicorn || (echo "Gunicorn no está activo" && exit 1)
+
+          deactivate
+
+          # Mantener últimos 5 backups
+          cd "$BACKUP_DIR"
+          ls -t backup_*.tar.gz 2>/dev/null | tail -n +6 | xargs -r rm -f
+
+          echo "Deploy completado exitosamente en $TIMESTAMP"
         EOF
+
+    - name: Verificar deploy
+      run: |
+        echo "Esperando a que el servicio responda..."
+        sleep 10
+        for i in {1..5}; do
+          if curl -s -f --max-time 10 "https://${{ secrets.EC2_HOST }}:8080/health/"; then
+            echo "Health check OK (intento $i)"; exit 0
+          else
+            echo "Health check falló (intento $i/5)"; sleep 5
+          fi
+        done
+        echo "Deploy verification failed"; exit 1
+
+    - name: Deploy Summary
+      if: always()
+      run: |
+        echo "## Deploy Summary" >> $GITHUB_STEP_SUMMARY
+        echo "- **Environment**: Development" >> $GITHUB_STEP_SUMMARY
+        echo "- **Branch**: develop" >> $GITHUB_STEP_SUMMARY
+        echo "- **Commit**: ${{ github.event.pull_request.merge_commit_sha || github.sha }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
