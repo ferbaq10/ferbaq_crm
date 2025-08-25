@@ -91,18 +91,16 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install -r requirements.txt
         
+        # --- .env: crear solo si NO existe ---
         ENV_FILE="$PROJECT_DIR/.env"
         
         if [ -f "$ENV_FILE" ]; then
           echo ".env ya existe, no se modifica."
         else
-           echo "Creando .env..."
-           # asegura permisos 600 al crear
-           umask 177
-           cat > "$ENV_FILE" <<'EOL'
-
-        echo "Escribiendo .env..."
-        cat > .env <<'EOL'
+          echo "Creando .env..."
+          # asegura permisos 600 al crear
+          umask 177
+          cat > "$ENV_FILE" <<'EOL'
         DEBUG=True
         SECRET_KEY='${{ secrets.DJANGO_SECRET_KEY }}'
         DATABASE_URL='${{ secrets.DATABASE_URL }}'
@@ -113,13 +111,14 @@ jobs:
         EMAIL_HOST_USER='${{ secrets.EMAIL_HOST_USER }}'
         EMAIL_HOST_PASSWORD='${{ secrets.EMAIL_HOST_PASSWORD }}'
         FRONTEND_URL='${{ secrets.FRONTEND_URL }}'
-        EOL 
-        chmod 600 .env
+        EOL
+        fi
+        
+        chmod 600 "$ENV_FILE"
         
         # Exporta TODO lo del .env al entorno (para que os.environ lo vea)
-
         set -a
-        . ./.env
+        . "$ENV_FILE"
         set +a
         
         # Sanidad: confirmar que SECRET_KEY no está vacío (sin imprimirla)
