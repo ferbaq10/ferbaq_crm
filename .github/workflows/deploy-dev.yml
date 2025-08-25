@@ -3,15 +3,15 @@ name: Deploy to EC2 (Develop)
 on:
   push:
     branches:
-      - develop                # Solo la rama develop
-  workflow_dispatch:           # Permite ejecución manual opcional
+      - develop
+  workflow_dispatch:
 
 env:
-  DEPLOYMENT_TIMEOUT: 600      # 10 minutos timeout
+  DEPLOYMENT_TIMEOUT: 600
 
 jobs:
   deploy:
-    name: Deploy to Development
+    name: Deploy to EC2 (develop)
     runs-on: ubuntu-latest
     environment: development
 
@@ -22,107 +22,81 @@ jobs:
         fetch-depth: 0
 
     - name: Configurar SSH
+      shell: bash
       run: |
+        set -euo pipefail
         mkdir -p ~/.ssh
         echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+        ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
 
     - name: Verificar conectividad SSH
-      run: ssh -o ConnectTimeout=10 ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "echo 'Conexión SSH exitosa'"
+      shell: bash
+      run: |
+        set -euo pipefail
+        ssh -o ConnectTimeout=10 "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" "echo Conexión-SSH-OK"
 
-    - name: Deploy en EC2
+    - name: Deploy en EC2 (solo develop)
+      shell: bash
       timeout-minutes: 10
       run: |
-        ssh -o ConnectTimeout=10 ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-          set -euo pipefail
-          
-          PROJECT_DIR="${{ secrets.EC2_PROJECT_DIR }}"
-          VENV_PATH="$PROJECT_DIR/venv"
-          BACKUP_DIR="$PROJECT_DIR/backups"
-          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-          REPO_URL="https://github.com/${{ github.repository }}.git"
+        set -euo pipefail
+        ssh -o ConnectTimeout=15 "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" 'bash -s' <<'REMOTE'
+        set -Eeuo pipefail
 
-          echo "Iniciando deploy de develop en $TIMESTAMP"
-          echo "Directorio del proyecto: $PROJECT_DIR"
-          
-          # Crear directorio del proyecto si no existe
-          mkdir -p "$PROJECT_DIR"
-          
-          # Backup si existe contenido previo
-          if [ -d "$PROJECT_DIR" ] && [ "$(ls -A $PROJECT_DIR)" ]; then
-            mkdir -p "$BACKUP_DIR"
-            if [ -f "$PROJECT_DIR/manage.py" ]; then
-              echo "Creando backup..."
-              tar -czf "$BACKUP_DIR/backup_$TIMESTAMP.tar.gz" \
-                --exclude='venv' --exclude='__pycache__' --exclude='*.pyc' \
-                --exclude='logs' --exclude='backups' -C "$PROJECT_DIR" . 2>/dev/null || true
-            fi
+        PROJECT_DIR='${{ secrets.EC2_PROJECT_DIR }}'
+        VENV_PATH="$PROJECT_DIR/venv"
+        BACKUP_DIR="$PROJECT_DIR/backups"
+        TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
+        REPO_URL="https://github.com/${{ github.repository }}.git"
+
+        echo "Iniciando deploy (develop) en $PROJECT_DIR"
+        mkdir -p "$PROJECT_DIR"
+        if [ -d "$PROJECT_DIR" ] && [ "$(ls -A "$PROJECT_DIR" 2>/dev/null || true)" ]; then
+          mkdir -p "$BACKUP_DIR"
+          if [ -f "$PROJECT_DIR/manage.py" ]; then
+            echo "Backup..."
+            tar -czf "$BACKUP_DIR/backup_$TIMESTAMP.tar.gz" \
+              --exclude='venv' --exclude='__pycache__' --exclude='*.pyc' \
+              --exclude='logs' --exclude='backups' -C "$PROJECT_DIR" . 2>/dev/null || true
           fi
+        fi
 
-          cd "$PROJECT_DIR"
+        cd "$PROJECT_DIR"
 
-          # Lógica de git mejorada
-          if [ ! -d ".git" ]; then
-            echo "Clonando repositorio por primera vez..."
-            rm -rf * .* 2>/dev/null || true
-            git clone "$REPO_URL" . || {
-              echo "Error al clonar. Intentando inicializar manualmente..."
-              git init
-              git remote add origin "$REPO_URL"
-            }
-          fi
+        if [ ! -d ".git" ]; then
+          echo "Clonando repo..."
+          rm -rf .[^.]* * 2>/dev/null || true
+          git clone "$REPO_URL" .
+        fi
 
-          # Verificar y configurar remote
-          if ! git remote get-url origin >/dev/null 2>&1; then
-            echo "Configurando remote origin..."
-            git remote add origin "$REPO_URL" 2>/dev/null || git remote set-url origin "$REPO_URL"
-          fi
+        git remote set-url origin "$REPO_URL"
+        git fetch origin --prune
+        git checkout -B develop origin/develop
+        git clean -fd
 
-          # Fetch y checkout de develop
-          echo "Actualizando código a develop..."
-          git fetch origin --prune || {
-            echo "Error en fetch. Reintentando..."
-            git remote set-url origin "$REPO_URL"
-            git fetch origin --prune
-          }
+        echo "Config venv..."
+        if [ ! -d "$VENV_PATH" ]; then
+          python3 -m venv "$VENV_PATH"
+        fi
+        # shellcheck disable=SC1090
+        source "$VENV_PATH/bin/activate"
 
-          # Checkout específico de develop
-          if git show-ref --verify --quiet "refs/remotes/origin/develop"; then
-            echo "Cambiando a la rama develop"
-            git checkout -B develop origin/develop
-          else
-            echo "ERROR: La rama develop no existe en el repositorio remoto"
-            exit 1
-          fi
+        if [ ! -f "requirements.txt" ]; then
+          echo "ERROR: No se encontró requirements.txt"
+          exit 1
+        fi
 
-          git clean -fd
+        echo "Instalando deps..."
+        python -m pip install --upgrade pip
+        python -m pip install -r requirements.txt
 
-          # Virtualenv
-          echo "Configurando entorno virtual..."
-          if [ ! -d "$VENV_PATH" ]; then
-            python3 -m venv "$VENV_PATH"
-          fi
-          source "$VENV_PATH/bin/activate"
-
-          # Verificar requirements.txt
-          if [ ! -f "requirements.txt" ]; then
-            echo "ERROR: No se encontró requirements.txt"
-            exit 1
-          fi
-
-          # Dependencias
-          echo "Instalando dependencias..."
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
-
-          # Configuración de producción para develop
-          echo "Creando archivo .env..."
-          cat > .env << EOL
-          DEBUG=False
+        echo "Escribiendo .env..."
+        cat > .env <<'EOL'
+          DEBUG=True
           SECRET_KEY='${{ secrets.DJANGO_SECRET_KEY }}'
           DATABASE_URL='${{ secrets.DATABASE_URL }}'
-          ALLOWED_HOSTS='${{ secrets.ALLOWED_HOSTS }}'
+          ALLOWED_HOSTS='${{ secrets.ALLOWED_HOSTS }},localhost,127.0.0.1'
           CORS_ALLOWED_ORIGINS='${{ secrets.CORS_ALLOWED_ORIGINS }}'
           REDIS_URL='${{ secrets.REDIS_URL }}'
           EMAIL_HOST='${{ secrets.EMAIL_HOST }}'
@@ -130,70 +104,67 @@ jobs:
           EMAIL_HOST_PASSWORD='${{ secrets.EMAIL_HOST_PASSWORD }}'
           FRONTEND_URL='${{ secrets.FRONTEND_URL }}'
           EOL
-          chmod 600 .env
+        chmod 600 .env
 
-          # Verificar manage.py
-          if [ ! -f "manage.py" ]; then
-            echo "ERROR: No se encontró manage.py"
-            exit 1
-          fi
+        if [ ! -f "manage.py" ]; then
+          echo "ERROR: No se encontró manage.py"
+          exit 1
+        fi
 
-          # Migraciones y archivos estáticos
-          echo "Ejecutando migraciones..."
-          python manage.py migrate --noinput
-          echo "Recolectando archivos estáticos..."
-          python manage.py collectstatic --noinput --clear
-          python manage.py check --deploy || true
+        echo "Migraciones..."
+        python manage.py migrate --noinput
+        echo "Static..."
+        python manage.py collectstatic --noinput --clear
+        python manage.py check --deploy || true
 
-          # Reiniciar servicios de producción
-          echo "Reiniciando servicios..."
-          sudo systemctl daemon-reload
-          sudo systemctl restart gunicorn
-          sudo systemctl restart rqworker || true
-          
-          # Verificar que gunicorn esté activo
-          if ! sudo systemctl is-active --quiet gunicorn; then
-            echo "ERROR: Gunicorn no está activo"
-            sudo systemctl status gunicorn
-            exit 1
-          fi
+        echo "Reiniciando servicios..."
+        sudo systemctl daemon-reload
+        sudo systemctl restart gunicorn
+        sudo systemctl restart rqworker || true
 
-          deactivate
+        if ! sudo systemctl is-active --quiet gunicorn; then
+          echo "ERROR: Gunicorn no está activo"
+          sudo systemctl status gunicorn || true
+          exit 1
+        fi
 
-          # Mantener últimos 5 backups
-          if [ -d "$BACKUP_DIR" ]; then
-            cd "$BACKUP_DIR"
-            ls -t backup_*.tar.gz 2>/dev/null | tail -n +6 | xargs -r rm -f
-          fi
+        deactivate
 
-          echo "Deploy completado exitosamente para develop en $TIMESTAMP"
-        EOF
+        if [ -d "$BACKUP_DIR" ]; then
+          cd "$BACKUP_DIR"
+          ls -t backup_*.tar.gz 2>/dev/null | tail -n +6 | xargs -r rm -f
+        fi
 
-    - name: Verificar deploy
+        echo "Deploy OK (develop) $TIMESTAMP"
+        REMOTE
+
+    - name: Verificar deploy (5 intentos)
+      shell: bash
       env:
         HEALTH_URL: ${{ secrets.HEALTH_URL }}
+        MAX_ATTEMPTS: 5
       run: |
-        echo "Esperando que el servicio responda..."
+        set -euo pipefail
+        echo "Esperando servicio..."
         sleep 15
-        for i in {1..10}; do
-          code=$(curl -s -o /dev/null -w "%{http_code}" -L --max-time 10 "$HEALTH_URL")
+        for i in $(seq 1 "$MAX_ATTEMPTS"); do
+          code="$(curl -s -o /dev/null -w '%{http_code}' -L --max-time 10 "$HEALTH_URL")"
           if [ "$code" -ge 200 ] && [ "$code" -lt 400 ]; then
-            echo "Health check OK (HTTP $code) intento $i"
+            echo "Health OK (HTTP $code) intento $i/$MAX_ATTEMPTS"
             curl -s --max-time 5 "$HEALTH_URL" | head -c 200 || true
             exit 0
           else
-            echo "Health check falló (HTTP $code) intento $i/10"
-            sleep 8
+            echo "Health FAIL (HTTP $code) intento $i/$MAX_ATTEMPTS"
+            sleep 10
           fi
         done
-        echo "Deploy verification failed"; exit 1
+        echo "Deploy verification failed"
+        exit 1
 
     - name: Deploy Summary
       if: always()
+      shell: bash
       run: |
-        echo "## Deploy Summary" >> $GITHUB_STEP_SUMMARY
-        echo "- **Environment**: Development" >> $GITHUB_STEP_SUMMARY
-        echo "- **Branch**: develop" >> $GITHUB_STEP_SUMMARY
-        echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-        echo "- **Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
-        echo "- **Project Directory**: ${{ secrets.EC2_PROJECT_DIR }}" >> $GITHUB_STEP_SUMMARY
+        {
+          echo "## Deploy Summary"
+          echo
