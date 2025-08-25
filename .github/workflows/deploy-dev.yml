@@ -103,8 +103,22 @@ jobs:
         EMAIL_HOST_USER='${{ secrets.EMAIL_HOST_USER }}'
         EMAIL_HOST_PASSWORD='${{ secrets.EMAIL_HOST_PASSWORD }}'
         FRONTEND_URL='${{ secrets.FRONTEND_URL }}'
-        EOL
+        EOL 
         chmod 600 .env
+        
+        # Exporta TODO lo del .env al entorno (para que os.environ lo vea)
+
+        set -a
+        . ./.env
+        set +a
+        
+        # Sanidad: confirmar que SECRET_KEY no está vacío (sin imprimirla)
+        python - <<'PY'
+        import os, sys
+        v = os.environ.get('SECRET_KEY', '')
+        print('SECRET_KEY set?:', bool(v), 'len=', len(v))
+        sys.exit(0 if v else 1)
+        PY
 
         if [ ! -f "manage.py" ]; then
           echo "ERROR: No se encontró manage.py"
