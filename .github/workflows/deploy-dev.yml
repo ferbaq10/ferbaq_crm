@@ -53,7 +53,7 @@ jobs:
           echo "Iniciando deploy (develop) en $PROJECT_DIR"
           mkdir -p "$PROJECT_DIR"
 
-          # Backup si hay Django
+          # Backup si hay proyecto Django
           if [ -d "$PROJECT_DIR" ] && [ "$(ls -A "$PROJECT_DIR" 2>/dev/null || true)" ]; then
             mkdir -p "$BACKUP_DIR"
             if [ -f "$PROJECT_DIR/manage.py" ]; then
@@ -93,40 +93,8 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
 
-          # .env: crear SOLO si NO existe
-          ENV_FILE="$PROJECT_DIR/.env"
-          if [ -f "$ENV_FILE" ]; then
-            echo ".env ya existe, no se modifica."
-          else
-            echo "Creando .env..."
-            umask 177
-            printf "%s\n" \
-          "DEBUG=True" \
-          "SECRET_KEY='${{ secrets.DJANGO_SECRET_KEY }}'" \
-          "DATABASE_URL='${{ secrets.DATABASE_URL }}'" \
-          "ALLOWED_HOSTS='${{ secrets.ALLOWED_HOSTS }},localhost,127.0.0.1'" \
-          "CORS_ALLOWED_ORIGINS='${{ secrets.CORS_ALLOWED_ORIGINS }}'" \
-          "REDIS_URL='${{ secrets.REDIS_URL }}'" \
-          "EMAIL_HOST='${{ secrets.EMAIL_HOST }}'" \
-          "EMAIL_HOST_USER='${{ secrets.EMAIL_HOST_USER }}'" \
-          "EMAIL_HOST_PASSWORD='${{ secrets.EMAIL_HOST_PASSWORD }}'" \
-          "FRONTEND_URL='${{ secrets.FRONTEND_URL }}'" \
-          > "$ENV_FILE"
-          fi
-          chmod 600 "$ENV_FILE" || true
-
-          # Exportar env
-          set -a
-          . "$ENV_FILE"
-          set +a
-
-          # Verificación SECRET_KEY
-          python - <<'PY'
-          import os, sys
-          v = os.environ.get('SECRET_KEY', '')
-          print('SECRET_KEY set?:', bool(v), 'len=', len(v))
-          sys.exit(0 if v else 1)
-          PY
+          # (Opcional) Si quieres seguir leyendo un .env existente sin tocarlo:
+          # if [ -f "$PROJECT_DIR/.env" ]; then set -a; . "$PROJECT_DIR/.env"; set +a; fi
 
           # Django
           if [ ! -f "manage.py" ]; then
