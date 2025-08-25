@@ -159,7 +159,7 @@ jobs:
         MAX_ATTEMPTS: 5
       run: |
         set -euo pipefail
-        echo "Esperando servicio..."
+        echo "Esperando servicio ..."
         sleep 15
         for i in $(seq 1 "$MAX_ATTEMPTS"); do
           code="$(curl -s -o /dev/null -w '%{http_code}' -L --max-time 10 "$HEALTH_URL")"
