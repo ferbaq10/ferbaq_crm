@@ -1,13 +1,13 @@
-name: Deploy to EC2 (Dev)
+name: Deploy to EC2 (Develop)
 
 on:
-  pull_request:
-    types: [closed]   # Se dispara cuando un PR se cierra
-    branches: [develop]  # ...y el destino del PR es develop
-  workflow_dispatch:      # Permite ejecución manual opcional
+  push:
+    branches:
+      - develop                # Solo la rama develop
+  workflow_dispatch:           # Permite ejecución manual opcional
 
 env:
-  DEPLOYMENT_TIMEOUT: 600  # 10 minutos timeout
+  DEPLOYMENT_TIMEOUT: 600      # 10 minutos timeout
 
 jobs:
   deploy:
@@ -15,16 +15,11 @@ jobs:
     runs-on: ubuntu-latest
     environment: development
 
-    # Solo corre si el PR fue MERGED (no solo cerrado) o si se ejecuta manualmente
-    if: ${{ github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch' }}
-
     steps:
     - name: Checkout código
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
-        # En PR merged, usa el commit de merge; en manual, usa develop
-        ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.merge_commit_sha || 'develop' }}
 
     - name: Configurar SSH
       run: |
@@ -46,32 +41,83 @@ jobs:
           VENV_PATH="$PROJECT_DIR/venv"
           BACKUP_DIR="$PROJECT_DIR/backups"
           TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          REPO_URL="https://github.com/${{ github.repository }}.git"
 
-          echo "Iniciando deploy en $TIMESTAMP"
-          cd "$PROJECT_DIR"
-
-          # Backup
-          mkdir -p "$BACKUP_DIR"
-          if [ -f "manage.py" ]; then
-            tar -czf "$BACKUP_DIR/backup_$TIMESTAMP.tar.gz" \
-              --exclude='venv' --exclude='__pycache__' --exclude='*.pyc' \
-              --exclude='logs' --exclude='backups' .
+          echo "Iniciando deploy de develop en $TIMESTAMP"
+          echo "Directorio del proyecto: $PROJECT_DIR"
+          
+          # Crear directorio del proyecto si no existe
+          mkdir -p "$PROJECT_DIR"
+          
+          # Backup si existe contenido previo
+          if [ -d "$PROJECT_DIR" ] && [ "$(ls -A $PROJECT_DIR)" ]; then
+            mkdir -p "$BACKUP_DIR"
+            if [ -f "$PROJECT_DIR/manage.py" ]; then
+              echo "Creando backup..."
+              tar -czf "$BACKUP_DIR/backup_$TIMESTAMP.tar.gz" \
+                --exclude='venv' --exclude='__pycache__' --exclude='*.pyc' \
+                --exclude='logs' --exclude='backups' -C "$PROJECT_DIR" . 2>/dev/null || true
+            fi
           fi
 
-          # Actualizar código a develop (ya se mergeó el PR)
-          git fetch origin
-          git reset --hard origin/develop
+          cd "$PROJECT_DIR"
+
+          # Lógica de git mejorada
+          if [ ! -d ".git" ]; then
+            echo "Clonando repositorio por primera vez..."
+            rm -rf * .* 2>/dev/null || true
+            git clone "$REPO_URL" . || {
+              echo "Error al clonar. Intentando inicializar manualmente..."
+              git init
+              git remote add origin "$REPO_URL"
+            }
+          fi
+
+          # Verificar y configurar remote
+          if ! git remote get-url origin >/dev/null 2>&1; then
+            echo "Configurando remote origin..."
+            git remote add origin "$REPO_URL" 2>/dev/null || git remote set-url origin "$REPO_URL"
+          fi
+
+          # Fetch y checkout de develop
+          echo "Actualizando código a develop..."
+          git fetch origin --prune || {
+            echo "Error en fetch. Reintentando..."
+            git remote set-url origin "$REPO_URL"
+            git fetch origin --prune
+          }
+
+          # Checkout específico de develop
+          if git show-ref --verify --quiet "refs/remotes/origin/develop"; then
+            echo "Cambiando a la rama develop"
+            git checkout -B develop origin/develop
+          else
+            echo "ERROR: La rama develop no existe en el repositorio remoto"
+            exit 1
+          fi
+
           git clean -fd
 
           # Virtualenv
-          [ -d "$VENV_PATH" ] || python3 -m venv venv
-          source venv/bin/activate
+          echo "Configurando entorno virtual..."
+          if [ ! -d "$VENV_PATH" ]; then
+            python3 -m venv "$VENV_PATH"
+          fi
+          source "$VENV_PATH/bin/activate"
+
+          # Verificar requirements.txt
+          if [ ! -f "requirements.txt" ]; then
+            echo "ERROR: No se encontró requirements.txt"
+            exit 1
+          fi
 
           # Dependencias
+          echo "Instalando dependencias..."
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
 
-          # .env (si lo usas así; idealmente usa EnvironmentFile en systemd)
+          # Configuración de producción para develop
+          echo "Creando archivo .env..."
           cat > .env << EOL
           DEBUG=False
           SECRET_KEY='${{ secrets.DJANGO_SECRET_KEY }}'
@@ -86,42 +132,58 @@ jobs:
           EOL
           chmod 600 .env
 
-          # Migraciones / estáticos
+          # Verificar manage.py
+          if [ ! -f "manage.py" ]; then
+            echo "ERROR: No se encontró manage.py"
+            exit 1
+          fi
+
+          # Migraciones y archivos estáticos
+          echo "Ejecutando migraciones..."
           python manage.py migrate --noinput
+          echo "Recolectando archivos estáticos..."
           python manage.py collectstatic --noinput --clear
           python manage.py check --deploy || true
 
-          # Reinicio servicios
+          # Reiniciar servicios de producción
+          echo "Reiniciando servicios..."
           sudo systemctl daemon-reload
           sudo systemctl restart gunicorn
           sudo systemctl restart rqworker || true
-          sudo systemctl is-active gunicorn || (echo "Gunicorn no está activo" && exit 1)
+          
+          # Verificar que gunicorn esté activo
+          if ! sudo systemctl is-active --quiet gunicorn; then
+            echo "ERROR: Gunicorn no está activo"
+            sudo systemctl status gunicorn
+            exit 1
+          fi
 
           deactivate
 
           # Mantener últimos 5 backups
-          cd "$BACKUP_DIR"
-          ls -t backup_*.tar.gz 2>/dev/null | tail -n +6 | xargs -r rm -f
+          if [ -d "$BACKUP_DIR" ]; then
+            cd "$BACKUP_DIR"
+            ls -t backup_*.tar.gz 2>/dev/null | tail -n +6 | xargs -r rm -f
+          fi
 
-          echo "Deploy completado exitosamente en $TIMESTAMP"
+          echo "Deploy completado exitosamente para develop en $TIMESTAMP"
         EOF
 
     - name: Verificar deploy
       env:
-        HEALTH_URL: ${{ secrets.HEALTH_URL }}  # ej: https://crm-dev.portal-ferbaq.net/health/
+        HEALTH_URL: ${{ secrets.HEALTH_URL }}
       run: |
         echo "Esperando que el servicio responda..."
-        sleep 10
+        sleep 15
         for i in {1..10}; do
           code=$(curl -s -o /dev/null -w "%{http_code}" -L --max-time 10 "$HEALTH_URL")
           if [ "$code" -ge 200 ] && [ "$code" -lt 400 ]; then
             echo "Health check OK (HTTP $code) intento $i"
-            # (opcional) imprime un pedacito de la respuesta
             curl -s --max-time 5 "$HEALTH_URL" | head -c 200 || true
             exit 0
           else
             echo "Health check falló (HTTP $code) intento $i/10"
-            sleep 5
+            sleep 8
           fi
         done
         echo "Deploy verification failed"; exit 1
@@ -132,5 +194,6 @@ jobs:
         echo "## Deploy Summary" >> $GITHUB_STEP_SUMMARY
         echo "- **Environment**: Development" >> $GITHUB_STEP_SUMMARY
         echo "- **Branch**: develop" >> $GITHUB_STEP_SUMMARY
-        echo "- **Commit**: ${{ github.event.pull_request.merge_commit_sha || github.sha }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
         echo "- **Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Project Directory**: ${{ secrets.EC2_PROJECT_DIR }}" >> $GITHUB_STEP_SUMMARY
