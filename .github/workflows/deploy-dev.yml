@@ -4,9 +4,7 @@ on:
   push:
     branches:
       - develop
-      - feature/**      # Cambia esto por el patrón de tu rama
-      - release/**      # Ejemplo: feature/*
-      - hotfix/**       # Ejemplo: tu-rama-*
+      - features/client      # Cambia esto por el patrón de tu rama
   workflow_dispatch:    # Permite ejecución manual opcional
 
 env:
