@@ -90,6 +90,16 @@ jobs:
         echo "Instalando deps..."
         python -m pip install --upgrade pip
         python -m pip install -r requirements.txt
+        
+        ENV_FILE="$PROJECT_DIR/.env"
+        
+        if [ -f "$ENV_FILE" ]; then
+          echo ".env ya existe, no se modifica."
+        else
+           echo "Creando .env..."
+           # asegura permisos 600 al crear
+           umask 177
+           cat > "$ENV_FILE" <<'EOL'
 
         echo "Escribiendo .env..."
         cat > .env <<'EOL'
