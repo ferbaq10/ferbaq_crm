@@ -1,9 +1,11 @@
 name: Deploy to EC2 (Dev)
 
 on:
-  pull_request:
-    types: [closed]   # Se dispara cuando un PR se cierra
-    branches: [develop]  # ...y el destino del PR es develop
+#  pull_request:
+#    types: [closed]   # Se dispara cuando un PR se cierra
+#    branches: [develop]  # ...y el destino del PR es develop
+  push:
+    branches: [ develop ]
   workflow_dispatch:      # Permite ejecución manual opcional
 
 env:
@@ -16,7 +18,7 @@ jobs:
     environment: development
 
     # Solo corre si el PR fue MERGED (no solo cerrado) o si se ejecuta manualmente
-    if: ${{ github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch' }}
+#    if: ${{ github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch' }}
 
     steps:
     - name: Checkout código
@@ -24,7 +26,8 @@ jobs:
       with:
         fetch-depth: 0
         # En PR merged, usa el commit de merge; en manual, usa develop
-        ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.merge_commit_sha || 'develop' }}
+        # ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.merge_commit_sha || 'develop' }}
+        ref: ${{ github.sha }}
 
     - name: Configurar SSH
       run: |
