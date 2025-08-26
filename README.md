@@ -779,3 +779,12 @@ Swap
     echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
     sudo swapon -a
 ```
+
+Monitoreo recomendado
+
+CloudWatch Agent (CPU, RAM, disco, red) + alarmas de Uso de disco > 80% y RAM > 85%.
+
+En el server: htop, df -h, ncdu / y du -h --max-depth=1 /var | sort -h
+
+Para 20 usuarios internos con Next.js + Django + Redis (BD externa):
+t3.medium (4 GB RAM) + 40–60 GB → mínimo razonable.
