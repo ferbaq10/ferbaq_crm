@@ -77,14 +77,12 @@ class OpportunityService(BaseService):
             .order_by('created')
         )
 
-
     def get_base_queryset(self, user):
         return self.add_filter_by_rol(user, self.get_prefetched_queryset(), owner_field='agent')
 
     def get_filtered_queryset(self, user):
         return (self.add_filter_by_rol(user, self.get_prefetched_queryset())
                     .filter(is_removed=False).distinct())
-
 
     def get_base_documents_queryset(self, user) -> QuerySet[OpportunityDocument]:
 
@@ -94,7 +92,6 @@ class OpportunityService(BaseService):
                                       workcell_filter_field="opportunity__project__work_cell__users",
                                       owner_field="opportunity__agent"
                                       )
-
 
     def get_filtered_queryset(self, user):
         return self.get_base_queryset(user).filter(
@@ -237,7 +234,6 @@ class OpportunityService(BaseService):
 
     def delete_document(self, document: OpportunityDocument) -> dict:
         file_name = document.file_name
-        sp_url = document.sharepoint_url
 
         try:
             delete_file_from_sharepoint_db(document.sharepoint_url, document.id)
