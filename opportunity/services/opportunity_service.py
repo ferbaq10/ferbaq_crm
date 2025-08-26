@@ -12,7 +12,6 @@ from rest_framework.exceptions import ValidationError
 
 from catalog.constants import StatusIDs, StatusPurchaseTypeIDs
 from client.models import Client
-from contact.models import Contact
 from opportunity.models import Opportunity
 from opportunity.models import OpportunityDocument
 from opportunity.services.base import BaseService
@@ -20,6 +19,8 @@ from opportunity.services.interfaces import AbstractFinanceOpportunityFactory
 from opportunity.tasks import upload_to_sharepoint_db, delete_file_from_sharepoint_db
 from project.models import Project
 from purchase.models import PurchaseStatus
+from django.db.models import QuerySet
+from typing import TypeVar
 
 # Si usas un modelo genérico para el queryset
 T = TypeVar('T')
@@ -75,6 +76,8 @@ class OpportunityService(BaseService):
             )
             .order_by('created')
         )
+
+
     def get_base_queryset(self, user):
         return self.add_filter_by_rol(user, self.get_prefetched_queryset(), owner_field='agent')
 
@@ -82,40 +85,15 @@ class OpportunityService(BaseService):
         return (self.add_filter_by_rol(user, self.get_prefetched_queryset())
                     .filter(is_removed=False).distinct())
 
-    def get_base_documents_queryset(self, user):
-        optimized_clients = Prefetch(
-            'opportunity__contact__clients',
-            queryset=Client.objects.select_related('city', 'business_group')
-        )
 
-        optimized_finance = Prefetch(
-            'opportunity__finance_data',
-            queryset=Opportunity._meta.get_field('finance_data').related_model.objects.all()
-        )
+    def get_base_documents_queryset(self, user) -> QuerySet[OpportunityDocument]:
 
-        queryset = OpportunityDocument.objects.select_related(
-            'opportunity',
-            'opportunity__status_opportunity',
-            'opportunity__currency',
-            'opportunity__opportunityType',
-            'opportunity__contact',
-            'opportunity__contact__job',
-            'opportunity__project',
-            'opportunity__project__specialty',
-            'opportunity__project__subdivision',
-            'opportunity__project__subdivision__division',
-            'opportunity__project__project_status',
-            'opportunity__project__work_cell',
-            'opportunity__project__work_cell__udn',
-            'opportunity__client',
-            'opportunity__client__city',
-            'opportunity__client__business_group'
-        ).prefetch_related(
-            optimized_finance,
-            optimized_clients)
+        queryset = OpportunityDocument.objects.only('id', 'sharepoint_url')
 
-        return self.add_filter_by_rol(user, queryset, owner_field='agent')
-
+        return self.add_filter_by_rol(user, queryset,
+                                      workcell_filter_field="opportunity__project__work_cell__users",
+                                      owner_field="opportunity__agent"
+                                      )
 
 
     def get_filtered_queryset(self, user):
@@ -258,11 +236,12 @@ class OpportunityService(BaseService):
                 logger.error(f"No se pudo obtener UDN para {file_name}")
 
     def delete_document(self, document: OpportunityDocument) -> dict:
+        file_name = document.file_name
+        sp_url = document.sharepoint_url
+
         try:
-            # Eliminar en SharePoint y BD
             delete_file_from_sharepoint_db(document.sharepoint_url, document.id)
         except Exception as e:
             logger.error(f" Error al eliminar en SharePoint o en base de datos: {e}")
 
-        file_name = document.file_name
         return {"message": f"Documento '{file_name}' eliminado exitosamente"}

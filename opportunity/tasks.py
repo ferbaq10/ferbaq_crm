@@ -47,13 +47,12 @@ def build_sharepoint_url(base_url: str, relative_url: str) -> str:
     return urljoin(base_url + '/', relative_clean.lstrip('/'))
 
 
-@job
 def delete_file_from_sharepoint_db(full_url: str, doc_id):
     try:
         _delete_file_from_sharepoint(full_url)
         logger.info(f"Archivo eliminado de SharePoint: {full_url}")
         OpportunityDocument.objects.filter(id=doc_id).delete()
-        logger.info(f"🗑️ Registro OpportunityDocument eliminado: ID={doc_id}")
+        logger.info(f"Registro OpportunityDocument eliminado: ID={doc_id}")
     except Exception as e:
         logger.warning(f"Error al eliminar archivo en SharePoint: {e}.")
 

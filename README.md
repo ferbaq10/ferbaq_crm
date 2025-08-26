@@ -419,6 +419,7 @@ Este comando recupera las imágenes para que se muestre bien el admin
 ```bash
   python manage.py collectstatic
 ```
+
 ### PASO 7: Configurar Gunicorn
  Instalar gunicorn
 ```bash

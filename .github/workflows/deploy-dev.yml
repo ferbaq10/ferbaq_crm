@@ -1,35 +1,168 @@
-name: Deploy to EC2 (Dev)
+name: Deploy to EC2 (Develop)
 
 on:
   push:
     branches:
       - develop
+  workflow_dispatch:
+
+env:
+  DEPLOYMENT_TIMEOUT: 600
 
 jobs:
   deploy:
+    name: Deploy to EC2 (develop)
     runs-on: ubuntu-latest
+    environment: development
 
     steps:
-    - name: Checkout código
-      uses: actions/checkout@v3
+      - name: Checkout código
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Configurar SSH
-      run: |
-        mkdir -p ~/.ssh
-        echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+      - name: Configurar SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
 
-    - name: Deploy en EC2
-      run: |
-        ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-          set -e
-          cd ${{ secrets.EC2_PROJECT_DIR }}
-          git pull origin develop
-          source venv/bin/activate
-          pip install -r requirements.txt
+      - name: Verificar conectividad SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -o ConnectTimeout=10 "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" "echo SSH-OK"
+
+      - name: Deploy en EC2 (solo develop)
+        shell: bash
+        timeout-minutes: 10
+        run: |
+          set -euo pipefail
+          ssh -o ConnectTimeout=15 "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" 'bash -se' <<'REMOTE'
+          set -Eeuo pipefail
+
+          PROJECT_DIR='${{ secrets.EC2_PROJECT_DIR }}'
+          VENV_PATH="$PROJECT_DIR/venv"
+          BACKUP_DIR="$PROJECT_DIR/backups"
+          TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
+          REPO_URL="https://github.com/${{ github.repository }}.git"
+
+          echo "Iniciando deploy (develop) en $PROJECT_DIR"
+          mkdir -p "$PROJECT_DIR"
+
+          # Backup si hay proyecto Django
+          if [ -d "$PROJECT_DIR" ] && [ "$(ls -A "$PROJECT_DIR" 2>/dev/null || true)" ]; then
+            mkdir -p "$BACKUP_DIR"
+            if [ -f "$PROJECT_DIR/manage.py" ]; then
+              echo "Backup..."
+              tar -czf "$BACKUP_DIR/backup_$TIMESTAMP.tar.gz" \
+                --exclude='venv' --exclude='__pycache__' --exclude='*.pyc' \
+                --exclude='logs' --exclude='backups' -C "$PROJECT_DIR" . 2>/dev/null || true
+            fi
+          fi
+
+          cd "$PROJECT_DIR"
+
+          # Código
+          if [ ! -d ".git" ]; then
+            echo "Clonando repo..."
+            rm -rf .[^.]* * 2>/dev/null || true
+            git clone "$REPO_URL" .
+          fi
+          git remote set-url origin "$REPO_URL"
+          git fetch origin --prune
+          git checkout -B develop origin/develop
+          git clean -fd
+
+          # venv
+          echo "Config venv..."
+          if [ ! -d "$VENV_PATH" ]; then
+            python3 -m venv "$VENV_PATH"
+          fi
+          . "$VENV_PATH/bin/activate"
+
+          # deps
+          if [ ! -f "requirements.txt" ]; then
+            echo "ERROR: No se encontró requirements.txt"
+            exit 1
+          fi
+          echo "Instalando deps..."
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+          # (Opcional) Si quieres seguir leyendo un .env existente sin tocarlo:
+          # if [ -f "$PROJECT_DIR/.env" ]; then set -a; . "$PROJECT_DIR/.env"; set +a; fi
+
+          # Django
+          if [ ! -f "manage.py" ]; then
+            echo "ERROR: No se encontró manage.py"
+            exit 1
+          fi
+          echo "Migraciones..."
           python manage.py migrate --noinput
-          python manage.py collectstatic --noinput
+          echo "Static..."
+          python manage.py collectstatic --noinput --clear
+          python manage.py check --deploy || true
+
+          echo "Reiniciando servicios..."
+          sudo systemctl daemon-reload
           sudo systemctl restart gunicorn
-          sudo systemctl restart rqworker
-        EOF
+          sudo systemctl restart rqworker || true
+          if ! sudo systemctl is-active --quiet gunicorn; then
+            echo "ERROR: Gunicorn no está activo"
+            sudo systemctl status gunicorn || true
+            exit 1
+          fi
+
+          deactivate
+
+          # Mantener últimos 5 backups
+          if [ -d "$BACKUP_DIR" ]; then
+            cd "$BACKUP_DIR"
+            ls -t backup_*.tar.gz 2>/dev/null | tail -n +6 | xargs -r rm -f
+          fi
+
+          echo "Deploy OK (develop) $TIMESTAMP"
+          REMOTE
+
+      - name: Verificar deploy (5 intentos)
+        shell: bash
+        env:
+          HEALTH_URL: ${{ secrets.HEALTH_URL }}
+          MAX_ATTEMPTS: 5
+        run: |
+          set -euo pipefail
+          echo "Esperando servicio ..."
+          sleep 15
+          for i in $(seq 1 "$MAX_ATTEMPTS"); do
+            code="$(curl -s -o /dev/null -w '%{http_code}' -L --max-time 10 "$HEALTH_URL")"
+            if [ "$code" -ge 200 ] && [ "$code" -lt 400 ]; then
+              echo "Health OK (HTTP $code) intento $i/$MAX_ATTEMPTS"
+              curl -s --max-time 5 "$HEALTH_URL" | head -c 200 || true
+              exit 0
+            else
+              if [ "$i" -eq 1 ]; then
+                echo "Primer fallo (HTTP $code). Headers:"
+                curl -sSI -L --max-time 10 "$HEALTH_URL" || true
+              fi
+              echo "Health FAIL (HTTP $code) intento $i/$MAX_ATTEMPTS"
+              sleep 10
+            fi
+          done
+          echo "Deploy verification failed"
+          exit 1
+
+      - name: Deploy Summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## Deploy Summary"
+            echo "- **Environment**: Development"
+            echo "- **Branch**: develop"
+            echo "- **Commit**: ${{ github.sha }}"
+            echo "- **Status**: ${{ job.status }}"
+          } >> "$GITHUB_STEP_SUMMARY"
