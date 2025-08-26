@@ -13,7 +13,7 @@ jobs:
   deploy:
     name: Deploy to EC2 (Main)
     runs-on: ubuntu-latest
-    environment: development
+    environment: production
 
     steps:
       - name: Checkout código
@@ -36,7 +36,7 @@ jobs:
           set -euo pipefail
           ssh -o ConnectTimeout=10 "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST_PROD }}" "echo SSH-OK"
 
-      - name: Deploy en EC2 (solo develop)
+      - name: Deploy en EC2 (solo main)
         shell: bash
         timeout-minutes: 10
         run: |
@@ -50,7 +50,7 @@ jobs:
           TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
           REPO_URL="https://github.com/${{ github.repository }}.git"
 
-          echo "Iniciando deploy (develop) en $PROJECT_DIR"
+          echo "Iniciando deploy (main) en $PROJECT_DIR"
           mkdir -p "$PROJECT_DIR"
 
           # Backup si hay proyecto Django
@@ -74,7 +74,7 @@ jobs:
           fi
           git remote set-url origin "$REPO_URL"
           git fetch origin --prune
-          git checkout -B develop origin/develop
+          git checkout -B main origin/main
           git clean -fd
 
           # venv
@@ -125,7 +125,7 @@ jobs:
             ls -t backup_*.tar.gz 2>/dev/null | tail -n +6 | xargs -r rm -f
           fi
 
-          echo "Deploy OK (develop) $TIMESTAMP"
+          echo "Deploy OK (main) $TIMESTAMP"
           REMOTE
 
       - name: Verificar deploy (5 intentos)
