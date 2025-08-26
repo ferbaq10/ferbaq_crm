@@ -236,11 +236,12 @@ class OpportunityService(BaseService):
                 logger.error(f"No se pudo obtener UDN para {file_name}")
 
     def delete_document(self, document: OpportunityDocument) -> dict:
+        file_name = document.file_name
+        sp_url = document.sharepoint_url
+
         try:
-            # Eliminar en SharePoint y BD
             delete_file_from_sharepoint_db(document.sharepoint_url, document.id)
         except Exception as e:
             logger.error(f" Error al eliminar en SharePoint o en base de datos: {e}")
 
-        file_name = document.file_name
         return {"message": f"Documento '{file_name}' eliminado exitosamente"}
