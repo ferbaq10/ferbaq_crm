@@ -28,20 +28,20 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
+          ssh-keyscan -H "${{ secrets.EC2_HOST_DEV }}" >> ~/.ssh/known_hosts
 
       - name: Verificar conectividad SSH
         shell: bash
         run: |
           set -euo pipefail
-          ssh -o ConnectTimeout=10 "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" "echo SSH-OK"
+          ssh -o ConnectTimeout=10 "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST_DEV }}" "echo SSH-OK"
 
       - name: Deploy en EC2 (solo develop)
         shell: bash
         timeout-minutes: 10
         run: |
           set -euo pipefail
-          ssh -o ConnectTimeout=15 "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" 'bash -se' <<'REMOTE'
+          ssh -o ConnectTimeout=15 "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST_DEV }}" 'bash -se' <<'REMOTE'
           set -Eeuo pipefail
 
           PROJECT_DIR='${{ secrets.EC2_PROJECT_DIR }}'

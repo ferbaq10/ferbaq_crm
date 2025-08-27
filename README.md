@@ -751,3 +751,40 @@ Ver los logs en tiempo real
 2. Busca ferbaq-django-errors
 
 3. Abre el stream con el nombre de tu instancia y confirma que los errores se están enviando.
+
+### Ajustes clave para que no se llene el disco
+
+Redis (/etc/redis/redis.conf):
+```bash
+    maxmemory 512mb
+    maxmemory-policy allkeys-lru
+```
+
+Logs
+```bash
+    journalctl --vacuum-size=200M
+```
+
+Builds
+```bash
+    "prebuild": "rm -rf .next"
+```
+
+Swap
+
+```bash
+    sudo fallocate -l 2G /swapfile
+    sudo chmod 600 /swapfile
+    sudo mkswap /swapfile
+    echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+    sudo swapon -a
+```
+
+Monitoreo recomendado
+
+CloudWatch Agent (CPU, RAM, disco, red) + alarmas de Uso de disco > 80% y RAM > 85%.
+
+En el server: htop, df -h, ncdu / y du -h --max-depth=1 /var | sort -h
+
+Para 20 usuarios internos con Next.js + Django + Redis (BD externa):
+t3.medium (4 GB RAM) + 40–60 GB → mínimo razonable.
