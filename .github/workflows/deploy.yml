@@ -161,8 +161,8 @@ jobs:
         run: |
           {
             echo "## Deploy Summary"
-            echo "- **Environment**: Development"
-            echo "- **Branch**: develop"
+            echo "- **Environment**: Production"
+            echo "- **Branch**: main"
             echo "- **Commit**: ${{ github.sha }}"
             echo "- **Status**: ${{ job.status }}"
           } >> "$GITHUB_STEP_SUMMARY"
