@@ -19,21 +19,8 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     def get_token(cls, user):
         token = super().get_token(user)
 
-        # Personaliza el payload del token
         token['user_id'] = user.id
         token['username'] = user.username
-
-        token['roles'] = list(user.groups.values_list('name', flat=True))
-
-        # Añadir permisos como lista de codenames
-        token['permissions'] = cls.get_permissions(user)
-        token['workCells'] = [
-            {
-                'id': wc.id,
-                'name': wc.name,
-            }
-            for wc in user.workcell.all()
-        ]
 
         return token
 
@@ -73,6 +60,7 @@ class UserWithRolesSerializer(serializers.ModelSerializer):
 
 class UserProfileSerializer(serializers.ModelSerializer):
     photo_url = serializers.SerializerMethodField()
+
     
     class Meta:
         model = UserProfile
@@ -90,9 +78,30 @@ class UserProfileSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     profile = UserProfileSerializer(read_only=True)
 
+    roles = serializers.SlugRelatedField(
+        source='groups', slug_field='name', many=True, read_only=True
+    )
+
+    # Permissions y workCells
+    permissions = serializers.SerializerMethodField()
+    workCells = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ['id', 'username', 'first_name', 'last_name', 'email', 'is_active', 'is_superuser', 'profile']
+        fields = ['id', 'username', 'first_name', 'last_name', 'email', 'is_active', 'is_superuser', 'profile',
+                  'roles', 'permissions', 'workCells']
+
+    def get_permissions(self, obj):
+        return MyTokenObtainPairSerializer.get_permissions(obj)
+
+    def get_workCells(self, obj):
+        return [
+            {
+                'id': wc.id,
+                'name': wc.name,
+            }
+            for wc in obj.workcell.all()
+        ]
 
 
 class UserWithWorkcellSerializer(serializers.ModelSerializer):
