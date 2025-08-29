@@ -587,7 +587,7 @@ server {
   journalctl -u nginx -n 50 --no-pager
 ```
 
-### Utilizar glances o htop- Para monitoreo general del sistema dentro del EC2.
+Utilizar glances o htop- Para monitoreo general del sistema dentro del EC2.
 
 - Parar Gunicorn
 ```bash
@@ -778,6 +778,48 @@ Swap
     sudo mkswap /swapfile
     echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
     sudo swapon -a
+```
+
+### Revisar aplicaciones específicas
+ Ver qué está ocupando más espacio en /var
+```bash
+  sudo du -sh /var/* | sort -hr
+```
+Revisar aplicaciones web (nginx)
+```bash
+  sudo du -sh /var/log/nginx/* 2>/dev/null
+```
+
+###  Limpiar archivos temporales
+
+```bash
+sudo rm -rf /tmp/*
+rm -rf ~/.cache/*
+rm -rf ~/.thumbnails/*
+```
+
+### Limpiar cache de APT
+```bash
+ sudo apt-get clean
+ sudo apt-get autoclean
+ sudo apt-get autoremove
+```
+### Limpiar archivos Python compilados
+```bash
+ sudo find /var/www -name "*.pyc" -delete
+ sudo find /var/www -type d -name "__pycache__" -exec rm -rf {} +
+```
+
+### Solo eliminar cache y archivos temporales de front 
+
+ Ver qué subcarpetas ocupan más espacio dentro de .next
+```bash
+ sudo du -sh /var/www/ferbaq-crm-front/.next/* | sort -hr
+```
+Eliminar 
+```bash
+sudo rm -rf /var/www/ferbaq-crm-front/.next/cache/
+sudo rm -rf /var/www/ferbaq-crm-front/.next/trace/
 ```
 
 Monitoreo recomendado
