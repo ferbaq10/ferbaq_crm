@@ -29,7 +29,8 @@ class ClientSerializer(serializers.ModelSerializer):
             'projects',
             'id_client',
             'is_removed',
-            'business_group'
+            'business_group',
+            'classification'
         ]
         read_only_fields = ['created', 'modified']
 
@@ -73,7 +74,8 @@ class ClientWriteSerializer(CacheInvalidationMixin, serializers.ModelSerializer)
             'projects',
             'id_client',
             'is_removed',
-            'business_group'
+            'business_group',
+            'classification'
         ]
         read_only_fields = ['created']
 
