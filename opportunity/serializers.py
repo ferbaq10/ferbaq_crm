@@ -238,6 +238,16 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
                 )
             cash_percentage   = to_decimal_or_none((finance_data_req or {}).get("cash_percentage"))
             credit_percentage = to_decimal_or_none((finance_data_req or {}).get("credit_percentage"))
+
+           # Si no se está modificando ninguno en un PATCH, no validar suma
+            if cash_percentage is None and credit_percentage is None:
+                return attrs
+
+            # Si se modifica uno, el otro debe existir (nuevo o de la instancia)
+            if cash_percentage is None or credit_percentage is None:
+                faltante = 'cash_percentage' if cash_percentage is None else 'credit_percentage'
+                errors[faltante] = 'Este campo es requerido cuando se modifica el otro porcentaje.'
+
             if (cash_percentage + credit_percentage) != 100:
                 errors['cash_percentage'] = f'El total de porcentaje de contado y de crédito debe ser igual a 100.'
 
