@@ -1,6 +1,7 @@
 import io
 import logging
 import os
+from pathlib import Path
 from urllib.parse import urlparse, unquote
 
 from decouple import config
@@ -8,7 +9,6 @@ from office365.runtime.auth.authentication_context import AuthenticationContext
 from office365.sharepoint.client_context import ClientContext
 from office365.sharepoint.folders.folder import Folder
 
-# Cargar tus credenciales (idealmente desde variables de entorno)
 SHAREPOINT_SITE_URL = config("SHAREPOINT_SITE_URL")
 SHAREPOINT_DOC_LIB = config("SHAREPOINT_DOC_LIB", "Biblioteca de Documentos")
 SHAREPOINT_USERNAME = config("SHAREPOINT_USERNAME")
@@ -16,14 +16,16 @@ SHAREPOINT_PASSWORD = config("SHAREPOINT_PASSWORD")
 
 logger = logging.getLogger(__name__)
 
+def _get_ctx() -> ClientContext:
+    ctx_auth = AuthenticationContext(SHAREPOINT_SITE_URL)
+    ok = ctx_auth.acquire_token_for_user(SHAREPOINT_USERNAME, SHAREPOINT_PASSWORD)
+    if not ok:
+        raise Exception("Autenticación con SharePoint fallida (User/Pass).")
+    return ClientContext(SHAREPOINT_SITE_URL, ctx_auth)
+
 def upload_file(path: str, file_data: bytes):
     try:
-        # 1. Autenticación con SharePoint
-        ctx_auth = AuthenticationContext(SHAREPOINT_SITE_URL)
-        if not ctx_auth.acquire_token_for_user(SHAREPOINT_USERNAME, SHAREPOINT_PASSWORD):
-            raise Exception("Autenticación con SharePoint fallida")
-
-        ctx = ClientContext(SHAREPOINT_SITE_URL, ctx_auth)
+        ctx = _get_ctx()
 
         # 2. Separar ruta y archivo
         folder_path = os.path.dirname(path).strip("/")
@@ -48,16 +50,15 @@ def upload_file(path: str, file_data: bytes):
         except Exception:
             logger.info(f"ℹ️ El archivo '{file_name}' no existía, no fue necesario eliminarlo.")
 
-        print("DEBUG - Folder URL:", target_folder.properties.get("ServerRelativeUrl"))
         target_folder.get().execute_query()
         uploaded_file = target_folder.upload_file(file_name, file_stream).execute_query()
 
         # 6. Confirmación
-        logger.info(f" Archivo subido correctamente a SharePoint: {uploaded_file.serverRelativeUrl}")
+        logger.info(f"Archivo subido correctamente a SharePoint: {uploaded_file.serverRelativeUrl}")
         return uploaded_file.serverRelativeUrl
 
     except Exception as e:
-        logger.exception(f"❌ Error al subir archivo a SharePoint: {e}")
+        logger.exception(f"Error al subir archivo a SharePoint: {e}")
         raise
 
 def ensure_folder(ctx, parent_folder, folder_parts):
@@ -76,16 +77,43 @@ def ensure_folder(ctx, parent_folder, folder_parts):
     current_folder.get().execute_query()
     return current_folder
 
-
 def _delete_file_from_sharepoint(full_url: str):
     parsed = urlparse(full_url)
     relative_url = unquote(parsed.path)  # /sites/CRM_PRUEBA/Documentos compartidos/...
 
-    ctx_auth = AuthenticationContext(SHAREPOINT_SITE_URL)
-    if not ctx_auth.acquire_token_for_user(SHAREPOINT_USERNAME, SHAREPOINT_PASSWORD):
-        raise Exception("Autenticación con SharePoint fallida")
-
-    ctx = ClientContext(SHAREPOINT_SITE_URL, ctx_auth)
+    ctx = _get_ctx()
     file = ctx.web.get_file_by_server_relative_url(relative_url)
     file.delete_object()
     ctx.execute_query()
+
+
+def get_file_extension_pathlib(server_relative_path: str) -> str:
+    """
+    Obtener extensión usando pathlib
+    """
+    return Path(server_relative_path).suffix.lower()
+
+def fetch_sharepoint_file(sharepoint_url: str):
+    """
+    Recuperar imagen de sharepoint
+    """
+    try:
+        ctx = _get_ctx()
+
+        from urllib.parse import urlparse, unquote
+        parsed = urlparse(sharepoint_url)
+        server_relative_path = unquote(parsed.path)
+
+        # Metodo DIRECTO usando open_binary (recomendado)
+        from office365.sharepoint.files.file import File
+        response = File.open_binary(ctx, server_relative_path)
+
+        if response.status_code == 200:
+            file_extension: str = get_file_extension_pathlib(server_relative_path)
+            return response.content, f"image/{file_extension}"
+        else:
+            raise Exception(f"Error {response.status_code}: {response.text}")
+
+    except Exception as e:
+        logger.error(f"Error: {e}")
+        raise
