@@ -1,5 +1,7 @@
+import logging
 import os
 
+from decouple import config
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.http import HttpResponse
@@ -14,6 +16,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from catalog.models import WorkCell
 from catalog.viewsets.base import CachedViewSet
 from core.di import injector
+from opportunity.sharepoint import fetch_sharepoint_file, get_file_extension_pathlib
 from users.serializers import (
     UserSerializer, UserWithWorkcellSerializer, UserProfileUpdateSerializer,
     ProfilePhotoUploadSerializer, PasswordChangeSerializer, PasswordResetRequestSerializer,
@@ -22,6 +25,8 @@ from users.services.user_service import UserService
 from .permissions import CanAssignWorkcell, CanUnassignWorkcell
 from .serializers import MyTokenObtainPairSerializer
 from .services.sharepoint_profile_service import SharePointProfileService
+
+logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
@@ -178,11 +183,11 @@ class UserViewSet(CachedViewSet):
         profile.photo_sharepoint_url = sharepoint_url
         profile.save()
 
-        # Eliminar foto anterior si existía
-        if old_photo_url:
-            SharePointProfileService.delete_profile_photo(old_photo_url)
+       # Eliminar foto anterior si existía
+       #  if old_photo_url:
+       #      SharePointProfileService.delete_profile_photo(old_photo_url)
 
-        # ✅ CORRECCIÓN: Devolver URL del proxy, no la directa de SharePoint
+        # CORRECCIÓN: Devolver URL del proxy, no la directa de SharePoint
         filename = sharepoint_url.split('/')[-1]
         proxy_url = f"/api/users/photo/{filename}"
 
@@ -220,11 +225,8 @@ class UserViewSet(CachedViewSet):
         permission_classes=[AllowAny])  # ← Sin autenticación para fotos
     def get_photo(self, request, filename=None):
         """Proxy para servir fotos de perfil desde SharePoint - Endpoint público"""
-        import logging
-        logger = logging.getLogger(__name__)
-        
+
         try:
-            from decouple import config
             SHAREPOINT_SITE_URL = config("SHAREPOINT_SITE_URL")
             SHAREPOINT_DOC_LIB = config("SHAREPOINT_DOC_LIB", "Biblioteca de Documentos")
             
@@ -233,10 +235,10 @@ class UserViewSet(CachedViewSet):
             
             # Obtener el archivo de SharePoint
             photo_content = SharePointProfileService.get_photo_content(photo_url)
-            
+
             if photo_content:
                 from django.http import HttpResponse
-                
+
                 # Determinar tipo de contenido por extensión
                 content_type = 'image/jpeg'
                 if filename.lower().endswith('.png'):
@@ -346,3 +348,32 @@ class UserViewSet(CachedViewSet):
             return Response({
                 'error': 'Error interno del servidor al restablecer la contraseña.'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+    @action(detail=False, methods=['get'], url_path='sharepoint-image')
+    def proxy_sharepoint_image(self, request):
+        url = request.GET.get("url")
+        if not url:
+            return HttpResponse("URL is required", status=400)
+
+        try:
+            blob, content_type = fetch_sharepoint_file(url)
+
+            # Validar que sea imagen
+            if not content_type.startswith("image/"):
+                # Puedes intentar deducir por extensión si lo prefieres
+                logger.warning(f"No es imagen. Content-Type: {content_type}")
+                return HttpResponse("La URL no tiene una imagen", status=404)
+
+            resp = HttpResponse(blob, content_type=content_type)
+            resp["Cache-Control"] = "public, max-age=900"
+            resp["Access-Control-Allow-Origin"] = "*"
+            return resp
+
+        except Exception as e:
+            logger.error(f"Error al obtener la imagen: {e}")
+            # Si es auth, devuelve 401 para diferenciarlos
+            msg = str(e)
+            if "Autenticación" in msg or "Unauthorized" in msg:
+                return HttpResponse("Requiere autenticación con SharePoint", status=401)
+            return HttpResponse("Error al obtener la imagen", status=500)
