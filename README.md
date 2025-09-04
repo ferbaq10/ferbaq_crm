@@ -438,7 +438,7 @@ Este comando recupera las imágenes para que se muestre bien el admin
  Agregar este contenido al archivo 
 ```bash
 [Unit]
-Description=RQ Worker
+Description=RQ Worker (Ddvelopment)
 After=network.target redis.service
 
 [Service]
@@ -449,7 +449,8 @@ WorkingDirectory=/var/www/ferbaq_crm_backend
 Environment="PATH=/var/www/ferbaq_crm_backend/venv/bin:/usr/local/bin:/usr/bin:/bin"
 Environment="DJANGO_SETTINGS_MODULE=core.settings"
 Environment="PYTHONPATH=/var/www/ferbaq_crm_backend"
-
+Environment="DJANGO_ENV=development"
+Environment="INSTANCE_NAME=dev-server"
 # Sin timeouts que puedan causar shutdown
 TimeoutStartSec=0
 TimeoutStopSec=30
@@ -792,6 +793,37 @@ Para producción puede ser esta configuración
 }
 ```
 
+### Crear política
+Es importante para que funcione la configuracion de cloudwatch anterior, que tenga permiso.
+Para eso se debe crear la siguiente politica y luego asignarla a un rol, y este rol asignarla a la instancia
+Esta es la política con nombre: ´CloudWatchAgentServerPolicy´
+```bash
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:PutLogEvents",
+                "logs:DescribeLogStreams",
+                "logs:DescribeLogGroups"
+            ],
+            "Resource": "arn:aws:logs:*:*:*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ec2:DescribeVolumes",
+                "ec2:DescribeTags",
+                "cloudwatch:PutMetricData"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+```
    Este JSON hace que el agente lea el log de Django y lo envíe al grupo ferbaq-django-errors en CloudWatch.
 {instance_id} se reemplaza automáticamente con el ID de la instancia EC2
 
@@ -844,6 +876,19 @@ Ver los logs en tiempo real
 2. Busca ferbaq-django-errors
 
 3. Abre el stream con el nombre de tu instancia y confirma que los errores se están enviando.
+
+Si estás en Development:
+
+ferbaq-development-errors
+ferbaq-development-application
+ferbaq-development-access
+ferbaq-development-workers
+Si estás en Production:
+
+ferbaq-production-errors
+ferbaq-production-application
+ferbaq-production-access
+ferbaq-production-workers
 
 ### Ajustes clave para que no se llene el disco
 
