@@ -234,6 +234,11 @@ STATIC_ROOT = '/var/www/ferbaq_crm_backend/static/'
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
+
+ENVIRONMENT = os.environ.get('DJANGO_ENV', 'development')
+INSTANCE_NAME = os.environ.get('INSTANCE_NAME', 'unknown')
+LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -245,7 +250,7 @@ IS_WINDOWS = os.name == "nt"
 # En Windows -> BASE_DIR/logs
 # En Linux -> /var/log/ferbaq (pero si no existe, cae en BASE_DIR/logs)
 default_log_dir = BASE_DIR / "logs"
-linux_log_dir = Path("/var/log/ferbaq")
+linux_log_dir = Path("/var/log/django")
 
 if IS_WINDOWS:
     LOG_DIR = default_log_dir
@@ -261,7 +266,7 @@ LOGGING = {
 
     'formatters': {
         'detailed': {
-            'format': '[{asctime}] {levelname} {name} - {message}',
+            'format': f'[{{asctime}}] [{ENVIRONMENT}] [{INSTANCE_NAME}] {{levelname}} {{name}} - {{message}}',
             'style': '{',
         },
     },
