@@ -513,13 +513,22 @@ LimitNOFILE=65535
 WantedBy=multi-user.target
 ```
 
-Se debe cambiar los valores si es de produccion
+Se debe cambiar los valores si es de producción
 ```bash
     Environment=DJANGO_ENV=production
     Environment=INSTANCE_NAME=prod-server
     Environment=LOG_LEVEL=INFO
 ```
 
+Crear archivo de variables de entorno
+sudo nano /etc/environment
+
+Agregar estas líneas:
+```bash
+    DJANGO_ENV=production
+    INSTANCE_NAME=prod-server
+    LOG_LEVEL=INFO
+```
 Activa y arranca:
 ```bash
   sudo systemctl daemon-reload

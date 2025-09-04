@@ -266,7 +266,7 @@ LOGGING = {
 
     'formatters': {
         'detailed': {
-            'format': '[{asctime}] {levelname} {name} - {message}',
+            'format': f'[{{asctime}}] [{ENVIRONMENT}] [{INSTANCE_NAME}] {{levelname}} {{name}} - {{message}}',
             'style': '{',
         },
     },
