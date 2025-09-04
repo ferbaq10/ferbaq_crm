@@ -449,9 +449,16 @@ WorkingDirectory=/var/www/ferbaq_crm_backend
 Environment="PATH=/var/www/ferbaq_crm_backend/venv/bin:/usr/local/bin:/usr/bin:/bin"
 Environment="DJANGO_SETTINGS_MODULE=core.settings"
 Environment="PYTHONPATH=/var/www/ferbaq_crm_backend"
-ExecStart=/var/www/ferbaq_crm_backend/venv/bin/python /var/www/ferbaq_crm_backend/manage.py rqworker default
+
+# Sin timeouts que puedan causar shutdown
+TimeoutStartSec=0
+TimeoutStopSec=30
+
+ExecStart=/var/www/ferbaq_crm_backend/venv/bin/python manage.py rqworker default --verbosity=2
+
 StandardOutput=append:/var/log/rqworker/access.log
 StandardError=append:/var/log/rqworker/error.log
+
 Restart=always
 RestartSec=10
 
@@ -479,7 +486,7 @@ WantedBy=multi-user.target
  Agregar este contenido al archivo
 ```bash
 [Unit]
-Description=gunicorn daemon
+Description=gunicorn daemon (Development)
 After=network.target
 
 [Service]
@@ -487,7 +494,17 @@ User=ubuntu
 Group=ubuntu
 WorkingDirectory=/var/www/ferbaq_crm_backend
 Environment=PATH=/var/www/ferbaq_crm_backend/venv/bin
-ExecStart=/var/www/ferbaq_crm_backend/venv/bin/gunicorn --bind 127.0.0.1:8080 --workers 3 --timeout 120 core.wsgi:application --access-logfile --error-logfile core.wsgi:application
+Environment=DJANGO_ENV=development
+Environment=INSTANCE_NAME=dev-server
+Environment=LOG_LEVEL=DEBUG
+ExecStart=/var/www/ferbaq_crm_backend/venv/bin/gunicorn \
+    --bind 127.0.0.1:8080 \
+    --workers 2 \
+    --timeout 120 \
+    --access-logfile /var/log/gunicorn/access.log \
+    --error-logfile /var/log/gunicorn/error.log \
+    --log-level debug \
+    core.wsgi:application
 Restart=always
 RestartSec=3
 LimitNOFILE=65535
@@ -495,6 +512,14 @@ LimitNOFILE=65535
 [Install]
 WantedBy=multi-user.target
 ```
+
+Se debe cambiar los valores si es de produccion
+```bash
+    Environment=DJANGO_ENV=production
+    Environment=INSTANCE_NAME=prod-server
+    Environment=LOG_LEVEL=INFO
+```
+
 Activa y arranca:
 ```bash
   sudo systemctl daemon-reload
@@ -509,57 +534,59 @@ Activa y arranca:
  Agregar el siguiente contenido para que sirva tanto para front y backend. Solo se hace una sola vez
 
 ```bash
-server {
-    server_name crm.portal-ferbaq.net;
-    client_max_body_size 4M;
-    # Aumentar límites de buffer para cabeceras grandes
-    large_client_header_buffers 4 32k;
-    client_header_buffer_size 8k;
-    proxy_buffer_size 128k;
-    proxy_buffers 4 256k;
-    proxy_busy_buffers_size 256k;
-    # Frontend (Next.js)
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto https;
-        proxy_cache_bypass $http_upgrade;
-        # Límites específicos para proxy
-        proxy_connect_timeout 60s;
-        proxy_send_timeout 60s;
-        proxy_read_timeout 60s;
-    }   # Backend (Django) bajo /api/
-    location /api/static/ {
-        alias /var/www/ferbaq_crm_backend/static/;
+    sudo nano /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+
+    server {
+        server_name crm.portal-ferbaq.net;
+        client_max_body_size 4M;
+        # Aumentar límites de buffer para cabeceras grandes
+        large_client_header_buffers 4 32k;
+        client_header_buffer_size 8k;
+        proxy_buffer_size 128k;
+        proxy_buffers 4 256k;
+        proxy_busy_buffers_size 256k;
+        # Frontend (Next.js)
+        location / {
+            proxy_pass http://localhost:3000;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection 'upgrade';
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto https;
+            proxy_cache_bypass $http_upgrade;
+            # Límites específicos para proxy
+            proxy_connect_timeout 60s;
+            proxy_send_timeout 60s;
+            proxy_read_timeout 60s;
+        }   # Backend (Django) bajo /api/
+        location /api/static/ {
+            alias /var/www/ferbaq_crm_backend/static/;
+        }
+        
+        location /endpoint/ {
+            include proxy_params;
+            proxy_pass http://127.0.0.1:8080; # Cambiado del socket a TCP
+            # Límites para el backend también
+            proxy_connect_timeout 60s;
+            proxy_send_timeout 60s;
+            proxy_read_timeout 60s;
+          }
+        listen 443 ssl; # managed by Certbot
+        ssl_certificate /etc/letsencrypt/live/crm.portal-ferbaq.net/fullchain.pem; # managed by Certbot
+        ssl_certificate_key /etc/letsencrypt/live/crm.portal-ferbaq.net/privkey.pem; # managed by Certbot
+        include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+        ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
     }
-    
-    location /endpoint/ {
-        include proxy_params;
-        proxy_pass http://127.0.0.1:8080; # Cambiado del socket a TCP
-        # Límites para el backend también
-        proxy_connect_timeout 60s;
-        proxy_send_timeout 60s;
-        proxy_read_timeout 60s;
-      }
-    listen 443 ssl; # managed by Certbot
-    ssl_certificate /etc/letsencrypt/live/crm.portal-ferbaq.net/fullchain.pem; # managed by Certbot
-    ssl_certificate_key /etc/letsencrypt/live/crm.portal-ferbaq.net/privkey.pem; # managed by Certbot
-    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
-    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
-}
-server {
-    if ($host = crm.portal-ferbaq.net) {
-        return 301 https://$host$request_uri;
-    } # managed by Certbot
-    listen 80;
-    server_name crm.portal-ferbaq.net;
-    return 404; # managed by Certbot
-}
+    server {
+        if ($host = crm.portal-ferbaq.net) {
+            return 301 https://$host$request_uri;
+        } # managed by Certbot
+        listen 80;
+        server_name crm.portal-ferbaq.net;
+        return 404; # managed by Certbot
+    }
 ```
  Crear el nuevo enlace simbólico para el archivo combinado
 
@@ -658,6 +685,8 @@ amazon-cloudwatch-agent-ctl -a status
 
 y pegar este contenido
 ```bash
+sudo nano /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.d/file_amazon-cloudwatch-agent.json
+
 {
   "logs": {
     "logs_collected": {
@@ -665,33 +694,39 @@ y pegar este contenido
         "collect_list": [
           {
             "file_path": "/var/log/django/error.log",
-            "log_group_name": "ferbaq-application-errors",
-            "log_stream_name": "{instance_id}"
+            "log_group_name": "ferbaq-development-errors",
+            "log_stream_name": "django-dev-{instance_id}",
+            "timezone": "UTC"
+          },
+          {
+            "file_path": "/var/log/django/django.log", 
+            "log_group_name": "ferbaq-development-application",
+            "log_stream_name": "django-dev-{instance_id}",
+            "timezone": "UTC"
           },
           {
             "file_path": "/var/log/gunicorn/error.log",
-            "log_group_name": "ferbaq-application-errors",
-            "log_stream_name": "{instance_id}"
-          },
-          {
-            "file_path": "/var/log/rqworker/error.log",
-            "log_group_name": "ferbaq-application-errors",
-            "log_stream_name": "{instance_id}"
-          },
-          {
-            "file_path": "/var/log/nginx/error.log",
-            "log_group_name": "ferbaq-application-errors",
-            "log_stream_name": "{instance_id}"
-          },
-          {
-            "file_path": "/var/log/nginx/access.log",
-            "log_group_name": "ferbaq-application-access",
-            "log_stream_name": "{instance_id}"
+            "log_group_name": "ferbaq-development-errors", 
+            "log_stream_name": "gunicorn-dev-{instance_id}",
+            "timezone": "UTC"
           },
           {
             "file_path": "/var/log/gunicorn/access.log",
-            "log_group_name": "ferbaq-application-access",
-            "log_stream_name": "{instance_id}"
+            "log_group_name": "ferbaq-development-access",
+            "log_stream_name": "gunicorn-dev-{instance_id}",
+            "timezone": "UTC"
+          },
+          {
+            "file_path": "/var/log/nginx/error.log",
+            "log_group_name": "ferbaq-development-errors",
+            "log_stream_name": "nginx-dev-{instance_id}",
+            "timezone": "UTC"
+          },
+          {
+            "file_path": "/var/log/nginx/access.log",
+            "log_group_name": "ferbaq-development-access", 
+            "log_stream_name": "nginx-dev-{instance_id}",
+            "timezone": "UTC"
           }
         ]
       }
@@ -699,6 +734,57 @@ y pegar este contenido
   }
 }
 ```
+Para producción puede ser esta configuración
+```bash
+  sudo nano /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.d/file_amazon-cloudwatch-agent.json
+{
+  "logs": {
+    "logs_collected": {
+      "files": {
+        "collect_list": [
+          {
+            "file_path": "/var/log/django/error.log",
+            "log_group_name": "ferbaq-production-errors",
+            "log_stream_name": "django-prod-{instance_id}",
+            "timezone": "UTC"
+          },
+          {
+            "file_path": "/var/log/django/django.log", 
+            "log_group_name": "ferbaq-production-application",
+            "log_stream_name": "django-prod-{instance_id}",
+            "timezone": "UTC"
+          },
+          {
+            "file_path": "/var/log/gunicorn/error.log",
+            "log_group_name": "ferbaq-production-errors", 
+            "log_stream_name": "gunicorn-prod-{instance_id}",
+            "timezone": "UTC"
+          },
+          {
+            "file_path": "/var/log/gunicorn/access.log",
+            "log_group_name": "ferbaq-production-access",
+            "log_stream_name": "gunicorn-prod-{instance_id}",
+            "timezone": "UTC"
+          },
+          {
+            "file_path": "/var/log/nginx/error.log",
+            "log_group_name": "ferbaq-production-errors",
+            "log_stream_name": "nginx-prod-{instance_id}",
+            "timezone": "UTC"
+          },
+          {
+            "file_path": "/var/log/nginx/access.log",
+            "log_group_name": "ferbaq-production-access", 
+            "log_stream_name": "nginx-prod-{instance_id}",
+            "timezone": "UTC"
+          }
+        ]
+      }
+    }
+  }
+}
+```
+
    Este JSON hace que el agente lea el log de Django y lo envíe al grupo ferbaq-django-errors en CloudWatch.
 {instance_id} se reemplaza automáticamente con el ID de la instancia EC2
 
