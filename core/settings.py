@@ -234,6 +234,11 @@ STATIC_ROOT = '/var/www/ferbaq_crm_backend/static/'
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
+
+ENVIRONMENT = os.environ.get('DJANGO_ENV', 'development')
+INSTANCE_NAME = os.environ.get('INSTANCE_NAME', 'unknown')
+LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -245,7 +250,7 @@ IS_WINDOWS = os.name == "nt"
 # En Windows -> BASE_DIR/logs
 # En Linux -> /var/log/ferbaq (pero si no existe, cae en BASE_DIR/logs)
 default_log_dir = BASE_DIR / "logs"
-linux_log_dir = Path("/var/log/ferbaq")
+linux_log_dir = Path("/var/log/django")
 
 if IS_WINDOWS:
     LOG_DIR = default_log_dir
@@ -260,34 +265,92 @@ LOGGING = {
     'disable_existing_loggers': False,
 
     'formatters': {
-        'detailed': {
-            'format': '[{asctime}] {levelname} {name} - {message}',
+        'detailed_with_env': {
+            'format': '[{asctime}] [' + ENVIRONMENT + '] [' + INSTANCE_NAME + '] {levelname} {name} - {message}',
+            'style': '{',
+        },
+        'simple_console': {
+            'format': '{levelname} {name} - {message}',
             'style': '{',
         },
     },
 
     'handlers': {
-        'console_detailed': {
+        # Handler para consola (solo queries de DB para optimización)
+        'console_db_only': {
             'class': 'logging.StreamHandler',
-            'formatter': 'detailed',
+            'formatter': 'simple_console',
+            'level': 'DEBUG',
         },
-        'file': {
+
+        # Handler para archivo django.log (logs generales de Django)
+        'django_file': {
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': str(LOG_DIR / 'django_extensions.log'),  # Ruta dinámica
-             'maxBytes': 5*1024*1024,  # 5 MB Para que no crezca los logs indefinidamente
-             'backupCount': 5,
-             'formatter': 'detailed',
+            'filename': str(LOG_DIR / 'django.log'),
+            'maxBytes': 5 * 1024 * 1024,  # 5 MB
+            'backupCount': 5,
+            'formatter': 'detailed_with_env',
+            'level': 'INFO',
+        },
+
+        # Handler para archivo error.log (solo errores)
+        'error_file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': str(LOG_DIR / 'error.log'),
+            'maxBytes': 5 * 1024 * 1024,  # 5 MB
+            'backupCount': 5,
+            'formatter': 'detailed_with_env',
+            'level': 'ERROR',
+        },
+
+        # Handler para django_extensions (como ya lo tenías)
+        'extensions_file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': str(LOG_DIR / 'django_extensions.log'),
+            'maxBytes': 5 * 1024 * 1024,  # 5 MB
+            'backupCount': 5,
+            'formatter': 'detailed_with_env',
         },
     },
 
+    # Logger raíz - captura todo lo que no tenga logger específico
+    'root': {
+        'handlers': ['django_file', 'error_file'],
+        'level': 'INFO',
+    },
+
     'loggers': {
-        'django_extensions': {
-            'handlers': ['console_detailed', 'file'],
+        # Logger principal de Django - va a archivos
+        'django': {
+            'handlers': ['django_file', 'error_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+
+        # Logger para requests - va a archivos
+        'django.request': {
+            'handlers': ['django_file', 'error_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+
+        # Logger para tu aplicación - va a archivos
+        'users': {  # Cambia por el nombre de tu app
+            'handlers': ['django_file', 'error_file'],
+            'level': 'DEBUG' if ENVIRONMENT == 'development' else 'INFO',
+            'propagate': False,
+        },
+
+        # Queries de DB - SOLO consola para optimización
+        'django.db.backends': {
+            'handlers': ['console_db_only'] if DEBUG else [],
             'level': 'DEBUG',
             'propagate': False,
         },
-        'django.db.backends': {
-            'handlers': ['console_detailed'],  # Solo consola
+
+        # Django extensions - archivo específico
+        'django_extensions': {
+            'handlers': ['extensions_file'],
             'level': 'DEBUG',
             'propagate': False,
         },
