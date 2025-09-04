@@ -543,8 +543,6 @@ Activa y arranca:
  Agregar el siguiente contenido para que sirva tanto para front y backend. Solo se hace una sola vez
 
 ```bash
-    sudo nano /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
-
     server {
         server_name crm.portal-ferbaq.net;
         client_max_body_size 4M;
