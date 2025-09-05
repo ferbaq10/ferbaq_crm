@@ -166,5 +166,5 @@ class SharePointProfileService:
                 raise e
 
         except Exception as e:
-            logger.exception(f"❌ Error obteniendo foto: {e}")
+            logger.exception(f" Error obteniendo foto: {e}")
             return None

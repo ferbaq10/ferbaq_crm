@@ -28,10 +28,7 @@ class WorkCellSerializer(serializers.ModelSerializer):
             'required': 'El campo nombre es obligatorio.',
             'max_length': 'El nombre no puede tener más de 100 caracteres.'
         })
-    udn = serializers.PrimaryKeyRelatedField(queryset=UDN.objects.all(), required=True)
-
-    # Para lectura (GET)
-    udn_data = UDNSerializer(source='udn', read_only=True)
+    udn = UDNSerializer()
 
     class Meta:
         model = WorkCell
@@ -39,7 +36,28 @@ class WorkCellSerializer(serializers.ModelSerializer):
             'id',
             'name',
             'udn',
-            'udn_data',
+            'is_removed'
+        ]
+        read_only_fields = ['created', 'modified']
+
+class WorkCellWriteSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(max_length=100, required=True,
+                                 error_messages={
+            'required': 'El campo nombre es obligatorio.',
+            'max_length': 'El nombre no puede tener más de 100 caracteres.'
+        })
+    udn = serializers.PrimaryKeyRelatedField(
+        queryset=UDN.objects.all(),
+        required=False,
+        allow_null=True
+    )
+
+    class Meta:
+        model = WorkCell
+        fields = [
+            'id',
+            'name',
+            'udn',
             'is_removed'
         ]
         read_only_fields = ['created', 'modified']

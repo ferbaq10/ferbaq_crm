@@ -438,7 +438,7 @@ Este comando recupera las imágenes para que se muestre bien el admin
  Agregar este contenido al archivo 
 ```bash
 [Unit]
-Description=RQ Worker (Ddvelopment)
+Description=RQ Worker (Development or Production)
 After=network.target redis.service
 
 [Service]
@@ -702,37 +702,49 @@ sudo nano /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.d/file_am
         "collect_list": [
           {
             "file_path": "/var/log/django/error.log",
-            "log_group_name": "ferbaq-development-errors",
+            "log_group_name": "crm-development-errors",
             "log_stream_name": "django-dev-{instance_id}",
             "timezone": "UTC"
           },
           {
             "file_path": "/var/log/django/django.log", 
-            "log_group_name": "ferbaq-development-application",
+            "log_group_name": "crm-development-application",
             "log_stream_name": "django-dev-{instance_id}",
             "timezone": "UTC"
           },
           {
             "file_path": "/var/log/gunicorn/error.log",
-            "log_group_name": "ferbaq-development-errors", 
+            "log_group_name": "crm-development-errors", 
             "log_stream_name": "gunicorn-dev-{instance_id}",
             "timezone": "UTC"
           },
           {
             "file_path": "/var/log/gunicorn/access.log",
-            "log_group_name": "ferbaq-development-access",
+            "log_group_name": "crm-development-access",
             "log_stream_name": "gunicorn-dev-{instance_id}",
             "timezone": "UTC"
           },
           {
+            "file_path": "/var/log/rqworker/error.log",
+            "log_group_name": "crm-development-errors",
+            "log_stream_name": "rqworker-dev-{instance_id}",
+            "timezone": "UTC"
+          },
+          {
+            "file_path": "/var/log/rqworker/access.log",
+            "log_group_name": "crm-development-workers",
+            "log_stream_name": "rqworker-dev-{instance_id}",
+            "timezone": "UTC"
+          },
+          {
             "file_path": "/var/log/nginx/error.log",
-            "log_group_name": "ferbaq-development-errors",
+            "log_group_name": "crm-development-errors",
             "log_stream_name": "nginx-dev-{instance_id}",
             "timezone": "UTC"
           },
           {
             "file_path": "/var/log/nginx/access.log",
-            "log_group_name": "ferbaq-development-access", 
+            "log_group_name": "crm-development-access", 
             "log_stream_name": "nginx-dev-{instance_id}",
             "timezone": "UTC"
           }
@@ -752,37 +764,49 @@ Para producción puede ser esta configuración
         "collect_list": [
           {
             "file_path": "/var/log/django/error.log",
-            "log_group_name": "ferbaq-production-errors",
+            "log_group_name": "crm-production-errors",
             "log_stream_name": "django-prod-{instance_id}",
             "timezone": "UTC"
           },
           {
             "file_path": "/var/log/django/django.log", 
-            "log_group_name": "ferbaq-production-application",
+            "log_group_name": "crm-production-application",
             "log_stream_name": "django-prod-{instance_id}",
             "timezone": "UTC"
           },
           {
             "file_path": "/var/log/gunicorn/error.log",
-            "log_group_name": "ferbaq-production-errors", 
+            "log_group_name": "crm-production-errors", 
             "log_stream_name": "gunicorn-prod-{instance_id}",
             "timezone": "UTC"
           },
           {
             "file_path": "/var/log/gunicorn/access.log",
-            "log_group_name": "ferbaq-production-access",
+            "log_group_name": "crm-production-access",
             "log_stream_name": "gunicorn-prod-{instance_id}",
+            "timezone": "UTC"
+          },
+           {
+            "file_path": "/var/log/rqworker/error.log",
+            "log_group_name": "crm-production-errors",
+            "log_stream_name": "rqworker-prod-{instance_id}",
+            "timezone": "UTC"
+          },
+          {
+            "file_path": "/var/log/rqworker/access.log",
+            "log_group_name": "crm-production-workers",
+            "log_stream_name": "rqworker-prod-{instance_id}",
             "timezone": "UTC"
           },
           {
             "file_path": "/var/log/nginx/error.log",
-            "log_group_name": "ferbaq-production-errors",
+            "log_group_name": "crm-production-errors",
             "log_stream_name": "nginx-prod-{instance_id}",
             "timezone": "UTC"
           },
           {
             "file_path": "/var/log/nginx/access.log",
-            "log_group_name": "ferbaq-production-access", 
+            "log_group_name": "crm-production-access", 
             "log_stream_name": "nginx-prod-{instance_id}",
             "timezone": "UTC"
           }
@@ -791,6 +815,27 @@ Para producción puede ser esta configuración
     }
   }
 }
+```
+
+También se debe revisar este fichero log-config la cual debe tener esta configuración
+```bash
+ sudo nano /opt/aws/amazon-cloudwatch-agent/etc/log-config.json
+ ```
+```bash
+{
+"version":"1",
+"log_configs":[
+        {"log_group_name":"crm-development-access"},
+        {"log_group_name":"crm-development-application"},
+        {"log_group_name":"crm-development-errors"},
+        {"log_group_name":"crm-development-workers"}
+        ],
+"region":"us-east-2"
+}
+```
+Se debe reiniciar de esta manera:
+```bash
+ sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -m ec2 -a stop # o start para reiniciar
 ```
 
 ### Crear política
@@ -879,16 +924,16 @@ Ver los logs en tiempo real
 
 Si estás en Development:
 
-ferbaq-development-errors
-ferbaq-development-application
-ferbaq-development-access
-ferbaq-development-workers
+crm-development-errors
+crm-development-application
+crm-development-access
+crm-development-workers
 Si estás en Production:
 
-ferbaq-production-errors
-ferbaq-production-application
-ferbaq-production-access
-ferbaq-production-workers
+crm-production-errors
+crm-production-application
+crm-production-access
+crm-production-workers
 
 ### Ajustes clave para que no se llene el disco
 
