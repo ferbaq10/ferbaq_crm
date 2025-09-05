@@ -16,7 +16,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from catalog.models import WorkCell
 from catalog.viewsets.base import CachedViewSet
 from core.di import injector
-from opportunity.sharepoint import fetch_sharepoint_file, get_file_extension_pathlib
+from opportunity.sharepoint import fetch_sharepoint_file
 from users.serializers import (
     UserSerializer, UserWithWorkcellSerializer, UserProfileUpdateSerializer,
     ProfilePhotoUploadSerializer, PasswordChangeSerializer, PasswordResetRequestSerializer,
@@ -232,22 +232,22 @@ class UserViewSet(CachedViewSet):
             
             # Construir URL completa del archivo
             photo_url = f"{SHAREPOINT_SITE_URL}/{SHAREPOINT_DOC_LIB}/users/profile_photos/{filename}"
-            
-            # Obtener el archivo de SharePoint
-            photo_content = SharePointProfileService.get_photo_content(photo_url)
 
-            if photo_content:
-                from django.http import HttpResponse
+            if photo_url:
+                # Obtener el archivo de SharePoint
+                photo_content = SharePointProfileService.get_photo_content(photo_url)
 
-                # Determinar tipo de contenido por extensión
-                content_type = 'image/jpeg'
-                if filename.lower().endswith('.png'):
-                    content_type = 'image/png'
-                elif filename.lower().endswith('.webp'):
-                    content_type = 'image/webp'
-                elif filename.lower().endswith('.gif'):
-                    content_type = 'image/gif'
-                
+                if photo_content:
+
+                    # Determinar tipo de contenido por extensión
+                    content_type = 'image/jpeg'
+                    if filename.lower().endswith('.png'):
+                        content_type = 'image/png'
+                    elif filename.lower().endswith('.webp'):
+                        content_type = 'image/webp'
+                    elif filename.lower().endswith('.gif'):
+                        content_type = 'image/gif'
+
                 response = HttpResponse(photo_content, content_type=content_type)
                 response['Cache-Control'] = 'max-age=3600'  # Cache por 1 hora
                 response['Access-Control-Allow-Origin'] = '*'  # Para CORS
@@ -256,7 +256,7 @@ class UserViewSet(CachedViewSet):
                 return self.serve_default_avatar()
                 
         except Exception as e:
-            logger.exception(f"❌ Error en proxy de foto: {e}")
+            logger.exception(f"Error en proxy de foto: {e}")
             #return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             return self.serve_default_avatar()
 

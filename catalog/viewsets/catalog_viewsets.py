@@ -11,7 +11,8 @@ from catalog.serializers import (
     UDNSerializer, WorkCellSerializer, BusinessGroupSerializer, DivisionSerializer,
     SubdivisionSerializer, SpecialtySerializer, ProjectStatusSerializer, CitySerializer,
     PeriodSerializer, StatusOpportunitySerializer, CurrencySerializer, JobSerializer, OpportunityTypeSerializer,
-    MeetingTypeSerializer, MeetingResultSerializer, LostOpportunityTypeSerializer, PurchaseStatusTypeSerializer
+    MeetingTypeSerializer, MeetingResultSerializer, LostOpportunityTypeSerializer, PurchaseStatusTypeSerializer,
+    WorkCellWriteSerializer
 )
 from catalog.viewsets.base import CachedViewSet
 
@@ -24,6 +25,11 @@ class UDNViewSet(CachedViewSet):
 class WorkCellViewSet(CachedViewSet):
     model = WorkCell
     serializer_class = WorkCellSerializer
+
+    def get_serializer_class(self):
+        if self.action in ['list', 'retrieve']:  # Para GET (lista o detalle)
+            return WorkCellSerializer
+        return WorkCellWriteSerializer
 
     def get_actives_queryset(self, request):
         return WorkCell.all_objects.filter(users=request.user).filter(is_removed=False).distinct()
