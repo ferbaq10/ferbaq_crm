@@ -817,6 +817,27 @@ Para producción puede ser esta configuración
 }
 ```
 
+También se debe revisar este fichero log-config la cual debe tener esta configuración
+```bash
+ sudo nano /opt/aws/amazon-cloudwatch-agent/etc/log-config.json
+ ```
+```bash
+{
+"version":"1",
+"log_configs":[
+        {"log_group_name":"crm-development-access"},
+        {"log_group_name":"crm-development-application"},
+        {"log_group_name":"crm-development-errors"},
+        {"log_group_name":"crm-development-workers"}
+        ],
+"region":"us-east-2"
+}
+```
+Se debe reiniciar de esta manera:
+```bash
+ sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -m ec2 -a stop # o start para reiniciar
+```
+
 ### Crear política
 Es importante para que funcione la configuracion de cloudwatch anterior, que tenga permiso.
 Para eso se debe crear la siguiente politica y luego asignarla a un rol, y este rol asignarla a la instancia
@@ -903,16 +924,16 @@ Ver los logs en tiempo real
 
 Si estás en Development:
 
-ferbaq-development-errors
-ferbaq-development-application
-ferbaq-development-access
-ferbaq-development-workers
+crm-development-errors
+crm-development-application
+crm-development-access
+crm-development-workers
 Si estás en Production:
 
-ferbaq-production-errors
-ferbaq-production-application
-ferbaq-production-access
-ferbaq-production-workers
+crm-production-errors
+crm-production-application
+crm-production-access
+crm-production-workers
 
 ### Ajustes clave para que no se llene el disco
 
