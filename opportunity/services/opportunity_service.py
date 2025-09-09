@@ -2,25 +2,23 @@ import logging
 from datetime import datetime
 from typing import TypeVar
 
+from django.contrib.auth.models import Group, Permission
 from django.db import IntegrityError
 from django.db import transaction
 from django.db.models import Prefetch
+from django.db.models import QuerySet
 from django.utils import timezone
 from django_rq import enqueue
 from injector import inject
 from rest_framework.exceptions import ValidationError
 
 from catalog.constants import StatusIDs, StatusPurchaseTypeIDs
-from client.models import Client
-from opportunity.models import Opportunity
-from opportunity.models import OpportunityDocument
+from catalog.models import WorkCell
+from opportunity.models import Opportunity, FinanceOpportunity, OpportunityDocument
 from opportunity.services.base import BaseService
 from opportunity.services.interfaces import AbstractFinanceOpportunityFactory
 from opportunity.tasks import upload_to_sharepoint_db, delete_file_from_sharepoint_db
-from project.models import Project
 from purchase.models import PurchaseStatus
-from django.db.models import QuerySet
-from typing import TypeVar
 
 # Si usas un modelo genérico para el queryset
 T = TypeVar('T')
@@ -32,57 +30,52 @@ class OpportunityService(BaseService):
         self.finance_factory = finance_factory
 
     def get_prefetched_queryset(self):
-        # Optimizar proyectos con todas sus relaciones
-        optimized_projects = Prefetch(
-            'contact__clients__projects',
-            queryset=Project.objects.select_related(
-                'work_cell__udn',
-                'specialty',
-                'subdivision__division',
-                'project_status'
-            ).order_by('id')
-        )
-
-        # Optimizar clientes con city y business_group
-        optimized_clients = Prefetch(
-            'contact__clients',
-            queryset=Client.objects.select_related(
-                'city',
-                'business_group'
-            ).order_by('id')
-        )
-
         return (
             Opportunity.objects
             .select_related(
                 'status_opportunity',
-                'currency',
-                'opportunityType',
                 'contact__job',
+                'currency',
+                'agent', 'agent__profile',  # <- ok
+                'project__project_status',
                 'project__specialty',
                 'project__subdivision__division',
-                'project__project_status',
                 'project__work_cell__udn',
+                'opportunityType',
                 'client__city',
                 'client__business_group',
-                'agent__profile',
                 'lost_opportunity',
             )
             .prefetch_related(
-                optimized_clients,
-                optimized_projects,
-                'finance_data',
-                'documents'
+                # Solo lo que el serializer realmente usa:
+                Prefetch(
+                    'documents',
+                    queryset=OpportunityDocument.objects.only(
+                        'id', 'file_name', 'sharepoint_url', 'uploaded_at', 'opportunity_id'
+                    ),
+                ),
+                Prefetch(
+                    'finance_data',
+                    queryset=FinanceOpportunity.objects.only(
+                        'id', 'earned_amount', 'cost_subtotal', 'order_closing_date',
+                        'oc_number', 'cash_percentage', 'credit_percentage',
+                        'opportunity_id', 'is_removed'  # <- agrega este campo si lo accedes
+                    ),
+                ),
+                # Si el UserSerializer muestra work cells:
+                Prefetch(
+                    'agent__workcell',
+                    queryset=WorkCell.objects.select_related('udn').only('id', 'name', 'udn_id'),
+                ),
             )
-            .order_by('created')
         )
 
     def get_base_queryset(self, user):
         return self.add_filter_by_rol(user, self.get_prefetched_queryset(), owner_field='agent')
 
-    def get_filtered_queryset(self, user):
-        return (self.add_filter_by_rol(user, self.get_prefetched_queryset())
-                    .filter(is_removed=False).distinct())
+    # def get_filtered_queryset(self, user):
+    #     return (self.add_filter_by_rol(user, self.get_prefetched_queryset())
+    #                 .filter(is_removed=False).distinct())
 
     def get_base_documents_queryset(self, user) -> QuerySet[OpportunityDocument]:
 
@@ -96,12 +89,12 @@ class OpportunityService(BaseService):
     def get_filtered_queryset(self, user):
         return self.get_base_queryset(user).filter(
             created__year=datetime.now().year
-        ).distinct().order_by('-created')
+        ).order_by('-created')
 
     def get_filtered_documents_queryset(self, user):
         return self.get_base_documents_queryset(user).filter(
             uploaded_at__year=datetime.now().year
-        ).distinct().order_by('-uploaded_at')
+        ).order_by('-uploaded_at')
 
     def process_create(self, serializer, request, files=None) -> Opportunity:
         serializer.validated_data["date_status"] = timezone.now()

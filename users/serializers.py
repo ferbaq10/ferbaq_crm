@@ -58,6 +58,12 @@ class UserWithRolesSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'email', 'groups', 'user_permissions']
 
 
+class UserProfileSimplifySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = get_user_model()
+        fields = ('id', 'username', 'first_name', 'last_name', 'email')
+
+
 class UserProfileSerializer(serializers.ModelSerializer):
     photo_url = serializers.SerializerMethodField()
 
@@ -216,7 +222,8 @@ class ProfilePhotoUploadSerializer(serializers.Serializer):
             raise serializers.ValidationError(f"Formato no permitido. Use: {', '.join(allowed_formats)}")
 
         return value
-    
+
+
 class PasswordResetRequestSerializer(serializers.Serializer):
     email = serializers.EmailField(
         required=True,

@@ -14,7 +14,7 @@ from contact.models import Contact
 from contact.serializers import ContactSimplifySerializer
 from project.models import Project
 from project.serializers import ProjectSimplifySerializer
-from users.serializers import UserSerializer
+from users.serializers import UserSerializer, UserProfileSimplifySerializer
 from .models import CommercialActivity, FinanceOpportunity, Opportunity, OpportunityDocument
 
 User = get_user_model()
@@ -64,7 +64,7 @@ class CommercialActivitySerializer(serializers.ModelSerializer):
 # --- Opportunity SOLO LECTURA ---
 class OpportunitySerializer(serializers.ModelSerializer):
     contact = ContactSimplifySerializer()
-    agent = UserSerializer()
+    agent = UserProfileSimplifySerializer()
     project = ProjectSimplifySerializer()
     currency = CurrencySerializer()
     opportunityType = OpportunityTypeSerializer()
