@@ -166,5 +166,3 @@ class OpportunityViewSet(CachedViewSet):
 class CommercialActivityViewSet(CachedViewSet):
     model = CommercialActivity
     serializer_class = CommercialActivitySerializer
-
-
