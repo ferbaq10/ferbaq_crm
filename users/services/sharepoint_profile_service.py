@@ -1,21 +1,10 @@
-import io
 import logging
 from typing import Optional
-from urllib.parse import urlparse
+from urllib.parse import urlparse, unquote
 
-from decouple import config
-from office365.runtime.auth.authentication_context import AuthenticationContext
-from office365.runtime.client_request_exception import ClientRequestException
-from office365.sharepoint.client_context import ClientContext
-
-from opportunity.sharepoint import ensure_folder
+from opportunity.sharepoint import SharePointManager
 
 logger = logging.getLogger(__name__)
-
-SHAREPOINT_SITE_URL = config("SHAREPOINT_SITE_URL")
-SHAREPOINT_DOC_LIB = config("SHAREPOINT_DOC_LIB", "Biblioteca de Documentos")
-SHAREPOINT_USERNAME = config("SHAREPOINT_USERNAME")
-SHAREPOINT_PASSWORD = config("SHAREPOINT_PASSWORD")
 
 
 class SharePointProfileService:
@@ -32,139 +21,103 @@ class SharePointProfileService:
     @staticmethod
     def upload_profile_photo(user_id: int, photo_file, file_extension: str) -> Optional[str]:
         """
-        Sube foto de perfil a SharePoint en la ruta: users/profile_photos/
-        Returns: URL completa del archivo en SharePoint o None si falla
+        Sube foto de perfil usando SharePointManager optimizado
         """
         try:
-            # 1. Normalizar extensión para consistencia
+            # 1. Normalizar extensión
             normalized_extension = SharePointProfileService._normalize_extension(file_extension)
-            logger.info(f"📁 Subiendo foto para user_{user_id}: {file_extension} → {normalized_extension}")
-            
-            # 2. Autenticación
-            logger.info(f"🔐 Iniciando autenticación con SharePoint...")
-            ctx_auth = AuthenticationContext(SHAREPOINT_SITE_URL)
-            if not ctx_auth.acquire_token_for_user(SHAREPOINT_USERNAME, SHAREPOINT_PASSWORD):
-                raise Exception("Autenticación con SharePoint fallida")
-            logger.info(f"✅ Autenticación exitosa")
 
-            ctx = ClientContext(SHAREPOINT_SITE_URL, ctx_auth)
+            # 2. Preparar datos
+            file_content = photo_file.read()
+            file_path = f"users/profile_photos/user_{user_id}_profile.{normalized_extension}"
 
-            # 3. Definir ruta específica para fotos de perfil
-            folder_path = "users/profile_photos"
-            folder_parts = folder_path.split("/")
-
-            # 4. Ir al folder raíz
-            site_path = urlparse(SHAREPOINT_SITE_URL).path.strip("/")
-            root_relative_url = f"/{site_path}/{SHAREPOINT_DOC_LIB.strip()}"
-            root_folder = ctx.web.get_folder_by_server_relative_url(root_relative_url)
-            logger.info(f"📂 Accediendo a carpeta: {root_relative_url}")
-
-            # 5. Crear carpetas
-            logger.info(f"📁 Creando/accediendo carpetas: {folder_parts}")
-            target_folder = ensure_folder(ctx, root_folder, folder_parts)
-
-            # 6. Generar nombre único para la foto con extensión normalizada
-            file_name = f"user_{user_id}_profile.{normalized_extension}"
-            logger.info(f"📝 Nombre de archivo: {file_name}")
-
-            # 7. Eliminar TODAS las posibles fotos anteriores (jpg, jpeg, png, webp)
-            logger.info(f"🗑️ Eliminando fotos anteriores...")
+            # 3. Eliminar fotos anteriores con otras extensiones
             possible_extensions = ['jpg', 'jpeg', 'png', 'webp']
             for ext in possible_extensions:
-                try:
-                    old_file_name = f"user_{user_id}_profile.{ext}"
-                    existing_file = target_folder.files.get_by_url(old_file_name)
-                    existing_file.delete_object()
-                    ctx.execute_query()
-                    logger.info(f"🗑️ Foto anterior eliminada: {old_file_name}")
-                except Exception as e:
-                    # Es normal que no existan todas las extensiones
-                    logger.info(f"ℹ️ No existía: {old_file_name} ({str(e)[:50]}...)")
+                if ext != normalized_extension:
+                    old_path = f"users/profile_photos/user_{user_id}_profile.{ext}"
+                    try:
+                        result = SharePointManager.delete_file_by_path(old_path)
+                        if result:
+                            logger.info(f"Foto anterior eliminada: {old_path}")
+                    except Exception as e:
+                        logger.debug(f"No se pudo eliminar {old_path}: {e}")
 
-            # 8. Subir nueva foto
-            logger.info(f"⬆️ Iniciando subida del archivo...")
-            try:
-                file_stream = io.BytesIO(photo_file.read())
-                logger.info(f"📊 Tamaño del archivo: {len(file_stream.getvalue())} bytes")
-                
-                uploaded_file = target_folder.upload_file(file_name, file_stream)
-                logger.info(f"✅ Archivo uploaded_file creado, ejecutando query...")
-                
-                ctx.execute_query()
-                logger.info(f"✅ Query ejecutado exitosamente")
-                
-                # 🔍 VERIFICAR que el archivo realmente existe después de subir
-                try:
-                    verification_file = target_folder.files.get_by_url(file_name)
-                    ctx.execute_query()
-                    logger.info(f"✅ VERIFICACIÓN: Archivo existe en SharePoint")
-                except Exception as verify_error:
-                    logger.error(f"❌ VERIFICACIÓN FALLÓ: El archivo NO existe después de subir: {verify_error}")
-                    return None
-                    
-            except Exception as upload_error:
-                logger.exception(f"❌ Error en el proceso de subida: {upload_error}")
-                return None
-
-            # 9. Construir URL completa con extensión normalizada
-            full_url = f"{SHAREPOINT_SITE_URL}/{SHAREPOINT_DOC_LIB}/{folder_path}/{file_name}"
-
-            logger.info(f"✅ Foto de perfil subida exitosamente: {full_url}")
-            return full_url
+            # 4. Subir nueva foto usando clase optimizada
+            return SharePointManager.upload_file_to_sharepoint(
+                file_path=file_path,
+                file_data=file_content,
+                replace_existing=True,
+                verify_upload=True
+            )
 
         except Exception as e:
-            logger.exception(f"❌ Error general subiendo foto de perfil: {e}")
+            logger.exception(f"Error subiendo foto de perfil: {e}")
             return None
 
     @staticmethod
     def delete_profile_photo(photo_url: str) -> bool:
-        """Elimina foto de perfil de SharePoint usando tu función existente"""
+        """Elimina foto de perfil de SharePoint usando Microsoft Graph API"""
         try:
             # Si la URL está vacía o es None, no hay nada que eliminar
             if not photo_url:
+                logger.info("URL vacía, no hay nada que eliminar")
                 return True
-                
-            from opportunity.sharepoint import _delete_file_from_sharepoint
-            _delete_file_from_sharepoint(photo_url)
-            logger.info(f"🗑️ Foto eliminada de SharePoint: {photo_url}")
-            return True
 
+            logger.info(f"Eliminando foto de SharePoint: {photo_url}")
+
+            # 1. Procesar la URL para obtener la ruta del archivo
+            parsed = urlparse(photo_url)
+            full_path = unquote(parsed.path)
+
+            # 2. Convertir ruta completa a ruta relativa a la biblioteca
+            file_path = SharePointManager.site_relative_to_library_relative(
+                full_path,
+                "Biblioteca de Documentos"
+            )
+
+            logger.info(f"Ruta del archivo a eliminar: {file_path}")
+
+            # 3. Usar metodo optimizado de la clase para eliminar
+            success = SharePointManager.delete_file_by_path(file_path)
+
+            if success:
+                logger.info(f"Foto eliminada exitosamente: {photo_url}")
+                return True
+            else:
+                logger.warning(f"No se pudo eliminar la foto: {photo_url}")
+                # Devolver True porque el objetivo es que no exista
+                return True
         except Exception as e:
-            # Log pero no fallar, ya que la foto podría no existir
-            logger.warning(f"⚠️ No se pudo eliminar foto (posiblemente no existe): {e}")
+            logger.warning(f"No se pudo eliminar foto (posiblemente no existe): {e}")
             # Devolver True porque el objetivo (que no exista) se cumplió
             return True
-        
+
     @staticmethod
     def get_photo_content(photo_url: str) -> Optional[bytes]:
-        """Obtiene el contenido binario de una foto desde SharePoint"""
+        """
+        Obtiene contenido de foto usando SharePointManager optimizado
+        """
         try:
-            from urllib.parse import urlparse, unquote
+            result = SharePointManager.get_file_content_from_sharepoint(
+                file_url=photo_url,
+                expected_content_type="image",
+                timeout=30
+            )
 
-            parsed = urlparse(photo_url)
-            relative_url = unquote(parsed.path)
-
-            ctx_auth = AuthenticationContext(SHAREPOINT_SITE_URL)
-            if not ctx_auth.acquire_token_for_user(SHAREPOINT_USERNAME, SHAREPOINT_PASSWORD):
-                logger.error("❌ Falló autenticación con SharePoint")
+            if result:
+                content, content_type = result
+                logger.info(f"Foto obtenida: {len(content)} bytes, tipo: {content_type}")
+                return content
+            else:
+                logger.warning(f"No se pudo obtener foto: {photo_url}")
                 return None
 
-            ctx = ClientContext(SHAREPOINT_SITE_URL, ctx_auth)
-            file = ctx.web.get_file_by_server_relative_url(relative_url)
-
-            # Obtener contenido del archivo
-            content = file.get_content()
-            ctx.execute_query()
-            return content.value
-
-        except ClientRequestException as e:
-            # Manejar archivo no encontrado
-            if "404" in str(e) or "no existe" in str(e):
-                return None  # o return foto por defecto
-            else:
-                # Re-lanzar otros errores
-                raise e
-
         except Exception as e:
-            logger.exception(f" Error obteniendo foto: {e}")
+            logger.error(f"Error obteniendo foto: {e}")
             return None
+
+
+
+
+

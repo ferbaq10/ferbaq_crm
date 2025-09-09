@@ -237,10 +237,8 @@ class UserViewSet(CachedViewSet):
                 # Obtener el archivo de SharePoint
                 photo_content = SharePointProfileService.get_photo_content(photo_url)
 
+                content_type = 'image/jpeg'
                 if photo_content:
-
-                    # Determinar tipo de contenido por extensión
-                    content_type = 'image/jpeg'
                     if filename.lower().endswith('.png'):
                         content_type = 'image/png'
                     elif filename.lower().endswith('.webp'):

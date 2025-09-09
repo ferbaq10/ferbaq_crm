@@ -14,7 +14,7 @@ from contact.models import Contact
 from contact.serializers import ContactSimplifySerializer
 from project.models import Project
 from project.serializers import ProjectSimplifySerializer
-from users.serializers import UserSerializer
+from users.serializers import UserSerializer, UserProfileSimplifySerializer
 from .models import CommercialActivity, FinanceOpportunity, Opportunity, OpportunityDocument
 
 User = get_user_model()
@@ -64,7 +64,7 @@ class CommercialActivitySerializer(serializers.ModelSerializer):
 # --- Opportunity SOLO LECTURA ---
 class OpportunitySerializer(serializers.ModelSerializer):
     contact = ContactSimplifySerializer()
-    agent = UserSerializer()
+    agent = UserProfileSimplifySerializer()
     project = ProjectSimplifySerializer()
     currency = CurrencySerializer()
     opportunityType = OpportunityTypeSerializer()
@@ -247,9 +247,9 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
             if cash_percentage is None or credit_percentage is None:
                 faltante = 'cash_percentage' if cash_percentage is None else 'credit_percentage'
                 errors[faltante] = 'Este campo es requerido cuando se modifica el otro porcentaje.'
-
-            if (cash_percentage + credit_percentage) != 100:
-                errors['cash_percentage'] = f'El total de porcentaje de contado y de crédito debe ser igual a 100.'
+            else:
+                if (cash_percentage + credit_percentage) != 100:
+                    errors['cash_percentage'] = f'El total de porcentaje de contado y de crédito debe ser igual a 100.'
 
         # ===== Reglas por estado (solo si conocemos el estado) =====
         states_requiring_fields = [StatusIDs.SEND, StatusIDs.NEGOTIATING, StatusIDs.WON]
