@@ -258,7 +258,7 @@ class SharePointManager:
         """
         try:
             logger.info(f"Subiendo archivo: {file_path} ({len(file_data)} bytes)")
-            full_sharepoint_path = f"Biblioteca de Documentos/{file_path}"
+            full_sharepoint_path = f"{file_path}"
 
             SharePointManager.get_config()
             # Verificar si existe (si no se permite reemplazar)
