@@ -99,7 +99,7 @@ class OpportunityViewSet(CachedViewSet):
     def get_actives_queryset(self, request):
         # si esta función solo se usa para listados “activos”
         user = request.user
-        return self.opportunity_service.get_filtered_queryset(user).filter(is_removed=False).distinct()
+        return self.opportunity_service.get_filtered_queryset(user).filter(is_removed=False)
 
 
     @transaction.atomic

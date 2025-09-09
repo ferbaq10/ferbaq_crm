@@ -6,7 +6,7 @@ from decouple import config
 from django_rq import job
 
 from opportunity.models import OpportunityDocument, Opportunity
-from opportunity.sharepoint import upload_file, _delete_file_from_sharepoint
+from opportunity.sharepoint import upload_file, SharePointManager
 
 logger = logging.getLogger(__name__)
 SHAREPOINT_SITE_URL = config("SHAREPOINT_SITE_URL")
@@ -18,10 +18,9 @@ def upload_to_sharepoint_db(udn: str, opportunity_id: int, file_data: bytes, fil
         opportunity = Opportunity.objects.get(id=opportunity_id)
         project_name = opportunity.project.name
         file_name = file_name[:255] # Solo hasta 200 caracteres
-        sharepoint_path = f"COMERCIAL/WORKSPACE/{udn}/{project_name}/{opportunity.requisition_number}_{opportunity.name}"
-        full_path = f"{sharepoint_path}/{file_name}"
+        folder_name = f"COMERCIAL/WORKSPACE/{udn}/{project_name}/{opportunity.requisition_number}_{opportunity.name}"
 
-        relative_url = upload_file(full_path, file_data)
+        relative_url = upload_file(folder_name, file_name, file_data)
         full_url = build_sharepoint_url(SHAREPOINT_SITE_URL, relative_url)
         full_url = quote(full_url, safe=':/')
 
@@ -49,7 +48,7 @@ def build_sharepoint_url(base_url: str, relative_url: str) -> str:
 
 def delete_file_from_sharepoint_db(full_url: str, doc_id):
     try:
-        _delete_file_from_sharepoint(full_url)
+        SharePointManager.delete_file_by_path(full_url)
         logger.info(f"Archivo eliminado de SharePoint: {full_url}")
         OpportunityDocument.objects.filter(id=doc_id).delete()
         logger.info(f"Registro OpportunityDocument eliminado: ID={doc_id}")
