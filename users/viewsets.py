@@ -196,7 +196,7 @@ class UserViewSet(CachedViewSet):
             'photo_url': proxy_url  # ← Devolver URL del proxy
         }, status=status.HTTP_200_OK)
 
-    @action(detail=False, methods=['delete'], permission_classes=[IsAuthenticated])
+    @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated])
     def delete_photo(self, request):
         """Elimina foto de perfil del usuario autenticado"""
         profile = request.user.profile
