@@ -320,7 +320,10 @@ class SharePointManager:
 
             if delete_response.status_code in [204, 404]:
                 logger.info(f"Archivo eliminado o no existía: {file_path}")
-                return True
+                if delete_response.ok:
+                    return True
+                else:
+                    return False
             else:
                 logger.warning(f"Error eliminando {file_path}: {delete_response.status_code}")
                 return False
@@ -569,6 +572,42 @@ def get_content_type_from_extension(file_extension: str) -> str:
         }
 
         return content_type_map.get(file_extension.lower(), 'application/octet-stream')
+
+def delete_document(document_url: str) -> bool:
+    """Elimina documento de perfil de SharePoint usando Microsoft Graph API"""
+    try:
+        # Si la URL está vacía o es None, no hay nada que eliminar
+        if not document_url:
+            logger.info("URL vacía, no hay nada que eliminar")
+            return True
+
+        logger.info(f"Eliminando documento de SharePoint: {document_url}")
+
+        # 1. Procesar la URL para obtener la ruta del archivo
+        parsed = urlparse(document_url)
+        full_path = unquote(parsed.path)
+
+        # 2. Convertir ruta completa a ruta relativa a la biblioteca
+        file_path = SharePointManager.site_relative_to_library_relative(
+            full_path,
+            "Biblioteca de Documentos"
+        )
+
+        logger.info(f"Ruta del archivo a eliminar: {file_path}")
+
+        # 3. Usar metodo optimizado de la clase para eliminar
+        success = SharePointManager.delete_file_by_path(file_path)
+
+        if success:
+            logger.info(f"Foto eliminada exitosamente: {document_url}")
+            return True
+        else:
+            logger.warning(f"No se pudo eliminar la foto: {document_url}")
+            # Devolver True porque el objetivo es que no exista
+            return True
+    except Exception as e:
+        logger.warning(f"No se pudo eliminar foto (posiblemente no existe): {e}")
+        raise
 
 
 
