@@ -62,6 +62,22 @@ class WorkCellWriteSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['created', 'modified']
 
+    def to_representation(self, instance):
+        """Personalizar la representación de salida"""
+        data = super().to_representation(instance)
+
+        # Convertir udn de ID a objeto completo
+        if instance.udn:
+            data['udn'] = {
+                'id': instance.udn.id,
+                'name': instance.udn.name,
+                'is_removed': instance.udn.is_removed
+            }
+        else:
+            data['udn'] = None
+
+        return data
+
 
 class BusinessGroupSerializer(serializers.ModelSerializer):
     name = serializers.CharField(max_length=100, required=True,
