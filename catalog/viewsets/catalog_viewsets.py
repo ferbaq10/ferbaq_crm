@@ -31,6 +31,7 @@ class WorkCellViewSet(CachedViewSet):
             return WorkCellSerializer
         return WorkCellWriteSerializer
 
+
     def get_actives_queryset(self, request):
         return WorkCell.all_objects.filter(users=request.user).filter(is_removed=False).distinct()
 
@@ -69,7 +70,6 @@ class ProjectStatusViewSet(CachedViewSet):
 class CityViewSet(CachedViewSet):
     model = City
     serializer_class = CitySerializer
-
 
 class PeriodViewSet(CachedViewSet):
     model = Period
