@@ -6,7 +6,7 @@ from decouple import config
 from django_rq import job
 
 from opportunity.models import OpportunityDocument, Opportunity
-from opportunity.sharepoint import upload_file, SharePointManager
+from opportunity.sharepoint import upload_file, delete_document
 
 logger = logging.getLogger(__name__)
 SHAREPOINT_SITE_URL = config("SHAREPOINT_SITE_URL")
@@ -48,10 +48,11 @@ def build_sharepoint_url(base_url: str, relative_url: str) -> str:
 
 def delete_file_from_sharepoint_db(full_url: str, doc_id):
     try:
-        SharePointManager.delete_file_by_path(full_url)
-        logger.info(f"Archivo eliminado de SharePoint: {full_url}")
-        OpportunityDocument.objects.filter(id=doc_id).delete()
-        logger.info(f"Registro OpportunityDocument eliminado: ID={doc_id}")
+        result_delete = delete_document(full_url)
+        if result_delete:
+            logger.info(f"Archivo eliminado de SharePoint: {full_url}")
+            OpportunityDocument.objects.filter(id=doc_id).delete()
+            logger.info(f"Registro OpportunityDocument eliminado: ID={doc_id}")
     except Exception as e:
         logger.warning(f"Error al eliminar archivo en SharePoint: {e}.")
 
