@@ -1,41 +1,32 @@
 import logging
+import threading
+import time
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Optional, Tuple
+from urllib.parse import urlparse, unquote, quote
+
+import msal
+import requests
 from decouple import config
 
 SHAREPOINT_SITE_URL = config("SHAREPOINT_SITE_URL")
 CLIENT_ID = config("SHAREPOINT_CLIENT_ID")
 CLIENT_SEC = config("SHAREPOINT_CLIENT_SECRET")
 TENANT_ID = config("SHAREPOINT_TENANT_ID")  # o usar el dominio
-HOSTNAME = config("HOSTNAME")  # tu tenant host
-SITE_PATH = config("SITE_PATH")
+
+url_without_protocol = SHAREPOINT_SITE_URL.replace("https://", "")
+parts = url_without_protocol.split("/", 1)
+if len(parts) < 2 or parts[0] != 'sites':
+    raise ValueError("URL debe tener formato /sites/SITENAME")
+
+HOSTNAME = parts[0]
+sub_part = parts[1].split("/", 1) # tu tenant host
+SITE_PATH = sub_part[1]
 SHAREPOINT_DOC_LIB = config("SHAREPOINT_DOC_LIB", "Biblioteca de Documentos")
 
 
 DOC_LIB_DISPLAY_NAME = None  # Ej: "Documentos" o "Shared Documents" si quieres forzar
-
-logger = logging.getLogger(__name__)
-
-import logging
-import threading
-from pathlib import Path
-from typing import Optional, Tuple
-from dataclasses import dataclass
-import time
-
-from decouple import config
-from urllib.parse import urlparse, unquote, quote
-import requests
-import msal
-
-# Configuración global
-SHAREPOINT_SITE_URL = config("SHAREPOINT_SITE_URL")
-CLIENT_ID = config("SHAREPOINT_CLIENT_ID")
-CLIENT_SEC = config("SHAREPOINT_CLIENT_SECRET")
-TENANT_ID = config("SHAREPOINT_TENANT_ID")
-HOSTNAME = config("HOSTNAME")
-SITE_PATH = config("SITE_PATH")
-SHAREPOINT_DOC_LIB = config("SHAREPOINT_DOC_LIB", "Biblioteca de Documentos")
-
-DOC_LIB_DISPLAY_NAME = None
 
 logger = logging.getLogger(__name__)
 
@@ -157,7 +148,7 @@ class SharePointManager:
 
                 # Obtener site_id y drive_id
                 site_id = cls.get_site_id(token)
-                drive_id = cls.get_drive_id(token, site_id, "Biblioteca de Documentos")
+                drive_id = cls.get_drive_id(token, site_id, SHAREPOINT_DOC_LIB)
 
                 # Crear nueva configuración
                 cls._config = SharePointConfig(
@@ -590,7 +581,7 @@ def delete_document(document_url: str) -> bool:
         # 2. Convertir ruta completa a ruta relativa a la biblioteca
         file_path = SharePointManager.site_relative_to_library_relative(
             full_path,
-            "Biblioteca de Documentos"
+            SHAREPOINT_DOC_LIB
         )
 
         logger.info(f"Ruta del archivo a eliminar: {file_path}")
