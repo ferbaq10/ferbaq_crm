@@ -2,7 +2,7 @@ import logging
 from typing import Optional
 from urllib.parse import urlparse, unquote
 
-from opportunity.sharepoint import SharePointManager
+from opportunity.sharepoint import SharePointManager, SHAREPOINT_DOC_LIB
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +73,7 @@ class SharePointProfileService:
             # 2. Convertir ruta completa a ruta relativa a la biblioteca
             file_path = SharePointManager.site_relative_to_library_relative(
                 full_path,
-                "Biblioteca de Documentos"
+                SHAREPOINT_DOC_LIB
             )
 
             logger.info(f"Ruta del archivo a eliminar: {file_path}")
