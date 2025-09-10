@@ -17,7 +17,7 @@ TENANT_ID = config("SHAREPOINT_TENANT_ID")  # o usar el dominio
 
 url_without_protocol = SHAREPOINT_SITE_URL.replace("https://", "")
 parts = url_without_protocol.split("/", 1)
-if len(parts) < 2 or parts[0] != 'sites':
+if len(parts) < 2 or 'sites' not in parts[1]:
     raise ValueError("URL debe tener formato /sites/SITENAME")
 
 HOSTNAME = parts[0]
