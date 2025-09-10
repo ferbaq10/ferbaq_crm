@@ -199,7 +199,7 @@ class SharePointManager:
             return f"{base_url}{endpoint}"
 
     @classmethod
-    def site_relative_to_library_relative(cls, full_path: str, library_display_hint: str = None) -> str:
+    def site_relative_to_library_relative(cls, full_path: str, library_display_hint: str = SHAREPOINT_DOC_LIB) -> str:
         """
         Convierte path completo del sitio a path relativo de la biblioteca
 
