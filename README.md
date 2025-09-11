@@ -568,7 +568,20 @@ Activa y arranca:
             proxy_connect_timeout 60s;
             proxy_send_timeout 60s;
             proxy_read_timeout 60s;
-        }   # Backend (Django) bajo /api/
+        }  
+        
+         # API routes - que Next.js maneje el proxy
+        location /api/ {
+            proxy_pass http://localhost:3000;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto https;
+            proxy_connect_timeout 60s;
+            proxy_send_timeout 60s;
+            proxy_read_timeout 60s;
+        }   
         location /api/static/ {
             alias /var/www/ferbaq_crm_backend/static/;
         }
