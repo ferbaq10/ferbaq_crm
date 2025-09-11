@@ -75,17 +75,32 @@ DJOSER = {
     }
 }
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=Csv()) # aplica a peticiones HTTP directas al servidor.
+# Configuración de cookies para desarrollo y producción
+SESSION_COOKIE_SAMESITE = config("SESSION_COOKIE_SAMESITE", default="Lax")
+CSRF_COOKIE_SAMESITE    = config("CSRF_COOKIE_SAMESITE", default="Lax")
 
-CSRF_TRUSTED_ORIGINS = ["https://crm.portal-ferbaq.net"]
+SECURE_SSL_REDIRECT   = config("SECURE_SSL_REDIRECT", cast=bool, default=False)
+USE_X_FORWARDED_HOST  = config("USE_X_FORWARDED_HOST", cast=bool, default=False)
+SESSION_COOKIE_SECURE = config("SESSION_COOKIE_SECURE", cast=bool, default=False) # HTTPS desde Nginx
+CSRF_COOKIE_SECURE    = config("CSRF_COOKIE_SECURE", cast=bool, default=False)
+
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="").split(",") # aplica a peticiones HTTP directas al servidor.
+
+# Headers de proxy
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# CORS más específico
+CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS").split(",")
 
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
 
+
+
 # Configuración adicional de CORS
 
 cors_origins = config('CORS_ALLOWED_ORIGINS', default='')
+
 CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins.split(',')]
 
 # Headers permitidos
