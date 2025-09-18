@@ -623,6 +623,23 @@ Activa y arranca:
     sudo systemctl status nginx
 ```
 
+## DESPLIEGUE AUTOMÁTICO CI/CD DJANGO + REDIS + POSTGRES EN EC2
+Para realizar el despliegue automático utilizando la integración continua, se utiliza el GithubAction, y para ello se 
+especifican en los archivos deploy.yml y deploy-dev.yml, las directivas de como se va a realizar el despliegue del backend,
+tanto para el entorno de producción como de desarrollo respectivamente.
+
+* Se ejecuta automáticamente al hacer push a la rama main para producción y develop para desarrollo.
+* También puedes lanzarlo manualmente desde la UI con workflow_dispatch.
+* Las variables: 
+    * EC2_USER: ubuntu, 
+    * EC2_HOST_DEV: DNS público del EC2 de desarrollo, 
+    * EC2_HOST_PROD: DNS público del EC2 de producción, 
+    * EC2_PROJECT_DIR: /var/www/ferbaq_crm_backend, 
+    * EC2_SSH_PRIVATE_KEY: poner el valor del archivo de la llave privada, 
+    * HEALTH_URL: endpoint/health, 
+
+## Otras actividades útiles
+
  Si no tienes respuesta en los endpoints:
 
 ```bash
@@ -669,7 +686,7 @@ Cambiar la contraseña de un usuario desde Django Shell
  user.save()
 ```
 
-## Configurar CloudWatch en EC2
+### Configurar CloudWatch en EC2
 
 ### Verificar permisos IAM
 Tu instancia EC2 necesita un Role con la política CloudWatchAgentServerPolicy
