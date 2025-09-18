@@ -638,6 +638,8 @@ tanto para el entorno de producción como de desarrollo respectivamente.
     * EC2_SSH_PRIVATE_KEY: poner el valor del archivo de la llave privada, 
     * HEALTH_URL: endpoint/health, 
 
+Las variables se registran en el setting del proyecto, dentro del Github. Ir a Secrets and Variables y seleccionar Actions
+
 ## Otras actividades útiles
 
  Si no tienes respuesta en los endpoints:
