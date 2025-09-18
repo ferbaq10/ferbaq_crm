@@ -26,6 +26,8 @@ INSTALLED_APPS = [
     'django_filters',
     'django_extensions',
     'django_rq',
+    'graphene_django',
+    'graphql_jwt.refresh_token.apps.RefreshTokenConfig',
     'project',
     'catalog',
     'contact',
@@ -35,6 +37,18 @@ INSTALLED_APPS = [
     'purchase',
     'activity_log',
     'users',
+]
+
+GRAPHENE = {
+    'SCHEMA': 'core.schema.schema',
+    'MIDDLEWARE': [
+        'graphql_jwt.middleware.JSONWebTokenMiddleware',
+    ],
+}
+
+AUTHENTICATION_BACKENDS = [
+    'graphql_jwt.backends.JSONWebTokenBackend',
+    'django.contrib.auth.backends.ModelBackend',
 ]
 
 MIDDLEWARE = [
