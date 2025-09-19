@@ -10,6 +10,7 @@ from rest_framework.response import Response
 
 from catalog.viewsets.base import CachedViewSet
 from core.di import injector
+from opportunity.filters import OpportunityFilter
 from opportunity.models import Opportunity, CommercialActivity
 from opportunity.permissions import CanAccessOpportunity
 from opportunity.serializers import (
@@ -96,16 +97,24 @@ class OpportunityViewSet(CachedViewSet):
             else self.write_serializer_class
         )
 
+
     def get_actives_queryset(self, request):
         # si esta función solo se usa para listados “activos”
         user = request.user
-        return self.opportunity_service.get_filtered_queryset(user).filter(is_removed=False)
+        queryset = self.opportunity_service.get_filtered_queryset(user).filter(is_removed=False)
+
+        filterset = OpportunityFilter(request.query_params, queryset=queryset)
+        if not filterset.is_valid():
+            return Response(filterset.errors, status=400)
+
+        queryset = filterset.qs
+
+        return queryset
 
 
     @transaction.atomic
     def create(self, request, *args, **kwargs):
         try:
-            user = request.user
             serializer = self.get_serializer(data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
 
