@@ -37,7 +37,7 @@ class ContactViewSet(CachedViewSet):
 
     def get_actives_queryset(self, request):
         user = request.user
-        queryset =self.contact_service.get_base_queryset(user).filter(is_removed=False).distinct()
+        queryset = self.contact_service.get_base_queryset(user).filter(is_removed=False).distinct()
 
         filterset = ContactFilter(request.query_params, queryset=queryset)
         if not filterset.is_valid():

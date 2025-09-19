@@ -11,7 +11,7 @@ class ContactFilter(django_filters.FilterSet):
     class Meta:
         model = Contact
         fields = {
-            # ✅ Solo campos que existen en el modelo Contact
+            # Solo campos que existen en el modelo Contact
             'name': ['icontains'],
             'email': ['icontains'],
             'is_removed': ['exact'],
