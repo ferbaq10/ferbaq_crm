@@ -1,7 +1,7 @@
 from datetime import datetime
+from decimal import Decimal
 
 from django.contrib.auth import get_user_model
-from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
 
 from catalog.constants import StatusIDs
@@ -9,15 +9,13 @@ from catalog.models import OpportunityType, StatusOpportunity, Currency, LostOpp
 from catalog.serializers import StatusOpportunitySerializer, CurrencySerializer, OpportunityTypeSerializer, \
     LostOpportunityTypeSerializer
 from client.models import Client
-from client.serializers import ClientSerializer
+from client.serializers import ClientSimplifySerializer
 from contact.models import Contact
-from contact.serializers import ContactSerializer
+from contact.serializers import ContactSimplifySerializer
 from project.models import Project
-from project.serializers import ProjectSerializer
-from users.serializers import UserSerializer
+from project.serializers import ProjectSimplifySerializer
+from users.serializers import UserSerializer, UserProfileSimplifySerializer
 from .models import CommercialActivity, FinanceOpportunity, Opportunity, OpportunityDocument
-from decimal import Decimal, InvalidOperation
-
 
 User = get_user_model()
 
@@ -65,13 +63,13 @@ class CommercialActivitySerializer(serializers.ModelSerializer):
 
 # --- Opportunity SOLO LECTURA ---
 class OpportunitySerializer(serializers.ModelSerializer):
-    contact = ContactSerializer()
-    agent = UserSerializer()
-    project = ProjectSerializer()
+    contact = ContactSimplifySerializer()
+    agent = UserProfileSimplifySerializer()
+    project = ProjectSimplifySerializer()
     currency = CurrencySerializer()
     opportunityType = OpportunityTypeSerializer()
     status_opportunity = StatusOpportunitySerializer()
-    client = ClientSerializer()
+    client = ClientSimplifySerializer()
 
     lost_opportunity = LostOpportunityTypeSerializer()
 
@@ -238,13 +236,20 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
                     f'El monto ({amount_dec}) no puede ser menor que el monto ganado ({earned_dec}) '
                     f'para oportunidades ganadas.'
                 )
-        cash_percentage   = to_decimal_or_none((finance_data_req or {}).get("cash_percentage"))
-        credit_percentage = to_decimal_or_none((finance_data_req or {}).get("credit_percentage"))
-        if cash_percentage and credit_percentage and cash_percentage + credit_percentage > 100:
-            errors['cash_percentage'] = f'La suma del porcentaje de contado y porcentaje de crédito no puede ser mayor a 100.'
+            cash_percentage   = to_decimal_or_none((finance_data_req or {}).get("cash_percentage"))
+            credit_percentage = to_decimal_or_none((finance_data_req or {}).get("credit_percentage"))
 
-        if cash_percentage and credit_percentage and cash_percentage + credit_percentage < 0:
-            errors['cash_percentage'] =  'La suma del porcentaje de contado y porcentaje de crédito no puede ser menor a 0.'
+           # Si no se está modificando ninguno en un PATCH, no validar suma
+            if cash_percentage is None and credit_percentage is None:
+                return attrs
+
+            # Si se modifica uno, el otro debe existir (nuevo o de la instancia)
+            if cash_percentage is None or credit_percentage is None:
+                faltante = 'cash_percentage' if cash_percentage is None else 'credit_percentage'
+                errors[faltante] = 'Este campo es requerido cuando se modifica el otro porcentaje.'
+            else:
+                if (cash_percentage + credit_percentage) != 100:
+                    errors['cash_percentage'] = f'El total de porcentaje de contado y de crédito debe ser igual a 100.'
 
         # ===== Reglas por estado (solo si conocemos el estado) =====
         states_requiring_fields = [StatusIDs.SEND, StatusIDs.NEGOTIATING, StatusIDs.WON]

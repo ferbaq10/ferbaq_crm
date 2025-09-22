@@ -2,18 +2,19 @@ import logging
 from datetime import datetime
 from typing import TypeVar
 
+from django.contrib.auth.models import Group, Permission
 from django.db import IntegrityError
 from django.db import transaction
 from django.db.models import Prefetch
+from django.db.models import QuerySet
 from django.utils import timezone
 from django_rq import enqueue
 from injector import inject
 from rest_framework.exceptions import ValidationError
 
 from catalog.constants import StatusIDs, StatusPurchaseTypeIDs
-from client.models import Client
-from opportunity.models import Opportunity
-from opportunity.models import OpportunityDocument
+from catalog.models import WorkCell
+from opportunity.models import Opportunity, FinanceOpportunity, OpportunityDocument
 from opportunity.services.base import BaseService
 from opportunity.services.interfaces import AbstractFinanceOpportunityFactory
 from opportunity.tasks import upload_to_sharepoint_db, delete_file_from_sharepoint_db
@@ -29,85 +30,71 @@ class OpportunityService(BaseService):
         self.finance_factory = finance_factory
 
     def get_prefetched_queryset(self):
-        # Igual que tu get_base_queryset, PERO sin add_filter_by_rol
-        optimized_clients = Prefetch(
-            'contact__clients',
-            queryset=Client.objects.select_related('city', 'business_group')
-        )
-        optimized_finance = Prefetch(
-            'finance_data',
-            queryset=Opportunity._meta.get_field('finance_data').related_model.objects.all()
-        )
-        optimized_documents = Prefetch(
-            'documents',
-            queryset=OpportunityDocument.objects.only(
-                'id', 'file_name', 'sharepoint_url', 'uploaded_at', 'opportunity'
+        return (
+            Opportunity.objects
+            .select_related(
+                'status_opportunity',
+                'contact__job',
+                'currency',
+                'agent', 'agent__profile',  # <- ok
+                'project__project_status',
+                'project__specialty',
+                'project__subdivision__division',
+                'project__work_cell__udn',
+                'opportunityType',
+                'client__city',
+                'client__business_group',
+                'lost_opportunity',
+            )
+            .prefetch_related(
+                # Solo lo que el serializer realmente usa:
+                Prefetch(
+                    'documents',
+                    queryset=OpportunityDocument.objects.only(
+                        'id', 'file_name', 'sharepoint_url', 'uploaded_at', 'opportunity_id'
+                    ),
+                ),
+                Prefetch(
+                    'finance_data',
+                    queryset=FinanceOpportunity.objects.only(
+                        'id', 'earned_amount', 'cost_subtotal', 'order_closing_date',
+                        'oc_number', 'cash_percentage', 'credit_percentage',
+                        'opportunity_id', 'is_removed'  # <- agrega este campo si lo accedes
+                    ),
+                ),
+                # Si el UserSerializer muestra work cells:
+                Prefetch(
+                    'agent__workcell',
+                    queryset=WorkCell.objects.select_related('udn').only('id', 'name', 'udn_id'),
+                ),
             )
         )
-
-        return (Opportunity.objects
-                .select_related(
-            'status_opportunity', 'currency', 'opportunityType', 'contact', 'contact__job',
-            'project', 'project__specialty', 'project__subdivision',
-            'project__subdivision__division', 'project__project_status',
-            'project__work_cell', 'project__work_cell__udn',
-            'client', 'client__city', 'client__business_group'
-        )
-                .prefetch_related(optimized_finance, optimized_clients, optimized_documents)
-                )
 
     def get_base_queryset(self, user):
         return self.add_filter_by_rol(user, self.get_prefetched_queryset(), owner_field='agent')
 
-    def get_filtered_queryset(self, user):
-        return (self.add_filter_by_rol(user, self.get_prefetched_queryset())
-                    .filter(is_removed=False).distinct())
+    # def get_filtered_queryset(self, user):
+    #     return (self.add_filter_by_rol(user, self.get_prefetched_queryset())
+    #                 .filter(is_removed=False).distinct())
 
-    def get_base_documents_queryset(self, user):
-        optimized_clients = Prefetch(
-            'opportunity__contact__clients',
-            queryset=Client.objects.select_related('city', 'business_group')
-        )
+    def get_base_documents_queryset(self, user) -> QuerySet[OpportunityDocument]:
 
-        optimized_finance = Prefetch(
-            'opportunity__finance_data',
-            queryset=Opportunity._meta.get_field('finance_data').related_model.objects.all()
-        )
+        queryset = OpportunityDocument.objects.only('id', 'sharepoint_url')
 
-        queryset = OpportunityDocument.objects.select_related(
-            'opportunity',
-            'opportunity__status_opportunity',
-            'opportunity__currency',
-            'opportunity__opportunityType',
-            'opportunity__contact',
-            'opportunity__contact__job',
-            'opportunity__project',
-            'opportunity__project__specialty',
-            'opportunity__project__subdivision',
-            'opportunity__project__subdivision__division',
-            'opportunity__project__project_status',
-            'opportunity__project__work_cell',
-            'opportunity__project__work_cell__udn',
-            'opportunity__client',
-            'opportunity__client__city',
-            'opportunity__client__business_group'
-        ).prefetch_related(
-            optimized_finance,
-            optimized_clients)
-
-        return self.add_filter_by_rol(user, queryset, owner_field='agent')
-
-
+        return self.add_filter_by_rol(user, queryset,
+                                      workcell_filter_field="opportunity__project__work_cell__users",
+                                      owner_field="opportunity__agent"
+                                      )
 
     def get_filtered_queryset(self, user):
         return self.get_base_queryset(user).filter(
             created__year=datetime.now().year
-        ).distinct().order_by('-created')
+        ).order_by('-created')
 
     def get_filtered_documents_queryset(self, user):
         return self.get_base_documents_queryset(user).filter(
             uploaded_at__year=datetime.now().year
-        ).distinct().order_by('-uploaded_at')
+        ).order_by('-uploaded_at')
 
     def process_create(self, serializer, request, files=None) -> Opportunity:
         serializer.validated_data["date_status"] = timezone.now()
@@ -239,11 +226,11 @@ class OpportunityService(BaseService):
                 logger.error(f"No se pudo obtener UDN para {file_name}")
 
     def delete_document(self, document: OpportunityDocument) -> dict:
+        file_name = document.file_name
+
         try:
-            # Eliminar en SharePoint y BD
             delete_file_from_sharepoint_db(document.sharepoint_url, document.id)
         except Exception as e:
             logger.error(f" Error al eliminar en SharePoint o en base de datos: {e}")
 
-        file_name = document.file_name
         return {"message": f"Documento '{file_name}' eliminado exitosamente"}

@@ -20,6 +20,18 @@ class Client(BaseModel):
         unique=True,
         verbose_name="Id de cliente"
     )
+
+    class Classification(models.TextChoices):
+        ASSET = "ACTIVO", "Activo"
+        PROSPECT = "PROSPECTO", "Prospecto"
+
+    classification = models.CharField(
+        max_length=10,
+        choices = Classification.choices,
+        default = Classification.ASSET,
+        verbose_name = "Clasificación",
+    )
+
     history = HistoricalRecords()
 
     city = models.ForeignKey(

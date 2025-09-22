@@ -1,6 +1,7 @@
 import logging
 
 from django.core.exceptions import ObjectDoesNotExist
+from django.http import Http404
 from django.utils.functional import cached_property
 from rest_framework import status
 from rest_framework.response import Response
@@ -9,7 +10,7 @@ from catalog.viewsets.base import CachedViewSet
 from core.di import injector
 from opportunity.models import OpportunityDocument
 from opportunity.serializers import (OpportunityDocumentSerializer
-)
+                                     )
 from opportunity.services.opportunity_service import OpportunityService
 
 logger = logging.getLogger(__name__)
@@ -55,6 +56,8 @@ class OpportunityDocumentViewSet(CachedViewSet):
             doc = self.get_object()
             result = self.opportunity_service.delete_document(doc)
             return Response(result, status=status.HTTP_200_OK)
+        except Http404:
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
         except ObjectDoesNotExist:
             return Response({"error": "Documento no encontrado"}, status=status.HTTP_404_NOT_FOUND)

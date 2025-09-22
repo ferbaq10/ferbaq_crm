@@ -19,21 +19,8 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     def get_token(cls, user):
         token = super().get_token(user)
 
-        # Personaliza el payload del token
         token['user_id'] = user.id
         token['username'] = user.username
-
-        token['roles'] = list(user.groups.values_list('name', flat=True))
-
-        # Añadir permisos como lista de codenames
-        token['permissions'] = cls.get_permissions(user)
-        token['workCells'] = [
-            {
-                'id': wc.id,
-                'name': wc.name,
-            }
-            for wc in user.workcell.all()
-        ]
 
         return token
 
@@ -71,8 +58,15 @@ class UserWithRolesSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'email', 'groups', 'user_permissions']
 
 
+class UserProfileSimplifySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = get_user_model()
+        fields = ('id', 'username', 'first_name', 'last_name', 'email')
+
+
 class UserProfileSerializer(serializers.ModelSerializer):
     photo_url = serializers.SerializerMethodField()
+
     
     class Meta:
         model = UserProfile
@@ -83,12 +77,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
         if obj.photo_sharepoint_url:
             filename = obj.photo_sharepoint_url.split('/')[-1]
             proxy_url = f"/api/users/photo/{filename}"
-            
-            # ✅ DEBUG: Ver qué está generando
-            print(f"🔍 SharePoint URL: {obj.photo_sharepoint_url}")
-            print(f"🔍 Filename extraído: {filename}")
-            print(f"🔍 Proxy URL generada: {proxy_url}")
-            
             return proxy_url
         return None
 
@@ -96,9 +84,30 @@ class UserProfileSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     profile = UserProfileSerializer(read_only=True)
 
+    roles = serializers.SlugRelatedField(
+        source='groups', slug_field='name', many=True, read_only=True
+    )
+
+    # Permissions y workCells
+    permissions = serializers.SerializerMethodField()
+    workCells = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ['id', 'username', 'first_name', 'last_name', 'email', 'is_active', 'is_superuser', 'profile']
+        fields = ['id', 'username', 'first_name', 'last_name', 'email', 'is_active', 'is_superuser', 'profile',
+                  'roles', 'permissions', 'workCells']
+
+    def get_permissions(self, obj):
+        return MyTokenObtainPairSerializer.get_permissions(obj)
+
+    def get_workCells(self, obj):
+        return [
+            {
+                'id': wc.id,
+                'name': wc.name,
+            }
+            for wc in obj.workcell.all()
+        ]
 
 
 class UserWithWorkcellSerializer(serializers.ModelSerializer):
@@ -213,7 +222,8 @@ class ProfilePhotoUploadSerializer(serializers.Serializer):
             raise serializers.ValidationError(f"Formato no permitido. Use: {', '.join(allowed_formats)}")
 
         return value
-    
+
+
 class PasswordResetRequestSerializer(serializers.Serializer):
     email = serializers.EmailField(
         required=True,

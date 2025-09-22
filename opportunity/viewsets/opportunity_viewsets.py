@@ -5,11 +5,12 @@ from django.db import transaction, IntegrityError
 from django.utils.functional import cached_property
 from rest_framework import status
 from rest_framework.exceptions import ValidationError, APIException, PermissionDenied, NotFound
-from rest_framework.permissions import IsAuthenticated, DjangoModelPermissions
+from rest_framework.permissions import IsAuthenticated, DjangoModelPermissions, AllowAny
 from rest_framework.response import Response
 
 from catalog.viewsets.base import CachedViewSet
 from core.di import injector
+from opportunity.filters import OpportunityFilter
 from opportunity.models import Opportunity, CommercialActivity
 from opportunity.permissions import CanAccessOpportunity
 from opportunity.serializers import (
@@ -47,8 +48,17 @@ class OpportunityViewSet(CachedViewSet):
         except ObjectDoesNotExist:
             raise NotFound('Opportunity no encontrada.')
 
+        # Si no hay autenticación habilitada, permitir acceso
+        if not self.authentication_classes:
+            return obj
+
         # chequeo de alcance (igual que en CanAccessOpportunity, por si cambias permisos)
         user = self.request.user
+
+        # Si el usuario es anónimo y se permite acceso anónimo, retornar objeto
+        if user.is_anonymous and AllowAny in self.permission_classes:
+            return obj
+
         scope = resolve_scope(user)
         if user.is_superuser or scope == RoleScope.ALL:
             return obj
@@ -87,16 +97,24 @@ class OpportunityViewSet(CachedViewSet):
             else self.write_serializer_class
         )
 
+
     def get_actives_queryset(self, request):
         # si esta función solo se usa para listados “activos”
         user = request.user
-        return self.opportunity_service.get_filtered_queryset(user).filter(is_removed=False).distinct()
+        queryset = self.opportunity_service.get_filtered_queryset(user).filter(is_removed=False)
+
+        filterset = OpportunityFilter(request.query_params, queryset=queryset)
+        if not filterset.is_valid():
+            return Response(filterset.errors, status=400)
+
+        queryset = filterset.qs
+
+        return queryset
 
 
     @transaction.atomic
     def create(self, request, *args, **kwargs):
         try:
-            user = request.user
             serializer = self.get_serializer(data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
 
@@ -126,7 +144,6 @@ class OpportunityViewSet(CachedViewSet):
     def update(self, request, *args, **kwargs):
         try:
             user = self.request.user
-            # get_object() personalizado NO filtra por rol y valida permisos
             instance = self.get_object()
             partial = kwargs.pop('partial', request.method == 'PATCH')
             serializer = self.get_serializer(instance, data=request.data, partial=partial)
@@ -158,5 +175,3 @@ class OpportunityViewSet(CachedViewSet):
 class CommercialActivityViewSet(CachedViewSet):
     model = CommercialActivity
     serializer_class = CommercialActivitySerializer
-
-

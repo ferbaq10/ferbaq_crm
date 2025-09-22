@@ -24,7 +24,10 @@ INSTALLED_APPS = [
     'djoser',
     'corsheaders',
     'django_filters',
+    'django_extensions',
     'django_rq',
+    'graphene_django',
+    'graphql_jwt.refresh_token.apps.RefreshTokenConfig',
     'project',
     'catalog',
     'contact',
@@ -34,6 +37,18 @@ INSTALLED_APPS = [
     'purchase',
     'activity_log',
     'users',
+]
+
+GRAPHENE = {
+    'SCHEMA': 'core.schema.schema',
+    'MIDDLEWARE': [
+        'graphql_jwt.middleware.JSONWebTokenMiddleware',
+    ],
+}
+
+AUTHENTICATION_BACKENDS = [
+    'graphql_jwt.backends.JSONWebTokenBackend',
+    'django.contrib.auth.backends.ModelBackend',
 ]
 
 MIDDLEWARE = [
@@ -74,14 +89,32 @@ DJOSER = {
     }
 }
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=Csv()) # aplica a peticiones HTTP directas al servidor.
+# Configuración de cookies para desarrollo y producción
+SESSION_COOKIE_SAMESITE = config("SESSION_COOKIE_SAMESITE", default="Lax")
+CSRF_COOKIE_SAMESITE    = config("CSRF_COOKIE_SAMESITE", default="Lax")
+
+SECURE_SSL_REDIRECT   = config("SECURE_SSL_REDIRECT", cast=bool, default=False)
+USE_X_FORWARDED_HOST  = config("USE_X_FORWARDED_HOST", cast=bool, default=False)
+SESSION_COOKIE_SECURE = config("SESSION_COOKIE_SECURE", cast=bool, default=False) # HTTPS desde Nginx
+CSRF_COOKIE_SECURE    = config("CSRF_COOKIE_SECURE", cast=bool, default=False)
+
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="").split(",") # aplica a peticiones HTTP directas al servidor.
+
+# Headers de proxy
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# CORS más específico
+CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS").split(",")
 
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
 
+
+
 # Configuración adicional de CORS
 
 cors_origins = config('CORS_ALLOWED_ORIGINS', default='')
+
 CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins.split(',')]
 
 # Headers permitidos
@@ -128,22 +161,34 @@ WSGI_APPLICATION = 'core.wsgi.application'
 
 
 # --- DATABASE ---
+# --- DATABASE ---
 DATABASE_URL = os.environ.get("DATABASE_URL") or config("DATABASE_URL", default=None)
-print(f"🔍 DATABASE_URL desde entorno de despliegue: {DATABASE_URL}")
 if DATABASE_URL:
     DATABASES = {
         'default': dj_database_url.parse(DATABASE_URL)
     }
+    # Agregar configuraciones adicionales a la conexión parseada
+    DATABASES['default'].update({
+        'CONN_MAX_AGE': 60,  # Mantener conexiones por 1 minuto
+        'OPTIONS': {
+            'connect_timeout': 60,  # 60 segundos para conectar
+            'options': '-c statement_timeout=30000'  # 30 segundos por consulta
+        }
+    })
 else:
-    print(f"🔍 DATABASE: {config('DB_NAME', default='ferbaq_local')}")
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': config('DB_NAME', default='ferbaq_local'),
+            'NAME': config('DB_NAME', default='ferbaq_crm_dev'),
             'USER': config('DB_USER', default='postgres'),
             'PASSWORD': config('DB_PASSWORD', default='password'),
             'HOST': config('DB_HOST', default='localhost'),
             'PORT': config('DB_PORT', default='5432', cast=int),
+            'CONN_MAX_AGE': 60,  # Reutilizar conexiones por 1 minuto
+            'OPTIONS': {
+                'connect_timeout': 60,  # Timeout para establecer conexión
+                'options': '-c statement_timeout=30000 -c idle_in_transaction_session_timeout=30000'
+            }
         }
     }
 
@@ -218,6 +263,11 @@ STATIC_ROOT = '/var/www/ferbaq_crm_backend/static/'
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
+
+ENVIRONMENT = os.environ.get('DJANGO_ENV', 'development')
+INSTANCE_NAME = os.environ.get('INSTANCE_NAME', 'unknown')
+LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -229,7 +279,7 @@ IS_WINDOWS = os.name == "nt"
 # En Windows -> BASE_DIR/logs
 # En Linux -> /var/log/ferbaq (pero si no existe, cae en BASE_DIR/logs)
 default_log_dir = BASE_DIR / "logs"
-linux_log_dir = Path("/var/log/ferbaq")
+linux_log_dir = Path("/var/log/django")
 
 if IS_WINDOWS:
     LOG_DIR = default_log_dir
@@ -244,34 +294,92 @@ LOGGING = {
     'disable_existing_loggers': False,
 
     'formatters': {
-        'detailed': {
-            'format': '[{asctime}] {levelname} {name} - {message}',
+        'detailed_with_env': {
+            'format': '[{asctime}] [' + ENVIRONMENT + '] [' + INSTANCE_NAME + '] {levelname} {name} - {message}',
+            'style': '{',
+        },
+        'simple_console': {
+            'format': '{levelname} {name} - {message}',
             'style': '{',
         },
     },
 
     'handlers': {
-        'console_detailed': {
+        # Handler para consola (solo queries de DB para optimización)
+        'console_db_only': {
             'class': 'logging.StreamHandler',
-            'formatter': 'detailed',
+            'formatter': 'simple_console',
+            'level': 'DEBUG',
         },
-        'file': {
+
+        # Handler para archivo django.log (logs generales de Django)
+        'django_file': {
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': str(LOG_DIR / 'django_extensions.log'),  # Ruta dinámica
-             'maxBytes': 5*1024*1024,  # 5 MB Para que no crezca los logs indefinidamente
-             'backupCount': 5,
-             'formatter': 'detailed',
+            'filename': str(LOG_DIR / 'django.log'),
+            'maxBytes': 5 * 1024 * 1024,  # 5 MB
+            'backupCount': 5,
+            'formatter': 'detailed_with_env',
+            'level': 'INFO',
+        },
+
+        # Handler para archivo error.log (solo errores)
+        'error_file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': str(LOG_DIR / 'error.log'),
+            'maxBytes': 5 * 1024 * 1024,  # 5 MB
+            'backupCount': 5,
+            'formatter': 'detailed_with_env',
+            'level': 'ERROR',
+        },
+
+        # Handler para django_extensions (como ya lo tenías)
+        'extensions_file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': str(LOG_DIR / 'django_extensions.log'),
+            'maxBytes': 5 * 1024 * 1024,  # 5 MB
+            'backupCount': 5,
+            'formatter': 'detailed_with_env',
         },
     },
 
+    # Logger raíz - captura todo lo que no tenga logger específico
+    'root': {
+        'handlers': ['django_file', 'error_file'],
+        'level': 'INFO',
+    },
+
     'loggers': {
-        'django_extensions': {
-            'handlers': ['console_detailed', 'file'],
+        # Logger principal de Django - va a archivos
+        'django': {
+            'handlers': ['django_file', 'error_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+
+        # Logger para requests - va a archivos
+        'django.request': {
+            'handlers': ['django_file', 'error_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+
+        # Logger para tu aplicación - va a archivos
+        'users': {  # Cambia por el nombre de tu app
+            'handlers': ['django_file', 'error_file'],
+            'level': 'DEBUG' if ENVIRONMENT == 'development' else 'INFO',
+            'propagate': False,
+        },
+
+        # Queries de DB - SOLO consola para optimización
+        'django.db.backends': {
+            'handlers': ['console_db_only'] if DEBUG else [],
             'level': 'DEBUG',
             'propagate': False,
         },
-        'django.db.backends': {
-            'handlers': ['console_detailed'],  # Solo consola
+
+        # Django extensions - archivo específico
+        'django_extensions': {
+            'handlers': ['extensions_file'],
             'level': 'DEBUG',
             'propagate': False,
         },

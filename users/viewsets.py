@@ -1,7 +1,14 @@
+import logging
+import os
+
+from decouple import config
+from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.http import HttpResponse
 from django.utils.functional import cached_property
 from rest_framework import status
 from rest_framework.decorators import action
+from rest_framework.permissions import AllowAny
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -9,14 +16,17 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from catalog.models import WorkCell
 from catalog.viewsets.base import CachedViewSet
 from core.di import injector
+from opportunity.sharepoint import fetch_sharepoint_file
 from users.serializers import (
-    UserSerializer, UserWithWorkcellSerializer, UserProfileUpdateSerializer, 
-    ProfilePhotoUploadSerializer, PasswordChangeSerializer, PasswordResetRequestSerializer, PasswordResetConfirmSerializer)
+    UserSerializer, UserWithWorkcellSerializer, UserProfileUpdateSerializer,
+    ProfilePhotoUploadSerializer, PasswordChangeSerializer, PasswordResetRequestSerializer,
+    PasswordResetConfirmSerializer)
 from users.services.user_service import UserService
 from .permissions import CanAssignWorkcell, CanUnassignWorkcell
 from .serializers import MyTokenObtainPairSerializer
 from .services.sharepoint_profile_service import SharePointProfileService
-from rest_framework.permissions import AllowAny
+
+logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
@@ -173,11 +183,11 @@ class UserViewSet(CachedViewSet):
         profile.photo_sharepoint_url = sharepoint_url
         profile.save()
 
-        # Eliminar foto anterior si existía
-        if old_photo_url:
-            SharePointProfileService.delete_profile_photo(old_photo_url)
+       # Eliminar foto anterior si existía
+       #  if old_photo_url:
+       #      SharePointProfileService.delete_profile_photo(old_photo_url)
 
-        # ✅ CORRECCIÓN: Devolver URL del proxy, no la directa de SharePoint
+        # CORRECCIÓN: Devolver URL del proxy, no la directa de SharePoint
         filename = sharepoint_url.split('/')[-1]
         proxy_url = f"/api/users/photo/{filename}"
 
@@ -186,7 +196,7 @@ class UserViewSet(CachedViewSet):
             'photo_url': proxy_url  # ← Devolver URL del proxy
         }, status=status.HTTP_200_OK)
 
-    @action(detail=False, methods=['delete'], permission_classes=[IsAuthenticated])
+    @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated])
     def delete_photo(self, request):
         """Elimina foto de perfil del usuario autenticado"""
         profile = request.user.profile
@@ -215,42 +225,56 @@ class UserViewSet(CachedViewSet):
         permission_classes=[AllowAny])  # ← Sin autenticación para fotos
     def get_photo(self, request, filename=None):
         """Proxy para servir fotos de perfil desde SharePoint - Endpoint público"""
-        import logging
-        logger = logging.getLogger(__name__)
-        
+
         try:
-            from decouple import config
             SHAREPOINT_SITE_URL = config("SHAREPOINT_SITE_URL")
             SHAREPOINT_DOC_LIB = config("SHAREPOINT_DOC_LIB", "Biblioteca de Documentos")
             
             # Construir URL completa del archivo
             photo_url = f"{SHAREPOINT_SITE_URL}/{SHAREPOINT_DOC_LIB}/users/profile_photos/{filename}"
-            
-            # Obtener el archivo de SharePoint
-            photo_content = SharePointProfileService.get_photo_content(photo_url)
-            
-            if photo_content:
-                from django.http import HttpResponse
-                
-                # Determinar tipo de contenido por extensión
+
+            if photo_url:
+                # Obtener el archivo de SharePoint
+                photo_content = SharePointProfileService.get_photo_content(photo_url)
+
                 content_type = 'image/jpeg'
-                if filename.lower().endswith('.png'):
-                    content_type = 'image/png'
-                elif filename.lower().endswith('.webp'):
-                    content_type = 'image/webp'
-                elif filename.lower().endswith('.gif'):
-                    content_type = 'image/gif'
-                
+                if photo_content:
+                    if filename.lower().endswith('.png'):
+                        content_type = 'image/png'
+                    elif filename.lower().endswith('.webp'):
+                        content_type = 'image/webp'
+                    elif filename.lower().endswith('.gif'):
+                        content_type = 'image/gif'
+
                 response = HttpResponse(photo_content, content_type=content_type)
                 response['Cache-Control'] = 'max-age=3600'  # Cache por 1 hora
                 response['Access-Control-Allow-Origin'] = '*'  # Para CORS
                 return response
             else:
-                return Response({'error': 'Foto no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+                return self.serve_default_avatar()
                 
         except Exception as e:
-            logger.exception(f"❌ Error en proxy de foto: {e}")
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            logger.exception(f"Error en proxy de foto: {e}")
+            #return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return self.serve_default_avatar()
+
+    def serve_default_avatar(self):
+        """Sirve una imagen avatar por defecto"""
+        default_photo_path = os.path.join(settings.STATIC_ROOT, 'images', 'default-avatar.jpg')
+
+        if os.path.exists(default_photo_path):
+            with open(default_photo_path, 'rb') as f:
+                return HttpResponse(f.read(), content_type='image/jpeg')
+        else:
+            # SVG avatar por defecto
+            default_svg = '''
+            <svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="50" cy="50" r="40" fill="#ccc"/>
+                <circle cx="50" cy="40" r="15" fill="#999"/>
+                <path d="M25 75 Q50 60 75 75" stroke="#999" stroke-width="8" fill="none"/>
+            </svg>
+            '''
+            return HttpResponse(default_svg, content_type='image/svg+xml')
         
     @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated])
     def change_password(self, request):
@@ -322,3 +346,32 @@ class UserViewSet(CachedViewSet):
             return Response({
                 'error': 'Error interno del servidor al restablecer la contraseña.'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+    @action(detail=False, methods=['get'], url_path='sharepoint-image')
+    def proxy_sharepoint_image(self, request):
+        url = request.GET.get("url")
+        if not url:
+            return HttpResponse("URL is required", status=400)
+
+        try:
+            blob, content_type = fetch_sharepoint_file(url)
+
+            # Validar que sea imagen
+            if not content_type.startswith("image/"):
+                # Puedes intentar deducir por extensión si lo prefieres
+                logger.warning(f"No es imagen. Content-Type: {content_type}")
+                return HttpResponse("La URL no tiene una imagen", status=404)
+
+            resp = HttpResponse(blob, content_type=content_type)
+            resp["Cache-Control"] = "public, max-age=900"
+            resp["Access-Control-Allow-Origin"] = "*"
+            return resp
+
+        except Exception as e:
+            logger.error(f"Error al obtener la imagen: {e}")
+            # Si es auth, devuelve 401 para diferenciarlos
+            msg = str(e)
+            if "Autenticación" in msg or "Unauthorized" in msg:
+                return HttpResponse("Requiere autenticación con SharePoint", status=401)
+            return HttpResponse("Error al obtener la imagen", status=500)

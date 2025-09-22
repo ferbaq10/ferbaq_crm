@@ -419,6 +419,7 @@ Este comando recupera las imágenes para que se muestre bien el admin
 ```bash
   python manage.py collectstatic
 ```
+
 ### PASO 7: Configurar Gunicorn
  Instalar gunicorn
 ```bash
@@ -437,7 +438,7 @@ Este comando recupera las imágenes para que se muestre bien el admin
  Agregar este contenido al archivo 
 ```bash
 [Unit]
-Description=RQ Worker
+Description=RQ Worker (Development or Production)
 After=network.target redis.service
 
 [Service]
@@ -448,9 +449,17 @@ WorkingDirectory=/var/www/ferbaq_crm_backend
 Environment="PATH=/var/www/ferbaq_crm_backend/venv/bin:/usr/local/bin:/usr/bin:/bin"
 Environment="DJANGO_SETTINGS_MODULE=core.settings"
 Environment="PYTHONPATH=/var/www/ferbaq_crm_backend"
-ExecStart=/var/www/ferbaq_crm_backend/venv/bin/python /var/www/ferbaq_crm_backend/manage.py rqworker default
+Environment="DJANGO_ENV=development"
+Environment="INSTANCE_NAME=dev-server"
+# Sin timeouts que puedan causar shutdown
+TimeoutStartSec=0
+TimeoutStopSec=30
+
+ExecStart=/var/www/ferbaq_crm_backend/venv/bin/python manage.py rqworker default --verbosity=2
+
 StandardOutput=append:/var/log/rqworker/access.log
 StandardError=append:/var/log/rqworker/error.log
+
 Restart=always
 RestartSec=10
 
@@ -478,7 +487,7 @@ WantedBy=multi-user.target
  Agregar este contenido al archivo
 ```bash
 [Unit]
-Description=gunicorn daemon
+Description=gunicorn daemon (Development)
 After=network.target
 
 [Service]
@@ -486,11 +495,40 @@ User=ubuntu
 Group=ubuntu
 WorkingDirectory=/var/www/ferbaq_crm_backend
 Environment=PATH=/var/www/ferbaq_crm_backend/venv/bin
-ExecStart=/var/www/ferbaq_crm_backend/venv/bin/gunicorn --bind 127.0.0.1:8080 --workers 3 --timeout 120 core.wsgi:application
+Environment=DJANGO_ENV=development
+Environment=INSTANCE_NAME=dev-server
+Environment=LOG_LEVEL=DEBUG
+ExecStart=/var/www/ferbaq_crm_backend/venv/bin/gunicorn \
+    --bind 127.0.0.1:8080 \
+    --workers 2 \
+    --timeout 120 \
+    --access-logfile /var/log/gunicorn/access.log \
+    --error-logfile /var/log/gunicorn/error.log \
+    --log-level debug \
+    core.wsgi:application
 Restart=always
+RestartSec=3
+LimitNOFILE=65535
 
 [Install]
 WantedBy=multi-user.target
+```
+
+Se debe cambiar los valores si es de producción
+```bash
+    Environment=DJANGO_ENV=production
+    Environment=INSTANCE_NAME=prod-server
+    Environment=LOG_LEVEL=INFO
+```
+
+Crear archivo de variables de entorno
+sudo nano /etc/environment
+
+Agregar estas líneas:
+```bash
+    DJANGO_ENV=production
+    INSTANCE_NAME=prod-server
+    LOG_LEVEL=INFO
 ```
 Activa y arranca:
 ```bash
@@ -506,51 +544,70 @@ Activa y arranca:
  Agregar el siguiente contenido para que sirva tanto para front y backend. Solo se hace una sola vez
 
 ```bash
-server {
-    listen 80;
-    server_name crm.portal-ferbaq.net;
-    client_max_body_size 4M;
-    
-    # Aumentar límites de buffer para cabeceras grandes
-    large_client_header_buffers 4 32k;
-    client_header_buffer_size 8k;
-    proxy_buffer_size 128k;
-    proxy_buffers 4 256k;
-    proxy_busy_buffers_size 256k;
-    
-    # Frontend (Next.js)
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
+    server {
+        server_name crm.portal-ferbaq.net;
+        client_max_body_size 4M;
+        # Aumentar límites de buffer para cabeceras grandes
+        large_client_header_buffers 4 32k;
+        client_header_buffer_size 8k;
+        proxy_buffer_size 128k;
+        proxy_buffers 4 256k;
+        proxy_busy_buffers_size 256k;
+        # Frontend (Next.js)
+        location / {
+            proxy_pass http://localhost:3000;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection 'upgrade';
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto https;
+            proxy_cache_bypass $http_upgrade;
+            # Límites específicos para proxy
+            proxy_connect_timeout 60s;
+            proxy_send_timeout 60s;
+            proxy_read_timeout 60s;
+        }  
         
-        # Límites específicos para proxy
-        proxy_connect_timeout 60s;
-        proxy_send_timeout 60s;
-        proxy_read_timeout 60s;
-    }
-    
-    # Backend (Django) bajo /api/
-    location /api/static/ {
-        alias /var/www/ferbaq_crm_backend/static/;
-    }
-    
-    location /endpoint/ {
-        include proxy_params;
-        proxy_pass http://127.0.0.1:8080;
+         # API routes - que Next.js maneje el proxy
+        location /api/ {
+            proxy_pass http://localhost:3000;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto https;
+            proxy_connect_timeout 60s;
+            proxy_send_timeout 60s;
+            proxy_read_timeout 60s;
+        }   
+        location /api/static/ {
+            alias /var/www/ferbaq_crm_backend/static/;
+        }
         
-        # Límites para el backend también
-        proxy_connect_timeout 60s;
-        proxy_send_timeout 60s;
-        proxy_read_timeout 60s;
+        location /endpoint/ {
+            include proxy_params;
+            proxy_pass http://127.0.0.1:8080; # Cambiado del socket a TCP
+            # Límites para el backend también
+            proxy_connect_timeout 60s;
+            proxy_send_timeout 60s;
+            proxy_read_timeout 60s;
+          }
+        listen 443 ssl; # managed by Certbot
+        ssl_certificate /etc/letsencrypt/live/crm.portal-ferbaq.net/fullchain.pem; # managed by Certbot
+        ssl_certificate_key /etc/letsencrypt/live/crm.portal-ferbaq.net/privkey.pem; # managed by Certbot
+        include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+        ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
     }
-}
+    server {
+        if ($host = crm.portal-ferbaq.net) {
+            return 301 https://$host$request_uri;
+        } # managed by Certbot
+        listen 80;
+        server_name crm.portal-ferbaq.net;
+        return 404; # managed by Certbot
+    }
 ```
  Crear el nuevo enlace simbólico para el archivo combinado
 
@@ -566,6 +623,25 @@ server {
     sudo systemctl status nginx
 ```
 
+## DESPLIEGUE AUTOMÁTICO CI/CD DJANGO + REDIS + POSTGRES EN EC2
+Para realizar el despliegue automático utilizando la integración continua, se utiliza el GithubAction, y para ello se 
+especifican en los archivos deploy.yml y deploy-dev.yml, las directivas de como se va a realizar el despliegue del backend,
+tanto para el entorno de producción como de desarrollo respectivamente.
+
+* Se ejecuta automáticamente al hacer push a la rama main para producción y develop para desarrollo.
+* También puedes lanzarlo manualmente desde la UI con workflow_dispatch.
+* Las variables: 
+    * EC2_USER: ubuntu, 
+    * EC2_HOST_DEV: DNS público del EC2 de desarrollo, 
+    * EC2_HOST_PROD: DNS público del EC2 de producción, 
+    * EC2_PROJECT_DIR: /var/www/ferbaq_crm_backend, 
+    * EC2_SSH_PRIVATE_KEY: poner el valor del archivo de la llave privada, 
+    * HEALTH_URL: endpoint/health, 
+
+Las variables se registran en el setting del proyecto, dentro del Github. Ir a Secrets and Variables y seleccionar Actions
+
+## Otras actividades útiles
+
  Si no tienes respuesta en los endpoints:
 
 ```bash
@@ -578,7 +654,7 @@ server {
   journalctl -u nginx -n 50 --no-pager
 ```
 
-### Utilizar glances o htop- Para monitoreo general del sistema dentro del EC2.
+Utilizar glances o htop- Para monitoreo general del sistema dentro del EC2.
 
 - Parar Gunicorn
 ```bash
@@ -612,7 +688,7 @@ Cambiar la contraseña de un usuario desde Django Shell
  user.save()
 ```
 
-## Configurar CloudWatch en EC2
+### Configurar CloudWatch en EC2
 
 ### Verificar permisos IAM
 Tu instancia EC2 necesita un Role con la política CloudWatchAgentServerPolicy
@@ -649,6 +725,8 @@ amazon-cloudwatch-agent-ctl -a status
 
 y pegar este contenido
 ```bash
+sudo nano /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.d/file_amazon-cloudwatch-agent.json
+
 {
   "logs": {
     "logs_collected": {
@@ -656,38 +734,171 @@ y pegar este contenido
         "collect_list": [
           {
             "file_path": "/var/log/django/error.log",
-            "log_group_name": "ferbaq-application-errors",
-            "log_stream_name": "{instance_id}"
+            "log_group_name": "crm-development-errors",
+            "log_stream_name": "django-dev-{instance_id}",
+            "timezone": "UTC"
+          },
+          {
+            "file_path": "/var/log/django/django.log", 
+            "log_group_name": "crm-development-application",
+            "log_stream_name": "django-dev-{instance_id}",
+            "timezone": "UTC"
           },
           {
             "file_path": "/var/log/gunicorn/error.log",
-            "log_group_name": "ferbaq-application-errors",
-            "log_stream_name": "{instance_id}"
-          },
-          {
-            "file_path": "/var/log/rqworker/error.log",
-            "log_group_name": "ferbaq-application-errors",
-            "log_stream_name": "{instance_id}"
-          },
-          {
-            "file_path": "/var/log/nginx/error.log",
-            "log_group_name": "ferbaq-application-errors",
-            "log_stream_name": "{instance_id}"
-          },
-          {
-            "file_path": "/var/log/nginx/access.log",
-            "log_group_name": "ferbaq-application-access",
-            "log_stream_name": "{instance_id}"
+            "log_group_name": "crm-development-errors", 
+            "log_stream_name": "gunicorn-dev-{instance_id}",
+            "timezone": "UTC"
           },
           {
             "file_path": "/var/log/gunicorn/access.log",
-            "log_group_name": "ferbaq-application-access",
-            "log_stream_name": "{instance_id}"
+            "log_group_name": "crm-development-access",
+            "log_stream_name": "gunicorn-dev-{instance_id}",
+            "timezone": "UTC"
+          },
+          {
+            "file_path": "/var/log/rqworker/error.log",
+            "log_group_name": "crm-development-errors",
+            "log_stream_name": "rqworker-dev-{instance_id}",
+            "timezone": "UTC"
+          },
+          {
+            "file_path": "/var/log/rqworker/access.log",
+            "log_group_name": "crm-development-workers",
+            "log_stream_name": "rqworker-dev-{instance_id}",
+            "timezone": "UTC"
+          },
+          {
+            "file_path": "/var/log/nginx/error.log",
+            "log_group_name": "crm-development-errors",
+            "log_stream_name": "nginx-dev-{instance_id}",
+            "timezone": "UTC"
+          },
+          {
+            "file_path": "/var/log/nginx/access.log",
+            "log_group_name": "crm-development-access", 
+            "log_stream_name": "nginx-dev-{instance_id}",
+            "timezone": "UTC"
           }
         ]
       }
     }
   }
+}
+```
+Para producción puede ser esta configuración
+```bash
+  sudo nano /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.d/file_amazon-cloudwatch-agent.json
+{
+  "logs": {
+    "logs_collected": {
+      "files": {
+        "collect_list": [
+          {
+            "file_path": "/var/log/django/error.log",
+            "log_group_name": "crm-production-errors",
+            "log_stream_name": "django-prod-{instance_id}",
+            "timezone": "UTC"
+          },
+          {
+            "file_path": "/var/log/django/django.log", 
+            "log_group_name": "crm-production-application",
+            "log_stream_name": "django-prod-{instance_id}",
+            "timezone": "UTC"
+          },
+          {
+            "file_path": "/var/log/gunicorn/error.log",
+            "log_group_name": "crm-production-errors", 
+            "log_stream_name": "gunicorn-prod-{instance_id}",
+            "timezone": "UTC"
+          },
+          {
+            "file_path": "/var/log/gunicorn/access.log",
+            "log_group_name": "crm-production-access",
+            "log_stream_name": "gunicorn-prod-{instance_id}",
+            "timezone": "UTC"
+          },
+           {
+            "file_path": "/var/log/rqworker/error.log",
+            "log_group_name": "crm-production-errors",
+            "log_stream_name": "rqworker-prod-{instance_id}",
+            "timezone": "UTC"
+          },
+          {
+            "file_path": "/var/log/rqworker/access.log",
+            "log_group_name": "crm-production-workers",
+            "log_stream_name": "rqworker-prod-{instance_id}",
+            "timezone": "UTC"
+          },
+          {
+            "file_path": "/var/log/nginx/error.log",
+            "log_group_name": "crm-production-errors",
+            "log_stream_name": "nginx-prod-{instance_id}",
+            "timezone": "UTC"
+          },
+          {
+            "file_path": "/var/log/nginx/access.log",
+            "log_group_name": "crm-production-access", 
+            "log_stream_name": "nginx-prod-{instance_id}",
+            "timezone": "UTC"
+          }
+        ]
+      }
+    }
+  }
+}
+```
+
+También se debe revisar este fichero log-config la cual debe tener esta configuración
+```bash
+ sudo nano /opt/aws/amazon-cloudwatch-agent/etc/log-config.json
+ ```
+```bash
+{
+"version":"1",
+"log_configs":[
+        {"log_group_name":"crm-development-access"},
+        {"log_group_name":"crm-development-application"},
+        {"log_group_name":"crm-development-errors"},
+        {"log_group_name":"crm-development-workers"}
+        ],
+"region":"us-east-2"
+}
+```
+Se debe reiniciar de esta manera:
+```bash
+ sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -m ec2 -a stop # o start para reiniciar
+```
+
+### Crear política
+Es importante para que funcione la configuracion de cloudwatch anterior, que tenga permiso.
+Para eso se debe crear la siguiente politica y luego asignarla a un rol, y este rol asignarla a la instancia
+Esta es la política con nombre: ´CloudWatchAgentServerPolicy´
+```bash
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:PutLogEvents",
+                "logs:DescribeLogStreams",
+                "logs:DescribeLogGroups"
+            ],
+            "Resource": "arn:aws:logs:*:*:*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ec2:DescribeVolumes",
+                "ec2:DescribeTags",
+                "cloudwatch:PutMetricData"
+            ],
+            "Resource": "*"
+        }
+    ]
 }
 ```
    Este JSON hace que el agente lea el log de Django y lo envíe al grupo ferbaq-django-errors en CloudWatch.
@@ -742,3 +953,95 @@ Ver los logs en tiempo real
 2. Busca ferbaq-django-errors
 
 3. Abre el stream con el nombre de tu instancia y confirma que los errores se están enviando.
+
+Si estás en Development:
+
+crm-development-errors
+crm-development-application
+crm-development-access
+crm-development-workers
+Si estás en Production:
+
+crm-production-errors
+crm-production-application
+crm-production-access
+crm-production-workers
+
+### Ajustes clave para que no se llene el disco
+
+Redis (/etc/redis/redis.conf):
+```bash
+    maxmemory 512mb
+    maxmemory-policy allkeys-lru
+```
+
+Logs
+```bash
+    journalctl --vacuum-size=200M
+```
+
+Builds
+```bash
+    "prebuild": "rm -rf .next"
+```
+
+Swap
+
+```bash
+    sudo fallocate -l 2G /swapfile
+    sudo chmod 600 /swapfile
+    sudo mkswap /swapfile
+    echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+    sudo swapon -a
+```
+
+### Revisar aplicaciones específicas
+ Ver qué está ocupando más espacio en /var
+```bash
+  sudo du -sh /var/* | sort -hr
+```
+Revisar aplicaciones web (nginx)
+```bash
+  sudo du -sh /var/log/nginx/* 2>/dev/null
+```
+
+###  Limpiar archivos temporales
+
+```bash
+sudo rm -rf /tmp/*
+rm -rf ~/.cache/*
+rm -rf ~/.thumbnails/*
+```
+
+### Limpiar cache de APT
+```bash
+ sudo apt-get clean
+ sudo apt-get autoclean
+ sudo apt-get autoremove
+```
+### Limpiar archivos Python compilados
+```bash
+ sudo find /var/www -name "*.pyc" -delete
+ sudo find /var/www -type d -name "__pycache__" -exec rm -rf {} +
+```
+
+### Solo eliminar cache y archivos temporales de front 
+
+ Ver qué subcarpetas ocupan más espacio dentro de .next
+```bash
+ sudo du -sh /var/www/ferbaq-crm-front/.next/* | sort -hr
+```
+Eliminar 
+```bash
+sudo rm -rf /var/www/ferbaq-crm-front/.next/cache/
+sudo rm -rf /var/www/ferbaq-crm-front/.next/trace/
+```
+
+Monitoreo recomendado
+
+CloudWatch Agent (CPU, RAM, disco, red) + alarmas de Uso de disco > 80% y RAM > 85%.
+
+En el server: htop, df -h, ncdu / y du -h --max-depth=1 /var | sort -h
+
+Para 20 usuarios internos con Next.js + Django + Redis (BD externa):
+t3.medium (4 GB RAM) + 40–60 GB → mínimo razonable.
