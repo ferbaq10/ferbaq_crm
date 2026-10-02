@@ -133,6 +133,7 @@ class OpportunityViewSet(CachedViewSet):
 
     @transaction.atomic
     def update(self, request, *args, **kwargs):
+        print("🚀 ENTRANDO AL UPDATE")
         try:
             user = self.request.user
             instance = self.get_object()
@@ -141,6 +142,10 @@ class OpportunityViewSet(CachedViewSet):
             serializer.is_valid(raise_exception=True)
 
             files = request.FILES.getlist('documents')
+            print(f"🔍 REQUEST.FILES completo: {request.FILES}")
+            print(f"🔍 REQUEST.FILES.keys(): {list(request.FILES.keys())}")
+            print(f"🔍 FILES extraídos con getlist('documents'): {files}")
+            print(f"🔍 Cantidad de archivos: {len(files)}")
 
             opportunity = self.opportunity_service.process_update(serializer, request.data, files)
 
@@ -163,6 +168,10 @@ class OpportunityViewSet(CachedViewSet):
             logger.exception(f"[ERROR - update()]{e}")
             raise APIException('Error interno del servidor.')
 
+    @transaction.atomic
+    def partial_update(self, request, *args, **kwargs):
+        kwargs['partial'] = True
+        return self.update(request, *args, **kwargs)
 class CommercialActivityViewSet(CachedViewSet):
     model = CommercialActivity
     serializer_class = CommercialActivitySerializer
