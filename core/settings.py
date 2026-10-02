@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     'purchase',
     'activity_log',
     'users',
+    'commercial_config.apps.CommercialConfigConfig',
 ]
 
 MIDDLEWARE = [
