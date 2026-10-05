@@ -1,31 +1,11 @@
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Q
 from simple_history.models import HistoricalRecords
 
-from catalog.models import (
-    BaseModel,
-    City,
-    UDN,
-    WorkCell,
-)
-from client.models import Client
-from contact.models import Contact
-from project.models import Project
+from catalog.models import BaseModel
 
 
 class DeliverySite(BaseModel):
-    """
-    Sitio físico de entrega asociado a uno o varios
-    centros de costo.
-
-    Ejemplos:
-    - Los Mochis
-    - Monterrey
-    - Querétaro
-    - México Centro
-    """
-
     code = models.CharField(
         max_length=50,
         unique=True,
@@ -46,11 +26,11 @@ class DeliverySite(BaseModel):
     )
 
     city = models.ForeignKey(
-        City,
+        'catalog.City',
         on_delete=models.PROTECT,
+        related_name='delivery_sites',
         blank=True,
         null=True,
-        related_name='delivery_sites',
         verbose_name='Ciudad',
     )
 
@@ -78,22 +58,13 @@ class DeliverySite(BaseModel):
         db_table = 'commercial_delivery_sites'
         verbose_name = 'Sitio de entrega'
         verbose_name_plural = 'Sitios de entrega'
-        ordering = [
-            'name',
-        ]
+        ordering = ['name']
 
     def __str__(self):
-        return self.name
+        return f'{self.code} - {self.name}'
 
 
 class CostCenter(BaseModel):
-    """
-    Centro de costo maestro.
-
-    Contiene la configuración financiera y logística
-    predeterminada que posteriormente heredará el pedido.
-    """
-
     code = models.CharField(
         max_length=50,
         unique=True,
@@ -123,7 +94,7 @@ class CostCenter(BaseModel):
     )
 
     collection_contact = models.ForeignKey(
-        Contact,
+        'contact.Contact',
         on_delete=models.PROTECT,
         related_name='collection_cost_centers',
         blank=True,
@@ -148,9 +119,7 @@ class CostCenter(BaseModel):
         db_table = 'commercial_cost_centers'
         verbose_name = 'Centro de costo'
         verbose_name_plural = 'Centros de costo'
-        ordering = [
-            'code',
-        ]
+        ordering = ['code']
 
     def __str__(self):
         if self.name:
@@ -160,53 +129,37 @@ class CostCenter(BaseModel):
 
 
 class ClientProjectConfiguration(BaseModel):
-    """
-    Configuración maestra de una combinación
-    Cliente + Proyecto.
+    VALIDATION_PENDING = 'PENDING'
+    VALIDATION_APPROVED = 'APPROVED'
+    VALIDATION_REJECTED = 'REJECTED'
 
-    Esta será la fuente de verdad para determinar:
-    - UDN
-    - Centro de costo
-    - Centro de costo del cliente
-    - Célula opcional
-
-    La combinación Cliente + Proyecto debe tener una sola
-    configuración vigente.
-    """
-
-    class ValidationStatus(models.TextChoices):
-        PENDING = (
-            'PENDING',
+    VALIDATION_STATUS_CHOICES = [
+        (
+            VALIDATION_PENDING,
             'Pendiente de validación',
-        )
-        APPROVED = (
-            'APPROVED',
+        ),
+        (
+            VALIDATION_APPROVED,
             'Aprobada',
-        )
-        REJECTED = (
-            'REJECTED',
+        ),
+        (
+            VALIDATION_REJECTED,
             'Rechazada',
-        )
+        ),
+    ]
 
     client = models.ForeignKey(
-        Client,
+        'client.Client',
         on_delete=models.PROTECT,
         related_name='project_configurations',
         verbose_name='Cliente',
     )
 
     project = models.ForeignKey(
-        Project,
+        'project.Project',
         on_delete=models.PROTECT,
         related_name='client_configurations',
         verbose_name='Proyecto',
-    )
-
-    udn = models.ForeignKey(
-        UDN,
-        on_delete=models.PROTECT,
-        related_name='client_project_configurations',
-        verbose_name='UDN',
     )
 
     cost_center = models.ForeignKey(
@@ -227,23 +180,49 @@ class ClientProjectConfiguration(BaseModel):
         ),
     )
 
-    work_cell = models.ForeignKey(
-        WorkCell,
+    # ==========================================================
+    # CAMPOS LEGADO
+    # ==========================================================
+    #
+    # Se conservan temporalmente porque Portal FERBAQ todavía
+    # los consume.
+    #
+    # La nueva fuente operativa serán ClientProjectRoute
+    # y ClientProjectRouteWorkCell.
+    #
+    # NO deben usarse para nuevas reglas de negocio.
+    # ==========================================================
+
+    udn = models.ForeignKey(
+        'catalog.UDN',
         on_delete=models.PROTECT,
         related_name='client_project_configurations',
         blank=True,
         null=True,
-        verbose_name='Célula de trabajo',
+        verbose_name='UDN legado',
         help_text=(
-            'Dato comercial opcional. '
-            'La UDN es la dimensión operativa principal.'
+            'Campo legado. La UDN operativa debe obtenerse '
+            'de las rutas de la configuración.'
+        ),
+    )
+
+    work_cell = models.ForeignKey(
+        'catalog.WorkCell',
+        on_delete=models.PROTECT,
+        related_name='client_project_configurations',
+        blank=True,
+        null=True,
+        verbose_name='Célula legado',
+        help_text=(
+            'Campo legado. La visibilidad comercial debe '
+            'obtenerse de las células autorizadas de cada ruta.'
         ),
     )
 
     validation_status = models.CharField(
         max_length=20,
-        choices=ValidationStatus.choices,
-        default=ValidationStatus.PENDING,
+        choices=VALIDATION_STATUS_CHOICES,
+        default=VALIDATION_PENDING,
         verbose_name='Estatus de validación',
     )
 
@@ -289,21 +268,7 @@ class ClientProjectConfiguration(BaseModel):
         ordering = [
             'client__company',
             'project__name',
-        ]
-
-        constraints = [
-            models.UniqueConstraint(
-                fields=[
-                    'client',
-                    'project',
-                ],
-                condition=Q(
-                    is_removed=False
-                ),
-                name=(
-                    'unique_active_client_project_config'
-                ),
-            ),
+            'cost_center__code',
         ]
 
         indexes = [
@@ -323,12 +288,22 @@ class ClientProjectConfiguration(BaseModel):
             ),
         ]
 
+        constraints = [
+            models.UniqueConstraint(
+                fields=[
+                    'client',
+                    'project',
+                    'cost_center',
+                ],
+                condition=models.Q(
+                    is_removed=False,
+                ),
+                name='uniq_active_cfg_client_project_cc',
+            ),
+        ]
+
     def clean(self):
         super().clean()
-
-        # -------------------------------------------------
-        # El proyecto debe pertenecer al cliente.
-        # -------------------------------------------------
 
         if (
             self.client_id
@@ -337,7 +312,7 @@ class ClientProjectConfiguration(BaseModel):
             pertenece = (
                 self.client.projects
                 .filter(
-                    pk=self.project_id
+                    pk=self.project_id,
                 )
                 .exists()
             )
@@ -345,31 +320,191 @@ class ClientProjectConfiguration(BaseModel):
             if not pertenece:
                 raise ValidationError({
                     'project': (
-                        'El proyecto seleccionado no está '
-                        'asociado al cliente seleccionado.'
+                        'El proyecto seleccionado no pertenece '
+                        'al cliente seleccionado.'
                     ),
                 })
 
-        # -------------------------------------------------
-        # Si existe célula, debe pertenecer a la misma UDN.
-        # -------------------------------------------------
+    def __str__(self):
+        return (
+            f'{self.client} / '
+            f'{self.project} / '
+            f'{self.cost_center}'
+        )
 
-        if (
-            self.work_cell_id
-            and self.udn_id
-            and self.work_cell.udn_id
-            != self.udn_id
-        ):
-            raise ValidationError({
-                'work_cell': (
-                    'La célula seleccionada pertenece '
-                    'a una UDN diferente.'
+
+class ClientProjectRoute(BaseModel):
+    """
+    Ruta operativa válida para una configuración comercial.
+
+    Una misma configuración Cliente + Proyecto + Centro de costo
+    puede operar por varias UDN.
+    """
+
+    configuration = models.ForeignKey(
+        ClientProjectConfiguration,
+        on_delete=models.PROTECT,
+        related_name='routes',
+        verbose_name='Configuración comercial',
+    )
+
+    udn = models.ForeignKey(
+        'catalog.UDN',
+        on_delete=models.PROTECT,
+        related_name='commercial_routes',
+        verbose_name='UDN',
+    )
+
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name='Activa',
+    )
+
+    notes = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name='Notas',
+    )
+
+    history = HistoricalRecords()
+
+    class Meta:
+        db_table = 'commercial_client_project_routes'
+
+        verbose_name = 'Ruta comercial'
+        verbose_name_plural = 'Rutas comerciales'
+
+        ordering = [
+            'configuration_id',
+            'udn__name',
+        ]
+
+        indexes = [
+            models.Index(
+                fields=[
+                    'configuration',
+                    'is_active',
+                ],
+                name='idx_route_cfg_active',
+            ),
+            models.Index(
+                fields=[
+                    'udn',
+                    'is_active',
+                ],
+                name='idx_route_udn_active',
+            ),
+        ]
+
+        constraints = [
+            models.UniqueConstraint(
+                fields=[
+                    'configuration',
+                    'udn',
+                ],
+                condition=models.Q(
+                    is_removed=False,
                 ),
-            })
+                name='uniq_active_cfg_udn_route',
+            ),
+        ]
 
     def __str__(self):
         return (
-            f'{self.client.company} - '
-            f'{self.project.name} - '
-            f'{self.cost_center.code}'
+            f'{self.configuration} / '
+            f'{self.udn}'
+        )
+
+
+class ClientProjectRouteWorkCell(BaseModel):
+    """
+    Célula comercial autorizada para utilizar una ruta.
+
+    Importante:
+    la célula NO necesita pertenecer a la misma UDN de la ruta.
+
+    Ejemplo:
+    Célula 3 puede estar autorizada tanto para Centro
+    como para Noroeste.
+    """
+
+    route = models.ForeignKey(
+        ClientProjectRoute,
+        on_delete=models.PROTECT,
+        related_name='work_cell_assignments',
+        verbose_name='Ruta comercial',
+    )
+
+    work_cell = models.ForeignKey(
+        'catalog.WorkCell',
+        on_delete=models.PROTECT,
+        related_name='commercial_route_assignments',
+        verbose_name='Célula autorizada',
+    )
+
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name='Activa',
+    )
+
+    notes = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name='Notas',
+    )
+
+    history = HistoricalRecords()
+
+    class Meta:
+        db_table = (
+            'commercial_client_project_route_work_cells'
+        )
+
+        verbose_name = (
+            'Célula autorizada para ruta comercial'
+        )
+
+        verbose_name_plural = (
+            'Células autorizadas para rutas comerciales'
+        )
+
+        ordering = [
+            'route_id',
+            'work_cell__name',
+        ]
+
+        indexes = [
+            models.Index(
+                fields=[
+                    'route',
+                    'is_active',
+                ],
+                name='idx_route_cell_active',
+            ),
+            models.Index(
+                fields=[
+                    'work_cell',
+                    'is_active',
+                ],
+                name='idx_cell_route_active',
+            ),
+        ]
+
+        constraints = [
+            models.UniqueConstraint(
+                fields=[
+                    'route',
+                    'work_cell',
+                ],
+                condition=models.Q(
+                    is_removed=False,
+                ),
+                name='uniq_active_route_work_cell',
+            ),
+        ]
+
+    def __str__(self):
+        return (
+            f'{self.route} / '
+            f'{self.work_cell}'
         )
