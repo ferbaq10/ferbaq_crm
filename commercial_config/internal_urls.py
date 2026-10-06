@@ -8,6 +8,13 @@ from .internal_api import (
     route_state,
 )
 
+from .internal_catalog_api import (
+    cost_center_save,
+    cost_center_state,
+    delivery_site_save,
+    delivery_site_state,
+)
+
 
 app_name = 'commercial_config_internal'
 
@@ -18,6 +25,42 @@ urlpatterns = [
         health,
         name='health',
     ),
+
+    # ========================================================
+    # SITIOS DE ENTREGA
+    # ========================================================
+
+    path(
+        'delivery-site/save/',
+        delivery_site_save,
+        name='delivery_site_save',
+    ),
+
+    path(
+        'delivery-site/state/',
+        delivery_site_state,
+        name='delivery_site_state',
+    ),
+
+    # ========================================================
+    # CENTROS DE COSTO
+    # ========================================================
+
+    path(
+        'cost-center/save/',
+        cost_center_save,
+        name='cost_center_save',
+    ),
+
+    path(
+        'cost-center/state/',
+        cost_center_state,
+        name='cost_center_state',
+    ),
+
+    # ========================================================
+    # CLIENTES + PROYECTOS
+    # ========================================================
 
     path(
         'configuration/save/',
@@ -30,6 +73,10 @@ urlpatterns = [
         configuration_state,
         name='configuration_state',
     ),
+
+    # ========================================================
+    # RUTAS
+    # ========================================================
 
     path(
         'route/save/',
