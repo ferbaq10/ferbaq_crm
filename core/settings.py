@@ -385,5 +385,10 @@ DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=f'Ferbaq Opportunity M
 
 FRONTEND_URL = config('FRONTEND_URL', default='')
 
+PORTAL_COMMERCIAL_CONFIG_API_KEY = config(
+    'PORTAL_COMMERCIAL_CONFIG_API_KEY',
+    default=''
+)
+
 # Agregar carpeta de templates para emails (dentro de users)
 TEMPLATES[0]['DIRS'].append(BASE_DIR / 'users' / 'templates')
