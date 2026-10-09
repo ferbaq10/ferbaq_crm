@@ -1,4 +1,5 @@
 from django.urls import path
+from .internal_credit_api import credit_configuration_complete
 
 from .internal_api import (
     configuration_save,
@@ -20,6 +21,7 @@ app_name = 'commercial_config_internal'
 
 
 urlpatterns = [
+    path('configuration/credit-complete/', credit_configuration_complete, name='credit_configuration_complete'),
     path(
         'health/',
         health,
