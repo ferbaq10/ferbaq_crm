@@ -23,6 +23,11 @@ urlpatterns = [
     path('auth/', include('djoser.urls')),
     path('auth/', include('djoser.urls.jwt')),
 
+path(
+    'internal-api/commercial-config/',
+    include('commercial_config.internal_urls')
+),
+
     path('endpoint/', include([
         path('', include('users.urls')),
         path('catalog/', include('catalog.urls')),

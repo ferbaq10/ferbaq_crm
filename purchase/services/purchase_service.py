@@ -24,11 +24,9 @@ class PurchaseService(BaseService):
         self.purchase_factory = purchase_factory
 
     def get_filtered_queryset(self, user) -> QuerySet:
-        current_year = datetime.now().year
-
+        
         base_queryset = self.get_base_optimized_queryset(user)
 
-        filters = Q(created__year=current_year)
         filters &= Q(closing_percentage__gte=OpportunityFilters.CLOSING_PERCENTAGE)
         filters &= (
                 Q(currency_id=CurrencyIDs.MN, amount__gte=OpportunityFilters.AMOUNT_MN) |

@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'purchase',
     'activity_log',
     'users',
+    'commercial_config.apps.CommercialConfigConfig',
 ]
 
 GRAPHENE = {
@@ -397,6 +398,11 @@ EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=f'Ferbaq Opportunity Manager <{EMAIL_HOST_USER}>')
 
 FRONTEND_URL = config('FRONTEND_URL', default='')
+
+PORTAL_COMMERCIAL_CONFIG_API_KEY = config(
+    'PORTAL_COMMERCIAL_CONFIG_API_KEY',
+    default=''
+)
 
 # Agregar carpeta de templates para emails (dentro de users)
 TEMPLATES[0]['DIRS'].append(BASE_DIR / 'users' / 'templates')
