@@ -15,4 +15,4 @@ class OpportunityFilters:
     AMOUNT_USD = 13000
 
 class StatusPurchaseTypeIDs:
-    PENDING = 1
+    PENDING = 1
