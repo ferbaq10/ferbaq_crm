@@ -1,6 +1,7 @@
 class StatusIDs:
     SEND = 3
     NEGOTIATING = 4
+    TO_CLOSE = 7  # 'Por cerrar' (va después de Negociando y antes de Ganada/Perdida)
     WON = 5
     LOST = 6
 

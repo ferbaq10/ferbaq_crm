@@ -252,7 +252,7 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
                     errors['cash_percentage'] = f'El total de porcentaje de contado y de crédito debe ser igual a 100.'
 
         # ===== Reglas por estado (solo si conocemos el estado) =====
-        states_requiring_fields = [StatusIDs.SEND, StatusIDs.NEGOTIATING, StatusIDs.WON]
+        states_requiring_fields = [StatusIDs.SEND, StatusIDs.NEGOTIATING, StatusIDs.TO_CLOSE, StatusIDs.WON]
 
         currency = attrs.get("currency", getattr(self.instance, "currency", None))
         lost_opportunity = attrs.get("lost_opportunity", getattr(self.instance, "lost_opportunity", None))
@@ -273,6 +273,13 @@ class OpportunityWriteSerializer(serializers.ModelSerializer):
                 # order_closing_date requerido en WON
                 if not order_closing_date:
                     errors['order_closing_date'] = 'La fecha de cierre es obligatoria para oportunidades ganadas.'
+
+        # Por cerrar: la fecha de cierre (order_closing_date de la oportunidad) es obligatoria,
+        # porque el KPI "Oportunidades por cerrar" se mide por la semana de esa fecha.
+        if status_id == StatusIDs.TO_CLOSE:
+            close_date = attrs.get("order_closing_date", getattr(self.instance, "order_closing_date", None))
+            if not close_date:
+                errors['order_closing_date'] = 'La fecha de cierre es obligatoria para oportunidades por cerrar.'
 
         # Perdidas
         if status_id == StatusIDs.LOST:
