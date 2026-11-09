@@ -255,6 +255,11 @@ TIME_ZONE = 'UTC'
 
 USE_TZ = True
 
+# --- Visibilidad de oportunidades ---
+# Solo se listan oportunidades CREADAS desde esta fecha (hora de México). Formato AAAA-MM-DD.
+# Para cambiarla sin tocar código: variable OPPORTUNITIES_VISIBLE_FROM en el .env. Vacía = sin filtro.
+OPPORTUNITIES_VISIBLE_FROM = config('OPPORTUNITIES_VISIBLE_FROM', default='2026-11-01')
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 

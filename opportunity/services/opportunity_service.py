@@ -1,7 +1,9 @@
 import logging
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from typing import TypeVar
 
+from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.db.models import Prefetch, QuerySet
 from django.utils import timezone
@@ -83,7 +85,27 @@ class OpportunityService(BaseService):
         )
 
     def get_filtered_queryset(self, user):
-        return self.get_base_queryset(user).order_by('-created')
+        queryset = self.get_base_queryset(user)
+        visible_from = self._visible_from()
+        if visible_from is not None:
+            queryset = queryset.filter(created__gte=visible_from)
+        return queryset.order_by('-created')
+
+    @staticmethod
+    def _visible_from():
+        """
+        Fecha desde la cual se listan oportunidades (settings.OPPORTUNITIES_VISIBLE_FROM, AAAA-MM-DD,
+        medianoche de la Ciudad de México). Devuelve None si no está configurada o es inválida.
+        """
+        raw = getattr(settings, 'OPPORTUNITIES_VISIBLE_FROM', None)
+        if not raw:
+            return None
+        try:
+            day = datetime.strptime(str(raw).strip(), '%Y-%m-%d')
+        except ValueError:
+            logger.error("OPPORTUNITIES_VISIBLE_FROM inválida (%r); se muestra todo.", raw)
+            return None
+        return day.replace(tzinfo=ZoneInfo('America/Mexico_City'))
 
     # =========================================================
     # CREATE
